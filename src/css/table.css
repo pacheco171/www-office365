@@ -1,0 +1,46 @@
+/* TABLE */
+.table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:11px;overflow:hidden;}
+table{width:100%;border-collapse:collapse;}
+thead tr{background:var(--sand-lt);border-bottom:1px solid var(--border);}
+th{text-align:left;padding:11px 14px;font-size:9.5px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;font-weight:700;white-space:nowrap;}
+th.sort{cursor:pointer;user-select:none;}
+th.sort:hover{color:var(--black);}
+tbody tr{border-bottom:1px solid var(--border);transition:background .12s;cursor:pointer;}
+tbody tr:last-child{border-bottom:none;}
+tbody tr:hover{background:var(--surface2);}
+td{padding:11px 14px;vertical-align:middle;}
+.person-cell{display:flex;align-items:center;gap:10px;}
+.avatar{width:32px;height:32px;border-radius:50%;background:var(--sand);color:var(--brown);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0;}
+.person-name{font-weight:600;font-size:13px;}
+.person-email{font-size:11px;color:var(--muted);}
+.dept-tag{font-size:11px;color:var(--muted);background:var(--sand-lt);padding:3px 8px;border-radius:4px;font-weight:600;}
+.cost-val{font-size:13px;font-weight:700;}
+.cost-per{font-size:11px;color:var(--muted);}
+.date-cell{font-size:12px;color:var(--muted);}
+.act-btn{background:none;border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer;transition:all .18s;font-family:'Barlow',sans-serif;font-weight:700;text-transform:uppercase;}
+.act-btn:hover{border-color:var(--tan);color:var(--brown);}
+.table-footer{display:flex;justify-content:space-between;align-items:center;padding:11px 14px;background:var(--surface2);border-top:1px solid var(--border);gap:12px;flex-wrap:wrap;}
+.table-footer-left{display:flex;align-items:center;gap:16px;}
+.table-info{font-size:12px;color:var(--muted);}
+.per-page{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);}
+.per-page select{padding:4px 8px;border:1px solid var(--border);border-radius:5px;background:var(--surface);color:var(--black);font-size:12px;font-family:'Barlow',sans-serif;font-weight:600;cursor:pointer;}
+.per-page select:hover{border-color:var(--tan);}
+.pagination{display:flex;gap:3px;}
+.page-btn{min-width:29px;height:29px;padding:0 7px;border-radius:5px;border:1px solid var(--border);background:none;color:var(--muted);cursor:pointer;font-size:12px;font-family:'Barlow',sans-serif;font-weight:600;display:flex;align-items:center;justify-content:center;transition:all .18s;}
+.page-btn:hover,.page-btn.active{background:var(--black);border-color:var(--black);color:#fff;}
+
+.badge{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700;white-space:nowrap;}
+.bdot{width:5px;height:5px;border-radius:50%;}
+.b-active{background:rgba(90,138,106,.12);color:var(--green);border:1px solid rgba(90,138,106,.25);}
+.b-inactive{background:rgba(138,128,112,.1);color:var(--muted);border:1px solid rgba(138,128,112,.2);}
+.b-pending{background:rgba(184,144,58,.12);color:var(--yellow);border:1px solid rgba(184,144,58,.25);}
+.lic-badge{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:4px;font-size:11px;font-weight:700;border:1px solid;white-space:nowrap;}
+.lic-bstd{background:rgba(122,92,48,.1);color:#7a5c30;border-color:rgba(122,92,48,.3);}
+.lic-bbasic{background:rgba(156,122,82,.1);color:#9c7a52;border-color:rgba(156,122,82,.25);}
+.lic-apps{background:rgba(201,122,32,.1);color:#c97a20;border-color:rgba(201,122,32,.25);}
+.lic-f3{background:rgba(0,120,212,.08);color:#0078d4;border-color:rgba(0,120,212,.2);}
+.lic-e3{background:rgba(58,112,80,.1);color:#3a7050;border-color:rgba(58,112,80,.25);}
+.lic-pbi{background:rgba(184,144,58,.12);color:#b8903a;border-color:rgba(184,144,58,.3);}
+.lic-automate{background:rgba(0,102,204,.08);color:#0066cc;border-color:rgba(0,102,204,.2);}
+.lic-fabric{background:rgba(107,71,196,.08);color:#6b47c4;border-color:rgba(107,71,196,.2);}
+.lic-none{background:var(--sand-lt);color:var(--muted);border-color:var(--border);}

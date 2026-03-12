@@ -1,0 +1,10 @@
+:root{
+  --tan:#b5a48e;--tan-lt:#c9bba8;--sand:#d9cfc3;--sand-lt:#ece7e0;
+  --cream:#f5f1ec;--black:#1e1c1a;--brown:#9c7a52;--brown-lt:#b8966e;
+  --muted:#8a8070;--border:#ddd8d0;--bg:#f2ede8;
+  --surface:#fff;--surface2:#faf8f5;--text:#1e1c1a;
+  --red:#b85c4a;--green:#5a8a6a;--yellow:#b8903a;
+  /* Overlay colors (alpha) */
+  --overlay:rgba(30,28,26,.55);
+  --overlay-light:rgba(30,28,26,.02);
+}

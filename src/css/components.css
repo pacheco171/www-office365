@@ -1,0 +1,46 @@
+/* SETOR EXPAND PANEL */
+.setor-all-panel{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:20px;margin-bottom:24px;display:none;}
+.setor-all-panel.open{display:block;}
+.setor-all-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;}
+.setor-all-item{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--surface2);border-radius:6px;border:1px solid var(--border);}
+.sa-name{flex:1;font-size:12px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sa-val{font-size:12px;font-weight:700;color:var(--black);}
+
+/* MONTH COMPARE BANNER */
+.compare-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px;}
+.compare-card{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:20px;}
+.compare-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;}
+.compare-month{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;}
+.compare-total{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:var(--brown);}
+.compare-row-item{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.compare-row-item:last-child{border-bottom:none;}
+.cri-name{color:var(--muted);}
+.cri-qty{color:var(--muted);font-size:11px;margin-left:auto;margin-right:12px;}
+.cri-val{font-weight:700;}
+.diff-card{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:20px;grid-column:1/-1;}
+.diff-title{font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;font-weight:700;margin-bottom:14px;}
+.diff-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;}
+.diff-row:last-child{border-bottom:none;}
+.diff-lic{flex:1;font-weight:600;}
+.diff-qty{color:var(--muted);font-size:11px;width:80px;}
+.diff-val{font-weight:700;width:80px;text-align:right;}
+.diff-reason{font-size:11px;color:var(--muted);flex:2;}
+.chip{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;}
+.chip-up{background:rgba(184,92,74,.1);color:var(--red);}
+.chip-down{background:rgba(90,138,106,.1);color:var(--green);}
+.chip-neutral{background:var(--sand-lt);color:var(--muted);}
+.no-compare{text-align:center;padding:32px;color:var(--muted);font-size:13px;}
+
+/* DASHBOARD SNAPSHOT TABS */
+.dash-snap-tabs{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap;}
+.dash-snap-tab{
+  padding:4px 12px;border-radius:8px;font-size:11px;font-weight:700;
+  background:var(--surface2);border:1px solid var(--border);color:var(--muted);
+  cursor:pointer;transition:all .15s;text-transform:uppercase;letter-spacing:.5px;
+  font-family:'Barlow Condensed',sans-serif;
+}
+.dash-snap-tab:hover{background:var(--sand-lt);color:var(--black);}
+.dash-snap-tab.active{background:var(--brown);color:#fff;border-color:var(--brown);}
+
+/* SETOR FIXO — lock icon */
+.setor-lock{display:inline-block;font-size:10px;margin-left:3px;vertical-align:middle;opacity:.7;cursor:help;}

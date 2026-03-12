@@ -1,0 +1,51 @@
+/* ══════════ FORECAST ══════════ */
+
+/* Painel principal */
+#forecastPanel{margin-bottom:24px}
+
+/* Botões toggle */
+#forecastToggleBtn,#compareToggleBtn{display:inline-flex;align-items:center;gap:8px;transition:all .2s}
+#forecastToggleBtn:hover,#compareToggleBtn:hover{border-color:var(--brown);color:var(--brown)}
+#forecastToggleBtn.active,#compareToggleBtn.active{background:var(--brown);color:#fff;border-color:var(--brown)}
+
+/* Painel comparativo */
+#comparePanel{margin-bottom:24px}
+
+/* Cards de métricas */
+.fc-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:20px}
+.fc-card{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:18px 22px;position:relative;overflow:hidden;transition:border-color .2s}
+.fc-card:hover{border-color:var(--tan)}
+.fc-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;border-radius:11px 11px 0 0}
+.fc-card--taxa::before{background:var(--brown)}
+.fc-card--base::before{background:var(--green)}
+.fc-card--intervalo::before{background:var(--yellow)}
+.fc-card--horizonte::before{background:var(--muted)}
+.fc-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;font-weight:700;margin-bottom:6px}
+.fc-value{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;line-height:1.1}
+.fc-sub{font-size:11px;color:var(--muted);margin-top:4px}
+
+/* Gráfico */
+.fc-chart-wrap{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:20px;margin-bottom:16px;overflow-x:auto}
+.fc-chart-title{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:12px}
+.fc-chart-legend{display:flex;gap:16px;margin-bottom:14px}
+.fc-legend-item{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--muted);font-weight:600}
+.fc-legend-dot{width:10px;height:10px;border-radius:3px}
+
+/* Tabelas */
+.fc-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:11px;overflow:hidden;margin-bottom:16px}
+.fc-table-hdr{padding:12px 16px;background:var(--sand-lt);border-bottom:1px solid var(--border);font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;font-weight:700}
+#forecastSection table{width:100%;border-collapse:collapse}
+#forecastSection th{background:var(--sand-lt);border-bottom:1px solid var(--border);padding:10px 14px;font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-weight:700;text-align:left}
+#forecastSection td{padding:10px 14px;border-bottom:1px solid var(--border);font-size:13px}
+#forecastSection tr:last-child td{border-bottom:none}
+#forecastSection tr:hover{background:var(--sand-lt)}
+
+/* Cenário badges */
+.fc-scenario{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:700}
+.fc-scenario--otimista{background:rgba(90,138,106,.1);color:var(--green);border:1px solid rgba(90,138,106,.2)}
+.fc-scenario--base,.fc-scenario--realista{background:rgba(122,92,48,.1);color:var(--brown);border:1px solid rgba(122,92,48,.2)}
+.fc-scenario--pessimista{background:rgba(200,60,60,.08);color:var(--red);border:1px solid rgba(200,60,60,.15)}
+
+/* Setor progress bar */
+.fc-setor-bar{height:4px;background:var(--border);border-radius:2px;margin-top:6px;overflow:hidden}
+.fc-setor-bar-fill{height:100%;border-radius:2px;transition:width .3s}

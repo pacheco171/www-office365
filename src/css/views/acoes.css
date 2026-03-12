@@ -1,0 +1,25 @@
+/* ══════════ CENTRO DE AÇÕES ══════════ */
+.acao-kpis{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
+.acao-kpi{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:16px 24px;text-align:center;flex:1;min-width:100px}
+.acao-kpi-val{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800}
+.acao-kpi-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-top:2px}
+.acao-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
+.acao-card{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:16px;cursor:pointer;transition:box-shadow .15s}
+.acao-card:hover{box-shadow:0 4px 16px rgba(0,0,0,.06)}
+.acao-card-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.acao-card-name{font-weight:700;font-size:14px;margin-bottom:4px}
+.acao-card-desc{font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.4}
+.acao-card-footer{display:flex;justify-content:space-between;font-size:11px}
+.acao-card-resp{color:var(--brown);font-weight:600}
+.acao-card-comments{color:var(--muted)}
+.acao-status-badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
+.acao-status-novo{background:rgba(184,92,74,.12);color:var(--red)}
+.acao-status-analise{background:rgba(184,144,58,.12);color:var(--yellow)}
+.acao-status-resolvido{background:rgba(90,138,106,.12);color:var(--green)}
+.acao-status-ignorado{background:var(--sand-lt);color:var(--muted)}
+.acao-cat-badge{display:inline-block;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.acao-cat-red{background:rgba(184,92,74,.08);color:var(--red)}
+.acao-cat-yellow{background:rgba(184,144,58,.08);color:var(--yellow)}
+.acao-comment-item{padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.acao-comment-item:last-child{border-bottom:none}
+.acao-comment-header{display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-bottom:4px}

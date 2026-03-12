@@ -1,0 +1,710 @@
+/* ╔═══════════════════════════════════════════════════════════════════╗
+   ║  UI-KIT  —  Design System leve para LIVE! M365                   ║
+   ║  Tokens · Motion · Depth · Microinterações · Polish              ║
+   ╚═══════════════════════════════════════════════════════════════════╝ */
+
+/* ── 1. DESIGN TOKENS ─────────────────────────────────────────────── */
+:root{
+  /* Spacing (ritmo 4/8/12/16/24/32/48) */
+  --sp-2:2px; --sp-4:4px; --sp-8:8px; --sp-12:12px;
+  --sp-16:16px; --sp-24:24px; --sp-32:32px; --sp-48:48px;
+
+  /* Radius */
+  --r-sm:6px; --r-md:8px; --r-lg:11px; --r-xl:14px;
+
+  /* Shadows — camadas sutis */
+  --sh-xs:0 1px 2px rgba(30,28,26,.04);
+  --sh-sm:0 1px 3px rgba(30,28,26,.06), 0 1px 2px rgba(30,28,26,.04);
+  --sh-md:0 4px 12px rgba(30,28,26,.07), 0 1px 3px rgba(30,28,26,.04);
+  --sh-lg:0 8px 28px rgba(30,28,26,.10), 0 2px 6px rgba(30,28,26,.04);
+  --sh-xl:0 16px 48px rgba(30,28,26,.14), 0 4px 12px rgba(30,28,26,.05);
+  --sh-focus:0 0 0 3px rgba(181,164,142,.22);
+  --sh-focus-error:0 0 0 3px rgba(184,92,74,.18);
+
+  /* Motion */
+  --ease:cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-out:cubic-bezier(0.0, 0.0, 0.2, 1);
+  --ease-in:cubic-bezier(0.4, 0.0, 1, 1);
+  --ease-bounce:cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-micro:140ms;
+  --dur-comp:240ms;
+  --dur-modal:320ms;
+
+  /* Translucent borders */
+  --border-t:rgba(30,28,26,.08);
+  --border-t-hover:rgba(181,164,142,.35);
+}
+
+/* ── 2. BASE ENHANCEMENTS ─────────────────────────────────────────── */
+
+/* Smooth scrolling global */
+html{scroll-behavior:smooth;}
+
+/* Scrollbar premium (WebKit) */
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(30,28,26,.12);border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:rgba(30,28,26,.22);}
+main::-webkit-scrollbar-thumb{background:rgba(30,28,26,.10);}
+
+/* Firefox scrollbar */
+*{scrollbar-width:thin;scrollbar-color:rgba(30,28,26,.12) transparent;}
+
+/* Selection */
+::selection{background:rgba(181,164,142,.25);color:var(--black);}
+
+/* Focus-visible global — halo premium */
+:focus-visible{
+  outline:none;
+  box-shadow:var(--sh-focus);
+}
+
+/* Remove default outline for non-keyboard focus */
+:focus:not(:focus-visible){outline:none;box-shadow:none;}
+
+/* Smooth content rendering */
+body{
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  text-rendering:optimizeLegibility;
+}
+
+/* ── 3. BUTTON SYSTEM ─────────────────────────────────────────────── */
+
+.btn{
+  position:relative;
+  transition:
+    background var(--dur-micro) var(--ease),
+    color var(--dur-micro) var(--ease),
+    border-color var(--dur-micro) var(--ease),
+    transform var(--dur-micro) var(--ease),
+    box-shadow var(--dur-micro) var(--ease);
+  will-change:transform;
+}
+
+/* Hover: lift sutil */
+.btn-dark:hover{
+  transform:translateY(-1px);
+  box-shadow:var(--sh-md);
+}
+.btn-outline:hover{
+  transform:translateY(-1px);
+  box-shadow:var(--sh-sm);
+  background:rgba(181,164,142,.04);
+}
+
+/* Active: press down */
+.btn:active:not(:disabled){
+  transform:translateY(0.5px)!important;
+  box-shadow:var(--sh-xs)!important;
+  transition-duration:60ms;
+}
+
+/* Focus ring */
+.btn:focus-visible{
+  box-shadow:var(--sh-focus),var(--sh-sm);
+}
+
+/* Loading state — spinner integrado */
+.btn.is-loading{
+  pointer-events:none;
+  opacity:.7;
+}
+.btn.is-loading .btn-spinner{
+  width:12px;height:12px;
+  border:2px solid rgba(255,255,255,.25);
+  border-top-color:#fff;
+  border-radius:50%;
+  animation:uiSpin .6s linear infinite;
+}
+
+/* ── 4. INPUT & SELECT SYSTEM ─────────────────────────────────────── */
+
+.form-input,.form-select,.search-input,.filter-select{
+  transition:
+    border-color var(--dur-micro) var(--ease),
+    box-shadow var(--dur-comp) var(--ease),
+    background var(--dur-micro) var(--ease);
+}
+
+.form-input:hover,.form-select:hover,
+.search-input:hover,.filter-select:hover{
+  border-color:var(--tan-lt);
+}
+
+.form-input:focus,.form-select:focus,
+.search-input:focus,.filter-select:focus{
+  border-color:var(--tan);
+  box-shadow:var(--sh-focus);
+  background:var(--surface);
+}
+
+/* Error state */
+.form-input.has-error{
+  border-color:var(--red);
+  box-shadow:var(--sh-focus-error);
+}
+.form-input.has-error:focus{
+  border-color:var(--red);
+  box-shadow:var(--sh-focus-error);
+}
+
+/* ── 5. CARD & SURFACE DEPTH ──────────────────────────────────────── */
+
+/* Cards padrão — sombra sutil base */
+.mc,.chart-card,.lic-card,.radar-kpi,.radar-block,
+.acao-kpi,.acao-card,.setor-consol-card,.setor-tier-item,
+.compare-card,.diff-card,.sim-summary-bar,.sim-group,
+.contract-card,.report-kpi,.report-alert,
+.table-wrap,.hist-table-wrap,.audit-table,.contracts-table-wrap{
+  box-shadow:var(--sh-xs);
+  transition:
+    box-shadow var(--dur-comp) var(--ease),
+    transform var(--dur-comp) var(--ease),
+    border-color var(--dur-comp) var(--ease);
+}
+
+/* Hover depth — cards interativos */
+.mc:hover{
+  box-shadow:var(--sh-md);
+  transform:translateY(-2px);
+  border-color:var(--border-t-hover);
+}
+.lic-card:hover{
+  box-shadow:var(--sh-md);
+  transform:translateY(-2px);
+  border-color:var(--border-t-hover);
+}
+.acao-card:hover{
+  box-shadow:var(--sh-md);
+  transform:translateY(-1px);
+  border-color:var(--border-t-hover);
+}
+.setor-tier-item:hover{
+  box-shadow:var(--sh-sm);
+  border-color:var(--border-t-hover);
+}
+.contract-card:hover{
+  box-shadow:var(--sh-sm);
+  border-color:var(--border-t-hover);
+}
+.radar-kpi:hover{
+  box-shadow:var(--sh-sm);
+  border-color:var(--border-t-hover);
+}
+
+/* ── 6. SIDEBAR PREMIUM ───────────────────────────────────────────── */
+
+aside{
+  transition:box-shadow var(--dur-comp) var(--ease);
+  box-shadow:1px 0 0 rgba(255,255,255,.03);
+}
+
+.nav-item{
+  transition:
+    background var(--dur-micro) var(--ease),
+    color var(--dur-micro) var(--ease),
+    transform var(--dur-micro) var(--ease),
+    box-shadow var(--dur-micro) var(--ease);
+  border:1px solid transparent;
+}
+
+.nav-item:hover{
+  background:rgba(255,255,255,.07);
+  color:rgba(255,255,255,.8);
+  border-color:rgba(255,255,255,.04);
+}
+
+/* Active: destaque premium */
+.nav-item.active{
+  background:var(--tan);
+  color:var(--black);
+  box-shadow:0 2px 8px rgba(181,164,142,.3),inset 0 1px 0 rgba(255,255,255,.15);
+  border-color:rgba(255,255,255,.08);
+}
+
+/* Logo subtle glow */
+.logo{
+  text-shadow:0 0 40px rgba(181,164,142,.08);
+}
+
+/* Cost block polish */
+.sb-costs{
+  transition:border-color var(--dur-comp) var(--ease);
+  backdrop-filter:blur(4px);
+}
+.sb-costs:hover{
+  border-color:rgba(255,255,255,.12);
+}
+
+/* Logout button polish */
+.logout-btn{
+  transition:
+    background var(--dur-micro) var(--ease),
+    color var(--dur-micro) var(--ease),
+    border-color var(--dur-micro) var(--ease),
+    transform var(--dur-micro) var(--ease);
+}
+.logout-btn:active{
+  transform:translateY(0.5px);
+}
+
+/* ── 7. TABLE PREMIUM ─────────────────────────────────────────────── */
+
+/* Sticky header */
+.table-wrap thead th,
+.hist-table-wrap thead th,
+.audit-table thead th,
+.contracts-table-wrap thead th{
+  position:sticky;
+  top:0;
+  z-index:2;
+  background:var(--sand-lt);
+}
+
+/* Row hover premium */
+tbody tr{
+  transition:background var(--dur-micro) var(--ease);
+}
+tbody tr:hover{
+  background:rgba(181,164,142,.05);
+}
+
+/* Sort header interaction */
+th.sort{
+  transition:color var(--dur-micro) var(--ease);
+}
+th.sort:hover{
+  color:var(--brown);
+}
+
+/* Action button premium */
+.act-btn{
+  transition:
+    border-color var(--dur-micro) var(--ease),
+    color var(--dur-micro) var(--ease),
+    background var(--dur-micro) var(--ease),
+    transform var(--dur-micro) var(--ease);
+}
+.act-btn:hover{
+  border-color:var(--tan);
+  color:var(--brown);
+  background:rgba(181,164,142,.06);
+  transform:translateY(-0.5px);
+}
+.act-btn:active{
+  transform:translateY(0.5px);
+}
+
+/* Pagination premium */
+.page-btn{
+  transition:
+    background var(--dur-micro) var(--ease),
+    border-color var(--dur-micro) var(--ease),
+    color var(--dur-micro) var(--ease),
+    transform var(--dur-micro) var(--ease),
+    box-shadow var(--dur-micro) var(--ease);
+}
+.page-btn:hover,.page-btn.active{
+  box-shadow:var(--sh-sm);
+}
+.page-btn:active{
+  transform:translateY(0.5px);
+}
+
+/* Table footer polish */
+.table-footer{
+  border-top:1px solid var(--border);
+}
+
+/* ── 8. MODAL & PANEL SYSTEM ──────────────────────────────────────── */
+
+/* Overlay: fade in */
+.modal-overlay{
+  opacity:0;
+  transition:opacity var(--dur-modal) var(--ease);
+}
+.modal-overlay.open{
+  opacity:1;
+}
+
+/* Modal: premium entrance */
+.modal,.import-modal{
+  box-shadow:var(--sh-xl);
+  animation:uiModalIn var(--dur-modal) var(--ease) both;
+}
+@keyframes uiModalIn{
+  from{opacity:0;transform:translateY(10px) scale(.98);}
+  to{opacity:1;transform:translateY(0) scale(1);}
+}
+
+/* Close button polish */
+.close-btn{
+  transition:
+    border-color var(--dur-micro) var(--ease),
+    color var(--dur-micro) var(--ease),
+    background var(--dur-micro) var(--ease),
+    transform var(--dur-micro) var(--ease);
+}
+.close-btn:hover{
+  background:rgba(184,92,74,.06);
+  transform:rotate(90deg);
+}
+.close-btn:active{
+  transform:rotate(90deg) scale(.9);
+}
+
+/* Detail panel */
+.detail-panel{
+  transition:transform var(--dur-modal) var(--ease);
+  box-shadow:-8px 0 32px rgba(30,28,26,.12);
+}
+
+/* License option — selection interaction */
+.lic-opt{
+  transition:
+    border-color var(--dur-micro) var(--ease),
+    background var(--dur-micro) var(--ease),
+    transform var(--dur-micro) var(--ease),
+    box-shadow var(--dur-micro) var(--ease);
+}
+.lic-opt:hover{
+  transform:translateY(-1px);
+  box-shadow:var(--sh-sm);
+}
+.lic-opt.sel{
+  box-shadow:var(--sh-sm),0 0 0 1px rgba(181,164,142,.2);
+}
+.lic-opt:active{
+  transform:translateY(0.5px);
+}
+
+/* ── 9. TAB STRIP POLISH ──────────────────────────────────────────── */
+
+.tab-btn{
+  transition:
+    color var(--dur-micro) var(--ease),
+    border-color var(--dur-comp) var(--ease);
+  position:relative;
+}
+.tab-btn::after{
+  content:'';
+  position:absolute;
+  bottom:-1px;left:0;right:0;
+  height:2px;
+  background:var(--tan);
+  transform:scaleX(0);
+  transition:transform var(--dur-comp) var(--ease);
+}
+.tab-btn.active::after{
+  transform:scaleX(1);
+}
+.tab-btn.active{
+  border-bottom-color:transparent;
+}
+
+.sub-tab-btn{
+  transition:
+    color var(--dur-micro) var(--ease),
+    border-color var(--dur-comp) var(--ease);
+  position:relative;
+}
+.sub-tab-btn::after{
+  content:'';
+  position:absolute;
+  bottom:-1px;left:0;right:0;
+  height:2px;
+  background:var(--brown);
+  transform:scaleX(0);
+  transition:transform var(--dur-comp) var(--ease);
+}
+.sub-tab-btn.active::after{
+  transform:scaleX(1);
+}
+.sub-tab-btn.active{
+  border-bottom-color:transparent;
+}
+
+/* ── 10. BADGE REFINEMENT ─────────────────────────────────────────── */
+
+.badge,.lic-badge,.acao-status-badge,.radar-badge,
+.audit-action-badge,.acao-cat-badge,.chip{
+  transition:transform var(--dur-micro) var(--ease);
+}
+
+/* ── 11. TOAST PREMIUM ────────────────────────────────────────────── */
+
+.toast{
+  box-shadow:var(--sh-lg);
+  border:1px solid rgba(255,255,255,.08);
+}
+.toast.show{
+  animation:uiToastIn var(--dur-comp) var(--ease);
+}
+@keyframes uiToastIn{
+  from{opacity:0;transform:translateY(12px) scale(.96);}
+  to{opacity:1;transform:translateY(0) scale(1);}
+}
+
+/* ── 12. PROGRESS BARS — animação suave ───────────────────────────── */
+
+.mc-bar-fill,.lic-card-bar-fill,.contract-bar-fill,
+.bc-fill,.setor-lic-fill{
+  transition:width .8s var(--ease);
+}
+
+/* ── 13. SKELETON LOADER ──────────────────────────────────────────── */
+
+.skeleton{
+  position:relative;
+  overflow:hidden;
+  background:var(--sand-lt)!important;
+  color:transparent!important;
+  border-color:transparent!important;
+  border-radius:var(--r-md);
+  pointer-events:none;
+  user-select:none;
+}
+.skeleton *{visibility:hidden;}
+.skeleton::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255,255,255,.5) 50%,
+    transparent 100%
+  );
+  animation:uiShimmer 1.6s infinite;
+}
+@keyframes uiShimmer{
+  from{transform:translateX(-100%);}
+  to{transform:translateX(100%);}
+}
+
+/* Skeleton inline (para textos) */
+.skeleton-text{
+  display:inline-block;
+  min-width:60px;
+  height:1em;
+  background:var(--sand-lt);
+  border-radius:var(--r-sm);
+  position:relative;
+  overflow:hidden;
+}
+.skeleton-text::after{
+  content:'';
+  position:absolute;
+  inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);
+  animation:uiShimmer 1.6s infinite;
+}
+
+/* Skeleton table rows */
+.skeleton-row td{
+  position:relative;
+  overflow:hidden;
+}
+.skeleton-row td::after{
+  content:'';
+  display:block;
+  height:12px;
+  width:70%;
+  background:var(--sand-lt);
+  border-radius:var(--r-sm);
+  position:relative;
+  overflow:hidden;
+}
+.skeleton-row td .skeleton-bar{
+  position:absolute;
+  inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.5),transparent);
+  animation:uiShimmer 1.6s infinite;
+}
+
+/* ── 14. TOP PROGRESS BAR ─────────────────────────────────────────── */
+
+.ui-progress{
+  position:fixed;
+  top:0;left:0;right:0;
+  height:2px;
+  z-index:9999;
+  pointer-events:none;
+  opacity:0;
+  transition:opacity var(--dur-comp) var(--ease);
+}
+.ui-progress.active{opacity:1;}
+.ui-progress-bar{
+  height:100%;
+  width:0%;
+  background:var(--tan);
+  border-radius:0 1px 1px 0;
+  transition:width .15s linear;
+  box-shadow:0 0 8px rgba(181,164,142,.4);
+}
+
+/* ── 15. VIEW TRANSITIONS ─────────────────────────────────────────── */
+
+.view{
+  animation:none;
+}
+.view.active{
+  animation:uiViewIn var(--dur-comp) var(--ease) both;
+}
+@keyframes uiViewIn{
+  from{opacity:0;transform:translateY(6px);}
+  to{opacity:1;transform:translateY(0);}
+}
+
+/* ── 16. DIVIDER REFINEMENT ───────────────────────────────────────── */
+
+.divider{
+  background:linear-gradient(90deg,transparent,var(--border),transparent);
+}
+
+/* ── 17. IMPORT DROP ZONE ─────────────────────────────────────────── */
+
+.import-drop{
+  transition:
+    border-color var(--dur-comp) var(--ease),
+    background var(--dur-comp) var(--ease),
+    transform var(--dur-micro) var(--ease);
+}
+.import-drop:hover,.import-drop.drag-over{
+  transform:translateY(-1px);
+  box-shadow:var(--sh-sm);
+}
+
+/* ── 18. CHART ANIMATIONS ─────────────────────────────────────────── */
+
+.donut-svg{
+  transition:transform var(--dur-comp) var(--ease);
+}
+.donut-wrap:hover .donut-svg{
+  transform:scale(1.03);
+}
+
+.bc-fill{
+  transition:width .8s var(--ease);
+}
+
+/* ── 19. COST PREVIEW POLISH ──────────────────────────────────────── */
+
+.cost-preview{
+  transition:border-color var(--dur-comp) var(--ease);
+}
+.cost-preview:hover{
+  border-color:var(--tan-lt);
+}
+
+/* ── 20. METRICS CARD — counter animation ready ───────────────────── */
+
+.mc-val{
+  transition:color var(--dur-comp) var(--ease);
+  font-variant-numeric:tabular-nums;
+}
+
+/* ── 21. RADAR ROW POLISH ─────────────────────────────────────────── */
+
+.radar-row{
+  transition:
+    background var(--dur-micro) var(--ease),
+    box-shadow var(--dur-micro) var(--ease);
+}
+.radar-row:hover{
+  background:rgba(181,164,142,.04);
+}
+
+.radar-row-btn{
+  transition:
+    border-color var(--dur-micro) var(--ease),
+    color var(--dur-micro) var(--ease),
+    background var(--dur-micro) var(--ease),
+    transform var(--dur-micro) var(--ease);
+}
+.radar-row-btn:hover{
+  transform:translateY(-0.5px);
+  box-shadow:var(--sh-xs);
+}
+.radar-row-btn:active{
+  transform:translateY(0.5px);
+}
+
+/* ── 22. AVATAR POLISH ────────────────────────────────────────────── */
+
+.avatar,.dp-avatar,.radar-row-avatar,.setor-user-avatar{
+  transition:
+    transform var(--dur-micro) var(--ease),
+    box-shadow var(--dur-micro) var(--ease);
+  box-shadow:var(--sh-xs);
+}
+
+/* ── 23. DETAIL PANEL LIC CARD ────────────────────────────────────── */
+
+.lic-detail-card{
+  box-shadow:var(--sh-sm);
+  transition:box-shadow var(--dur-comp) var(--ease);
+}
+
+/* ── 24. SETOR TIER CHEVRON ───────────────────────────────────────── */
+
+.setor-tier-chevron,.setor-sub-chevron{
+  transition:transform var(--dur-comp) var(--ease);
+}
+
+/* ── 25. RESPONSIVE TOUCH ─────────────────────────────────────────── */
+
+@media(max-width:1024px){
+  .metrics{grid-template-columns:repeat(2,1fr);}
+  .charts-row{grid-template-columns:1fr;}
+  .lic-overview{grid-template-columns:repeat(2,1fr);}
+  .radar-kpis{grid-template-columns:1fr;}
+  .setor-consol-row{grid-template-columns:repeat(2,1fr);}
+  .contracts-layout{grid-template-columns:1fr;}
+  .contract-sidebar{flex-direction:row;flex-wrap:wrap;}
+  .contract-card{flex:1;min-width:240px;}
+  .report-kpis{grid-template-columns:repeat(2,1fr);}
+}
+
+@media(max-width:680px){
+  .view{padding:20px 16px;}
+  .metrics{grid-template-columns:1fr;}
+  .lic-overview{grid-template-columns:1fr;}
+  .setor-consol-row{grid-template-columns:1fr;}
+  .form-grid{grid-template-columns:1fr;}
+  .lic-grid{grid-template-columns:repeat(2,1fr);}
+  .report-kpis{grid-template-columns:1fr;}
+}
+
+/* ── 26. PRINT — ocultar polish visual ────────────────────────────── */
+
+@media print{
+  .ui-progress{display:none!important;}
+  .skeleton,.skeleton-text{background:transparent!important;}
+  .skeleton::after,.skeleton-text::after{display:none!important;}
+  .view.active{animation:none!important;}
+}
+
+/* ── 27. ANIMATIONS KEYFRAMES ─────────────────────────────────────── */
+
+@keyframes uiSpin{
+  to{transform:rotate(360deg);}
+}
+
+@keyframes uiFadeIn{
+  from{opacity:0;}
+  to{opacity:1;}
+}
+
+/* ── 28. PREFERS REDUCED MOTION ───────────────────────────────────── */
+
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{
+    animation-duration:.01ms!important;
+    animation-iteration-count:1!important;
+    transition-duration:.01ms!important;
+  }
+  .view.active{animation:none!important;}
+  .skeleton::after,.skeleton-text::after{animation:none!important;}
+}

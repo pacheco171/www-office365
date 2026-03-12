@@ -1,0 +1,10 @@
+/* ══════════ SIMULADOR ══════════ */
+.sim-summary-bar{display:flex;align-items:center;gap:24px;background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:16px 24px;margin-bottom:20px;flex-wrap:wrap}
+.sim-group{background:var(--surface);border:1px solid var(--border);border-radius:11px;overflow:hidden;margin-bottom:16px}
+.sim-group-header{display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--sand-lt);border-bottom:1px solid var(--border)}
+.sim-row{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--border);transition:background .1s}
+.sim-row:last-child{border-bottom:none}
+.sim-row:hover{background:var(--sand-lt)}
+.sim-row-selected{background:rgba(90,138,106,.04)}
+.sim-checkbox-wrap{display:flex;align-items:center;cursor:pointer;position:relative}
+.sim-checkbox-wrap input{width:16px;height:16px;accent-color:var(--green);cursor:pointer}

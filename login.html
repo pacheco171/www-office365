@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Acesso — LIVE! Microsoft 365</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700;800&family=Barlow+Condensed:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="src/css/variables.css">
+<link rel="stylesheet" href="src/css/base.css">
+<link rel="stylesheet" href="src/css/ui-kit.css">
+<!-- Redireciona se já autenticado -->
+<script src="src/js/store.js"></script>
+<script>(function(){if(localStorage.getItem('store_auth'))window.location.replace('index.html');}());</script>
+<style>
+
+body{display:flex;min-height:100vh;padding:0;background:var(--black);}
+
+/* ─── LAYOUT SPLIT ─── */
+.login-layout{display:flex;width:100%;min-height:100vh;}
+
+/* ─── PAINEL ESQUERDO / BRAND ─── */
+.login-brand{
+  width:400px;flex-shrink:0;background:var(--black);
+  display:flex;flex-direction:column;justify-content:space-between;
+  padding:48px 44px;position:relative;overflow:hidden;
+}
+
+/* Círculos decorativos */
+.login-brand::before{
+  content:'';position:absolute;bottom:-140px;right:-100px;
+  width:420px;height:420px;border-radius:50%;
+  border:1px solid rgba(181,164,142,.07);pointer-events:none;
+}
+.login-brand::after{
+  content:'';position:absolute;bottom:-60px;right:-170px;
+  width:300px;height:300px;border-radius:50%;
+  border:1px solid rgba(181,164,142,.04);pointer-events:none;
+}
+.brand-circle{
+  position:absolute;top:-80px;left:-80px;
+  width:280px;height:280px;border-radius:50%;
+  border:1px solid rgba(181,164,142,.04);pointer-events:none;
+}
+
+.brand-logo .logo{
+  font-family:'Barlow Condensed',sans-serif;font-weight:800;
+  font-size:38px;color:#fff;letter-spacing:2px;line-height:1;
+}
+.brand-logo .logo em{color:var(--tan);font-style:normal;}
+.brand-logo .logo-sub{
+  font-size:9px;color:rgba(255,255,255,.2);
+  letter-spacing:3px;text-transform:uppercase;margin-top:5px;
+}
+
+.brand-mid{flex:1;display:flex;align-items:center;padding:48px 0;}
+.brand-tagline{
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:46px;font-weight:800;text-transform:uppercase;
+  letter-spacing:1px;color:#fff;line-height:1.08;
+}
+.brand-tagline em{display:block;color:var(--tan);font-style:normal;}
+.brand-tagline-sub{
+  font-size:13px;color:rgba(255,255,255,.3);
+  font-weight:400;margin-top:14px;line-height:1.6;
+  max-width:240px;
+}
+
+.brand-footer{
+  font-size:10.5px;color:rgba(255,255,255,.18);
+  letter-spacing:.5px;border-top:1px solid rgba(255,255,255,.06);
+  padding-top:18px;
+}
+
+/* Linha divisória vertical */
+.login-divider{
+  width:1px;background:rgba(181,164,142,.12);flex-shrink:0;
+}
+
+/* ─── PAINEL DIREITO / FORM ─── */
+.login-right{
+  flex:1;background:var(--cream);
+  display:flex;align-items:center;justify-content:center;
+  padding:48px 40px;
+}
+
+.login-form-wrap{
+  width:100%;max-width:440px;
+  animation:formIn .4s cubic-bezier(.22,.68,0,1.2);
+}
+@keyframes formIn{
+  from{opacity:0;transform:translateY(24px);}
+  to{opacity:1;transform:translateY(0);}
+}
+
+.login-heading{
+  font-family:'Barlow Condensed',sans-serif;
+  font-size:40px;font-weight:800;text-transform:uppercase;
+  letter-spacing:.5px;color:var(--black);margin-bottom:6px;
+}
+.login-sub{font-size:15px;color:var(--muted);margin-bottom:36px;line-height:1.5;}
+
+/* Alerta de erro */
+.login-alert{
+  background:rgba(184,92,74,.07);border:1px solid rgba(184,92,74,.25);
+  color:var(--red);border-radius:8px;padding:11px 14px;
+  font-size:12.5px;line-height:1.5;margin-bottom:22px;
+  display:none;align-items:center;gap:9px;
+}
+.login-alert.show{display:flex;}
+.login-alert svg{width:14px;height:14px;flex-shrink:0;}
+
+/* Campos */
+.form-group{margin-bottom:24px;}
+.login-form-wrap label{
+  display:block;font-size:12px;font-weight:700;
+  text-transform:uppercase;letter-spacing:1.2px;
+  color:var(--muted);margin-bottom:9px;
+}
+.form-input{
+  width:100%;padding:14px 16px;
+  border:1.5px solid var(--border);border-radius:8px;
+  font-family:'Barlow',sans-serif;font-size:15.5px;
+  background:var(--surface);color:var(--black);
+  outline:none;transition:border-color .15s,box-shadow .15s;
+}
+.form-input:focus{
+  border-color:var(--tan);
+  box-shadow:0 0 0 3px rgba(181,164,142,.2);
+}
+.form-input::placeholder{color:var(--sand);}
+.form-input:disabled{opacity:.5;cursor:not-allowed;}
+.field-error{font-size:12.5px;color:var(--red);margin-top:6px;min-height:16px;}
+
+/* Senha + toggle */
+.pass-wrap{position:relative;}
+.pass-wrap .form-input{padding-right:44px;}
+.pass-toggle{
+  position:absolute;right:11px;top:50%;transform:translateY(-50%);
+  background:none;border:none;cursor:pointer;color:var(--sand);
+  padding:4px;display:flex;align-items:center;transition:color .15s;
+}
+.pass-toggle:hover{color:var(--brown);}
+.pass-toggle svg{width:18px;height:18px;}
+
+/* Botão */
+.login-submit{
+  width:100%;padding:16px 20px;
+  background:var(--black);color:#fff;
+  border:none;border-radius:8px;
+  font-family:'Barlow',sans-serif;
+  font-size:15px;font-weight:700;letter-spacing:.5px;
+  cursor:pointer;margin-top:10px;
+  display:flex;align-items:center;justify-content:center;gap:8px;
+  transition:background .18s,transform .12s,box-shadow .18s;
+  box-shadow:0 2px 8px rgba(30,28,26,.18);
+}
+.login-submit:hover:not(:disabled){
+  background:#2e2c2a;transform:translateY(-1px);
+  box-shadow:0 4px 14px rgba(30,28,26,.28);
+}
+.login-submit:active:not(:disabled){transform:translateY(0);}
+.login-submit:disabled{opacity:.55;cursor:not-allowed;transform:none!important;}
+
+@keyframes spin{to{transform:rotate(360deg);}}
+.btn-spinner{
+  width:13px;height:13px;
+  border:2px solid rgba(255,255,255,.3);
+  border-top-color:#fff;border-radius:50%;
+  animation:spin .6s linear infinite;flex-shrink:0;
+}
+
+/* ─── OVERLAY DE TRANSIÇÃO ─── */
+.login-transition{
+  position:fixed;inset:0;
+  background:var(--black);
+  display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  z-index:9999;
+  opacity:0;pointer-events:none;
+  transition:opacity .35s ease;
+}
+.login-transition.active{opacity:1;pointer-events:all;}
+
+.lt-logo{
+  font-family:'Barlow Condensed',sans-serif;font-weight:800;
+  font-size:56px;color:#fff;letter-spacing:3px;line-height:1;
+  margin-bottom:4px;
+}
+.lt-logo em{color:var(--tan);font-style:normal;}
+.lt-sub{
+  font-size:9px;color:rgba(255,255,255,.2);
+  letter-spacing:3px;text-transform:uppercase;margin-bottom:52px;
+}
+
+.lt-bar-track{
+  width:180px;height:2px;
+  background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden;
+}
+.lt-bar-fill{
+  height:100%;background:var(--tan);border-radius:2px;
+  width:0%;transition:width .08s linear;
+}
+.lt-msg{
+  font-size:10.5px;color:rgba(255,255,255,.22);
+  letter-spacing:2px;text-transform:uppercase;margin-top:18px;
+  min-width:200px;text-align:center;
+  transition:opacity .3s;
+}
+
+/* ─── RESPONSIVE ─── */
+@media(max-width:680px){
+  .login-brand,.login-divider{display:none;}
+  .login-right{background:var(--bg);padding:32px 24px;}
+}
+</style>
+</head>
+<body>
+
+<!-- Overlay de transição (aparece após login bem-sucedido) -->
+<div class="login-transition" id="loginTransition">
+  <div class="lt-logo">LIVE<em>!</em></div>
+  <div class="lt-sub">Microsoft 365</div>
+  <div class="lt-bar-track">
+    <div class="lt-bar-fill" id="ltBar"></div>
+  </div>
+  <div class="lt-msg" id="ltMsg">Autenticando...</div>
+</div>
+
+<div class="login-layout">
+
+  <!-- Painel esquerdo — brand -->
+  <div class="login-brand">
+    <div class="brand-circle"></div>
+
+    <div class="brand-logo">
+      <div class="logo">LIVE<em>!</em></div>
+      <div class="logo-sub">Microsoft 365</div>
+    </div>
+
+    <div class="brand-mid">
+      <div>
+        <div class="brand-tagline">
+          Gestão<br>de<br><em>licenças</em>
+        </div>
+        <div class="brand-tagline-sub">
+          Visibilidade completa sobre custos, alocações e conformidade do seu ambiente M365.
+        </div>
+      </div>
+    </div>
+
+    <div class="brand-footer">© 2026 LIVE! — Uso interno corporativo</div>
+  </div>
+
+  <!-- Linha divisória -->
+  <div class="login-divider"></div>
+
+  <!-- Painel direito — formulário -->
+  <div class="login-right">
+    <div class="login-form-wrap">
+
+      <div class="login-heading">Acesso</div>
+      <div class="login-sub">Entre com suas credenciais corporativas</div>
+
+      <!-- Erro global -->
+      <div class="login-alert" id="loginAlert" role="alert" aria-live="assertive">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="8" x2="12" y2="12"/>
+          <line x1="12" y1="16" x2="12.01" y2="16"/>
+        </svg>
+        <span id="loginAlertMsg"></span>
+      </div>
+
+      <form id="loginForm" novalidate>
+        <!-- Usuário -->
+        <div class="form-group">
+          <label for="fUser">Usuário</label>
+          <input
+            type="text"
+            class="form-input"
+            id="fUser"
+            name="username"
+            placeholder="nome.sobrenome"
+            autocomplete="username"
+            autocapitalize="none"
+            spellcheck="false"
+            aria-required="true"
+            aria-describedby="fUserError"
+          >
+          <div class="field-error" id="fUserError" role="alert"></div>
+        </div>
+
+        <!-- Senha -->
+        <div class="form-group" style="margin-bottom:26px">
+          <label for="fPass">Senha</label>
+          <div class="pass-wrap">
+            <input
+              type="password"
+              class="form-input"
+              id="fPass"
+              name="password"
+              autocomplete="current-password"
+              aria-required="true"
+              aria-describedby="fPassError"
+            >
+            <button
+              type="button"
+              class="pass-toggle"
+              id="passToggle"
+              onclick="togglePass()"
+              aria-label="Mostrar senha"
+              tabindex="0"
+            >
+              <svg id="eyeOpen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/>
+                <circle cx="12" cy="12" r="3"/>
+              </svg>
+              <svg id="eyeClosed" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:none">
+                <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/>
+                <line x1="1" y1="1" x2="23" y2="23"/>
+              </svg>
+            </button>
+          </div>
+          <div class="field-error" id="fPassError" role="alert"></div>
+        </div>
+
+        <button type="submit" class="login-submit" id="submitBtn">
+          Entrar
+        </button>
+      </form>
+
+    </div>
+  </div>
+</div>
+
+<script src="src/js/auth.js"></script>
+<script>
+const loginForm  = document.getElementById('loginForm');
+const fUser      = document.getElementById('fUser');
+const fPass      = document.getElementById('fPass');
+const submitBtn  = document.getElementById('submitBtn');
+const loginAlert = document.getElementById('loginAlert');
+
+loginForm.addEventListener('submit', function(e) {
+  e.preventDefault();
+  if (!validate()) return;
+  setLoading(true);
+
+  authLogin(fUser.value.trim(), fPass.value)
+    .then(function() { startTransition(); })
+    .catch(function(err) {
+      setLoading(false);
+      showAlert(err.message || 'Usuário ou senha inválidos.');
+    });
+});
+
+/* ── Transição animada ── */
+function startTransition() {
+  var overlay  = document.getElementById('loginTransition');
+  var bar      = document.getElementById('ltBar');
+  var msgEl    = document.getElementById('ltMsg');
+  var msgs     = ['Autenticando...', 'Carregando dados...', 'Preparando ambiente...'];
+  var progress = 0;
+
+  overlay.classList.add('active');
+
+  var tick = setInterval(function() {
+    progress += Math.random() * 10 + 5;
+    if (progress > 92) progress = 92;
+    bar.style.width = progress + '%';
+    msgEl.textContent = progress < 38 ? msgs[0] : progress < 72 ? msgs[1] : msgs[2];
+  }, 130);
+
+  setTimeout(function() {
+    clearInterval(tick);
+    bar.style.transition = 'width .45s ease';
+    bar.style.width = '100%';
+    setTimeout(function() { window.location.replace('index.html'); }, 480);
+  }, 1700);
+}
+
+function validate() {
+  clearErrors();
+  var u = fUser.value.trim(), p = fPass.value, ok = true;
+  if (!u) {
+    setFieldError('fUserError', 'Informe o usuário.'); ok = false;
+  } else if (!u.includes('.') || u.startsWith('.') || u.endsWith('.')) {
+    setFieldError('fUserError', 'Formato inválido — use nome.sobrenome.'); ok = false;
+  }
+  if (!p) { setFieldError('fPassError', 'Informe a senha.'); ok = false; }
+  return ok;
+}
+
+function setLoading(on) {
+  submitBtn.disabled = fUser.disabled = fPass.disabled = on;
+  submitBtn.innerHTML = on ? '<span class="btn-spinner"></span>Verificando...' : 'Entrar';
+}
+
+function showAlert(msg) {
+  document.getElementById('loginAlertMsg').textContent = msg;
+  loginAlert.classList.add('show');
+}
+
+function clearErrors() {
+  loginAlert.classList.remove('show');
+  setFieldError('fUserError', '');
+  setFieldError('fPassError', '');
+}
+
+function setFieldError(id, msg) { document.getElementById(id).textContent = msg; }
+
+function togglePass() {
+  var isPass = fPass.type === 'password';
+  fPass.type = isPass ? 'text' : 'password';
+  document.getElementById('eyeOpen').style.display   = isPass ? 'none' : '';
+  document.getElementById('eyeClosed').style.display = isPass ? '' : 'none';
+  document.getElementById('passToggle').setAttribute('aria-label', isPass ? 'Ocultar senha' : 'Mostrar senha');
+}
+</script>
+</body>
+</html>

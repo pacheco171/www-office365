@@ -1,0 +1,88 @@
+/* ── ANOTAÇÕES VISUAIS ── */
+
+/* Menu de contexto customizado (botão direito) */
+.ann-ctx-menu{
+  position:fixed;z-index:9100;
+  min-width:200px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:8px;
+  box-shadow:0 8px 30px rgba(0,0,0,.18),0 2px 8px rgba(0,0,0,.08);
+  padding:4px;
+  opacity:0;transform:scale(.95);
+  transition:opacity .12s ease,transform .12s ease;
+}
+.ann-ctx-menu.visible{opacity:1;transform:scale(1);}
+
+.ann-ctx-item{
+  display:flex;align-items:center;gap:10px;
+  padding:9px 14px;border-radius:6px;
+  font-family:'Barlow',sans-serif;font-size:13px;font-weight:600;
+  color:var(--text);cursor:pointer;
+  transition:background .1s;
+}
+.ann-ctx-item:hover{background:var(--sand-lt);}
+.ann-ctx-item svg{flex-shrink:0;color:var(--brown);}
+
+/* Popup de input */
+.ann-popup{
+  position:fixed;z-index:9010;width:300px;
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  box-shadow:0 8px 32px rgba(0,0,0,.15);
+  padding:14px;
+  animation:annPopIn .15s ease;
+}
+@keyframes annPopIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+.ann-popup-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.ann-popup-title{font-weight:700;font-size:13px;}
+.ann-popup-close{background:none;border:none;font-size:18px;color:var(--muted);cursor:pointer;padding:0 4px;}
+.ann-popup-context{font-size:11px;color:var(--muted);padding:6px 8px;background:var(--sand-lt);border-radius:5px;margin-bottom:8px;max-height:40px;overflow:hidden;text-overflow:ellipsis;}
+.ann-popup-input{width:100%;resize:vertical;min-height:60px;font-family:'Barlow',sans-serif;font-size:13px;border:1px solid var(--border);border-radius:6px;padding:8px;box-sizing:border-box;}
+.ann-popup-input:focus{outline:none;border-color:var(--brown);}
+
+/* Pinos de anotação */
+.ann-pin{
+  position:absolute;z-index:100;
+  width:24px;height:24px;border-radius:50%;
+  background:var(--red);color:white;
+  font-size:11px;font-weight:800;font-family:'Barlow',sans-serif;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  box-shadow:0 2px 8px rgba(184,92,74,.4);
+  transform:translate(-50%,-50%);
+  animation:pinBounce .3s ease;
+  transition:transform .15s;
+}
+.ann-pin:hover{transform:translate(-50%,-50%) scale(1.2);}
+@keyframes pinBounce{0%{transform:translate(-50%,-50%) scale(0);}50%{transform:translate(-50%,-50%) scale(1.2);}100%{transform:translate(-50%,-50%) scale(1);}}
+
+/* Detalhe do pino */
+.ann-pin-detail{
+  position:fixed;z-index:9010;width:280px;
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  box-shadow:0 8px 32px rgba(0,0,0,.15);padding:14px;
+}
+.ann-pin-detail-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.ann-pin-context{font-size:11px;color:var(--muted);padding:4px 8px;background:var(--sand-lt);border-radius:4px;margin-bottom:8px;max-height:36px;overflow:hidden;}
+.ann-pin-text{font-size:13px;line-height:1.6;margin-bottom:10px;}
+.ann-pin-actions{display:flex;gap:6px;}
+
+/* ── VIEW SUGESTÕES (lista) ── */
+.sug-layout{display:grid;grid-template-columns:1fr;gap:20px;max-width:800px;}
+.sug-list-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:22px 24px;}
+.sug-form-title{font-weight:700;font-size:14px;margin-bottom:12px;}
+
+.sug-item{padding:14px 0;border-bottom:1px solid var(--border);}
+.sug-item:last-child{border-bottom:none;}
+.sug-item.sug-resolved{opacity:.5;}
+.sug-item-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.sug-author{font-weight:700;font-size:12px;}
+.sug-date{font-size:11px;color:var(--muted);}
+.sug-view-badge{display:inline-block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;padding:2px 8px;border-radius:4px;background:var(--sand-lt);color:var(--brown);margin-bottom:6px;}
+.ann-el-ref{font-size:11px;color:var(--muted);padding:3px 8px;background:var(--sand-lt);border-radius:4px;margin-bottom:6px;max-height:32px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.sug-text{font-size:13px;line-height:1.6;margin-bottom:6px;}
+.sug-status-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px;}
+.sug-footer{display:flex;gap:6px;margin-top:6px;}
+
+/* Role badge */
+.sb-role-badge{display:block;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-top:2px;}

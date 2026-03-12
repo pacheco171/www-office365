@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LIVE! — Microsoft 365</title>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700;800&family=Barlow+Condensed:wght@400;600;700;800&display=swap" rel="stylesheet">
+<!-- CSS -->
+<link rel="stylesheet" href="src/css/variables.css">
+<link rel="stylesheet" href="src/css/base.css">
+<link rel="stylesheet" href="src/css/sidebar.css">
+<link rel="stylesheet" href="src/css/layout.css">
+<link rel="stylesheet" href="src/css/metrics.css">
+<link rel="stylesheet" href="src/css/charts.css">
+<link rel="stylesheet" href="src/css/components.css">
+<link rel="stylesheet" href="src/css/table.css">
+<link rel="stylesheet" href="src/css/modal.css">
+<link rel="stylesheet" href="src/css/toolbar.css">
+<link rel="stylesheet" href="src/css/views/licencas.css">
+<link rel="stylesheet" href="src/css/views/optimization.css">
+<link rel="stylesheet" href="src/css/views/config.css">
+<link rel="stylesheet" href="src/css/views/radar.css">
+<link rel="stylesheet" href="src/css/views/contracts.css">
+<link rel="stylesheet" href="src/css/views/suggestions.css">
+<link rel="stylesheet" href="src/css/views/report.css">
+<link rel="stylesheet" href="src/css/views/auditoria.css">
+<link rel="stylesheet" href="src/css/views/acoes.css">
+<link rel="stylesheet" href="src/css/views/simulador.css">
+<link rel="stylesheet" href="src/css/views/forecast.css">
+<link rel="stylesheet" href="src/css/ui-kit.css">
+<!-- Guard: redireciona para login se não autenticado -->
+<script src="src/js/store.js"></script>
+<script>(function(){if(!localStorage.getItem('store_auth'))window.location.replace('login.html');}());</script>
+</head>
+<body>
+<div class="layout">
+<aside>
+  <div class="logo">LIVE<em>!</em></div>
+  <div class="logo-sub">Microsoft 365</div>
+  <div class="nav-label">Principal</div>
+  <div class="nav-item active" data-view="dashboard">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>Dashboard
+  </div>
+  <div class="nav-item" data-view="colaboradores">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.87"/></svg>Colaboradores
+  </div>
+  <div class="nav-label">Licenças M365</div>
+  <div class="nav-item" data-view="licencas">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/><line x1="12" y1="12" x2="12" y2="16"/></svg>Licenças
+  </div>
+  <div class="nav-item" data-view="setores">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Por Setor
+  </div>
+  <div class="nav-item" data-view="historico">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Histórico
+  </div>
+  <div class="nav-label">Gestão</div>
+  <div class="nav-item" data-view="radar">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="2"/><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2"/><path d="M12 6a6 6 0 1 0 0 12A6 6 0 0 0 12 6"/></svg>Radar
+  </div>
+  <div class="nav-item" data-view="contratos">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Contratos
+  </div>
+  <div class="nav-item" data-view="relatorio">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Relatório
+  </div>
+  <div class="nav-item" data-view="auditoria">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Auditoria
+  </div>
+  <div class="nav-item" data-view="sugestoes" id="navSugestoes" style="display:none">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>Sugestões
+  </div>
+  <div class="nav-item" data-view="config">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Config
+  </div>
+  <div class="sb-costs">
+    <div class="sb-costs-title">Custo M365 / Mês</div>
+    <div id="sbRows"></div>
+    <div class="sb-sep"></div>
+    <div class="sb-total-row">
+      <span class="sb-total-label">Total mensal</span>
+      <span class="sb-total-val" id="sbTotal">R$ 0</span>
+    </div>
+  </div>
+  <!-- Usuário logado + Sair -->
+  <div class="sb-user">
+    <div class="sb-user-icon">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+    </div>
+    <span class="sb-user-name" id="sbUserName">—</span>
+    <span class="sb-role-badge" id="sbRoleBadge" style="display:none"></span>
+  </div>
+  <button class="logout-btn" onclick="authLogout()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+    Sair
+  </button>
+</aside>
+<main>
+
+<!-- DASHBOARD -->
+<div class="view active" id="view-dashboard">
+  <div class="topbar">
+    <div>
+      <div class="page-heading">Dashboard</div>
+      <div class="page-sub" id="dashSub">—</div>
+      <div id="dashSnapTabs" class="dash-snap-tabs" style="display:none"></div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-outline" onclick="exportCSV()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exportar
+      </button>
+    </div>
+  </div>
+  <div class="metrics">
+    <div class="mc"><div class="mc-accent" style="background:var(--tan)"></div><div class="mc-label">Total colaboradores</div><div class="mc-val" id="mTotal">0</div><div class="mc-sub" id="mTotalSub">—</div><div class="mc-delta neutral" id="mTotalDelta"></div><div class="mc-bar"><div class="mc-bar-fill" style="width:100%;background:var(--tan)"></div></div></div>
+    <div class="mc"><div class="mc-accent" style="background:#0078d4"></div><div class="mc-label">Com licença M365</div><div class="mc-val" id="mLic">0</div><div class="mc-sub" id="mLicSub">—</div><div class="mc-delta neutral" id="mLicDelta"></div><div class="mc-bar"><div class="mc-bar-fill" id="mLicBar" style="width:0%;background:#0078d4"></div></div></div>
+    <div class="mc"><div class="mc-accent" style="background:var(--brown)"></div><div class="mc-label">Custo mensal</div><div class="mc-val" id="mCusto">R$0</div><div class="mc-sub" id="mCustoSub">—</div><div class="mc-delta neutral" id="mCustoDelta"></div><div class="mc-bar"><div class="mc-bar-fill" id="mCustoBar" style="width:70%;background:var(--brown)"></div></div></div>
+    <div class="mc"><div class="mc-accent" style="background:var(--red)"></div><div class="mc-label">Outros</div><div class="mc-val" id="mSemLic">0</div><div class="mc-sub" id="mSemLicSub">—</div><div class="mc-delta neutral" id="mSemLicDelta"></div><div class="mc-bar"><div class="mc-bar-fill" id="mSemLicBar" style="width:0%;background:var(--red)"></div></div></div>
+  </div>
+  <!-- Botões de análise -->
+  <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+    <button class="btn btn-outline" onclick="toggleCompare()" id="compareToggleBtn">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/></svg>
+      Comparativo Mensal
+    </button>
+    <button class="btn btn-outline" onclick="toggleForecast()" id="forecastToggleBtn">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Forecast de Custo
+    </button>
+  </div>
+  <!-- Comparativo meses -->
+  <div id="comparePanel" style="display:none"><div id="compareSection"></div></div>
+  <!-- Forecast de Custo -->
+  <div id="forecastPanel" style="display:none"><div id="forecastSection"></div></div>
+  <div class="charts-row">
+    <div class="chart-card">
+      <div class="chart-title">Distribuição por licença</div>
+      <div class="donut-wrap"><svg class="donut-svg" id="donutSvg" width="140" height="140" viewBox="0 0 110 110"></svg><div class="donut-legend" id="donutLegend"></div></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Custo por setor (top 10) <a onclick="toggleSetorAll()">ver todos</a></div>
+      <div class="bar-chart" id="barChart"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Por status</div>
+      <div class="bar-chart" id="statusChart"></div>
+      <div class="divider"></div>
+      <div class="chart-title">Custo anual estimado</div>
+      <div class="chart-custo-anual" id="custoAnual">R$ 0</div>
+      <div class="chart-custo-sub">projeção baseada no mês atual</div>
+    </div>
+  </div>
+  <div class="setor-all-panel" id="setorAllPanel">
+    <div style="font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;font-weight:700;margin-bottom:14px">Todos os setores — custo mensal</div>
+    <div id="dashSetorConsolidated" class="setor-consol-row"></div>
+    <div class="sub-tab-strip">
+      <button class="sub-tab-btn active" onclick="switchDashSetorTier('high',this)">Acima de R$ 1.000</button>
+      <button class="sub-tab-btn" onclick="switchDashSetorTier('mid',this)">R$ 500 – R$ 999</button>
+      <button class="sub-tab-btn" onclick="switchDashSetorTier('low',this)">Abaixo de R$ 500</button>
+    </div>
+    <div class="sub-tab-panel active" id="dashSetorTier-high"></div>
+    <div class="sub-tab-panel" id="dashSetorTier-mid"></div>
+    <div class="sub-tab-panel" id="dashSetorTier-low"></div>
+  </div>
+</div>
+
+<!-- COLABORADORES -->
+<div class="view" id="view-colaboradores">
+  <div class="topbar">
+    <div><div class="page-heading">Colaboradores</div><div class="page-sub" id="colabSub">—</div></div>
+    <div class="topbar-actions">
+      <button class="btn btn-outline" onclick="exportCSV()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exportar
+      </button>
+    </div>
+  </div>
+  <div class="toolbar">
+    <div class="search-wrap"><span class="si">⌕</span><input type="text" class="search-input" id="searchInput" placeholder="Buscar nome, setor, cargo, licença..." oninput="renderTable()"></div>
+    <select class="filter-select" id="fltSetor" onchange="renderTable()"><option value="">Todos os setores</option></select>
+    <select class="filter-select" id="fltLic" onchange="renderTable()"><option value="">Todas as licenças</option></select>
+    <select class="filter-select" id="fltStatus" onchange="renderTable()"><option value="">Todos os status</option><option>Ativo</option><option>Pendente</option><option>Inativo</option></select>
+  </div>
+  <div class="table-wrap">
+    <table><thead><tr><th>Colaborador</th><th>Setor</th><th>Cargo</th><th>Licença M365</th><th class="sort" onclick="sortBy('custo')">Custo/mês ↕</th><th>Status</th><th class="sort" onclick="sortBy('dataISO')">Criado em ↕</th><th></th></tr></thead>
+    <tbody id="tableBody"></tbody></table>
+    <div class="table-footer"><div class="table-footer-left"><div class="table-info" id="tableInfo">—</div><div class="per-page"><label>Exibir</label><select id="perPageSelect" onchange="changePerPage(this.value)"><option value="10" selected>10</option><option value="20">20</option><option value="30">30</option><option value="40">40</option><option value="50">50</option><option value="all">Todas</option></select></div></div><div class="pagination" id="pagination"></div></div>
+  </div>
+</div>
+
+<!-- LICENÇAS -->
+<div class="view" id="view-licencas">
+  <div class="topbar">
+    <div><div class="page-heading">Licenças Microsoft 365</div><div class="page-sub">Estrutura organizacional — Setor / Área / Pessoas / Licença</div></div>
+    <div class="topbar-actions">
+      <button class="btn btn-outline" onclick="clearLicFilter()">Limpar filtro</button>
+      <button class="btn btn-outline" onclick="openHierarchyModal()" data-perm="edit">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Hierarquia
+      </button>
+    </div>
+  </div>
+  <div class="lic-overview" id="licOverview"></div>
+  <div class="tab-strip">
+    <button class="tab-btn active" onclick="switchTab('licencas','atual',this)">Estrutura Organizacional</button>
+    <button class="tab-btn" onclick="switchTab('licencas','otimizar',this)">Otimização</button>
+    <button class="tab-btn" onclick="switchTab('licencas','hist',this)">Histórico mensal</button>
+  </div>
+  <div class="tab-panel active" id="licencas-atual">
+    <div id="licBreadcrumb"></div>
+    <div id="licDrillContent"></div>
+  </div>
+  <div class="tab-panel" id="licencas-otimizar">
+    <div id="optContent"></div>
+  </div>
+  <div class="tab-panel" id="licencas-hist">
+    <div class="hist-table-wrap">
+      <table><thead><tr><th>Mês</th><th>Usuários</th><th>Licenciados</th><th>Outros</th><th>Custo Total</th><th>Δ vs mês anterior</th></tr></thead>
+      <tbody id="licHistBody"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- SETORES -->
+<div class="view" id="view-setores">
+  <div class="topbar"><div><div class="page-heading">Por Setor</div><div class="page-sub">Distribuição de licenças e custos por departamento</div></div></div>
+  <div class="tab-strip">
+    <button class="tab-btn active" onclick="switchTab('setores','atual',this)">Mês atual</button>
+    <button class="tab-btn" onclick="switchTab('setores','hist',this)">Histórico mensal</button>
+  </div>
+  <div class="tab-panel active" id="setores-atual">
+    <div id="setorConsolidated" class="setor-consol-row"></div>
+    <div class="sub-tab-strip">
+      <button class="sub-tab-btn active" onclick="switchSetorTier('high',this)">Acima de R$ 1.000</button>
+      <button class="sub-tab-btn" onclick="switchSetorTier('mid',this)">R$ 500 – R$ 999</button>
+      <button class="sub-tab-btn" onclick="switchSetorTier('low',this)">Abaixo de R$ 500</button>
+    </div>
+    <div class="sub-tab-panel active" id="setorTier-high"></div>
+    <div class="sub-tab-panel" id="setorTier-mid"></div>
+    <div class="sub-tab-panel" id="setorTier-low"></div>
+  </div>
+  <div class="tab-panel" id="setores-hist">
+    <div class="hist-table-wrap">
+      <table><thead><tr><th>Mês</th><th>Setor</th><th>Usuários</th><th>Custo Total</th><th>Licença Dominante</th><th>Δ vs anterior</th></tr></thead>
+      <tbody id="setorHistBody"></tbody></table>
+    </div>
+  </div>
+</div>
+
+<!-- HISTÓRICO -->
+<div class="view" id="view-historico">
+  <div class="topbar">
+    <div><div class="page-heading">Histórico</div><div class="page-sub">Snapshots mensais importados</div></div>
+    <div class="topbar-actions">
+    </div>
+  </div>
+  <div id="histView"></div>
+</div>
+
+<!-- RADAR DE OTIMIZAÇÃO -->
+<div class="view" id="view-radar">
+  <div class="topbar">
+    <div><div class="page-heading">Radar</div><div class="page-sub">Desperdícios e oportunidades de economia identificados automaticamente</div></div>
+    <div class="topbar-actions">
+      <button class="btn btn-outline" onclick="renderRadar();if(typeof syncRadarAcoes==='function')syncRadarAcoes();">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>Atualizar
+      </button>
+    </div>
+  </div>
+  <div class="tab-strip">
+    <button class="tab-btn active" onclick="switchTab('radar','alertas',this)">Alertas</button>
+    <button class="tab-btn" onclick="switchTab('radar','acoes',this)">Centro de Ações</button>
+    <button class="tab-btn" onclick="switchTab('radar','simulador',this)">Simulador</button>
+  </div>
+  <div class="tab-panel active" id="radar-alertas">
+    <div class="radar-kpis" id="radarKpis"></div>
+    <div id="radarContent"></div>
+  </div>
+  <div class="tab-panel" id="radar-acoes">
+    <div id="acoesContent"></div>
+  </div>
+  <div class="tab-panel" id="radar-simulador">
+    <div id="simuladorContent"></div>
+  </div>
+</div>
+
+<!-- CONTRATOS -->
+<div class="view" id="view-contratos">
+  <div class="topbar">
+    <div><div class="page-heading">Contratos</div><div class="page-sub">Licenças contratadas vs utilizadas — controle de ocupação por plano</div></div>
+    <div class="topbar-actions">
+      <button class="btn btn-dark" onclick="openContractModal()" data-perm="edit">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Novo Contrato
+      </button>
+    </div>
+  </div>
+  <div class="contract-kpis" id="contractKpis"></div>
+  <div class="contracts-layout">
+    <div class="contracts-table-wrap">
+      <div class="contracts-table-header">
+        <span class="contracts-table-title">Detalhamento por plano</span>
+        <span class="contracts-source-hint" id="contractSourceHint"></span>
+      </div>
+      <table>
+        <thead><tr><th>Licença</th><th>Contratadas</th><th>Em uso</th><th>Disponíveis</th><th>Ocupação</th><th>Custo em uso / mês</th><th>Custo ocioso / mês</th></tr></thead>
+        <tbody id="contractTableBody"></tbody>
+      </table>
+    </div>
+    <div class="contract-sidebar" id="contractSidebar"></div>
+  </div>
+
+  <!-- Fatura Microsoft -->
+  <div style="margin-top:24px">
+    <div class="contracts-table-wrap">
+      <div class="contracts-table-header">
+        <span class="contracts-table-title">Fatura Microsoft — Detalhamento Mensal</span>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="fatura-total-label">Total Geral: <strong id="faturaTotal">R$ 0,00</strong></span>
+          <button class="btn btn-sm btn-outline" onclick="addFaturaRow()" data-perm="edit">+ Linha</button>
+        </div>
+      </div>
+      <table class="fatura-table">
+        <thead><tr>
+          <th>Vencimento</th>
+          <th>Produto</th>
+          <th style="width:70px;text-align:right">Qtd</th>
+          <th style="width:110px;text-align:right">Valor Unit.</th>
+          <th style="width:110px;text-align:right">Valor Total</th>
+          <th style="width:36px" data-perm="edit"></th>
+        </tr></thead>
+        <tbody id="faturaTableBody"></tbody>
+        <tfoot>
+          <tr class="fatura-total-row">
+            <td colspan="4" style="text-align:right;font-weight:700">TOTAL GERAL</td>
+            <td style="text-align:right;font-weight:700" id="faturaTotalFooter">R$ 0,00</td>
+            <td data-perm="edit"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- AUDITORIA -->
+<div class="view" id="view-auditoria">
+  <div class="topbar">
+    <div><div class="page-heading">Auditoria</div><div class="page-sub">Registro de todas as alterações realizadas no sistema</div></div>
+  </div>
+  <div id="auditoriaContent"></div>
+</div>
+
+<!-- RELATÓRIO EXECUTIVO -->
+<div class="view" id="view-relatorio">
+  <div class="topbar no-print">
+    <div><div class="page-heading">Relatório</div><div class="page-sub">Resumo executivo — pronto para apresentar à gestão ou exportar como PDF</div></div>
+    <div class="topbar-actions">
+      <button class="btn btn-outline" onclick="window.print()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Imprimir / PDF
+      </button>
+    </div>
+  </div>
+  <div id="reportContent"></div>
+</div>
+
+<!-- SUGESTÕES / ANOTAÇÕES -->
+<div class="view" id="view-sugestoes">
+  <div class="topbar">
+    <div><div class="page-heading">Anotações</div><div class="page-sub">Feedback visual — clique em qualquer lugar do site para apontar o que mudar</div></div>
+  </div>
+  <div class="sug-layout">
+    <div class="sug-list-card">
+      <div class="sug-form-title">Todas as anotações</div>
+      <div id="suggestionsList"></div>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIGURAÇÕES -->
+<div class="view" id="view-config">
+  <div class="topbar">
+    <div><div class="page-heading">Configuracoes</div><div class="page-sub">Integracao com Microsoft Graph API para sincronizacao automatica</div></div>
+  </div>
+
+  <div class="config-section">
+    <div class="config-section-title">Microsoft Graph API — Sync Automatico</div>
+    <div class="config-section-desc">
+      Conecte ao Azure AD para sincronizar usuarios, licencas e dados de uso automaticamente.
+    </div>
+
+    <div class="config-status-bar" id="graphStatusBar">
+      <span class="config-status-dot" id="graphStatusDot"></span>
+      <span id="graphStatusText">Carregando...</span>
+    </div>
+
+    <div class="config-grid">
+      <!-- COLUNA ESQUERDA -->
+      <div class="config-col">
+        <div class="config-card">
+          <div class="config-card-title">Credenciais do Azure AD</div>
+          <div class="config-form" style="grid-template-columns:1fr">
+            <div class="form-group">
+              <label>Tenant ID (Directory ID)</label>
+              <div class="form-input-wrap">
+                <input type="password" class="form-input" id="cfgTenantId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off">
+                <button type="button" class="form-toggle-vis" onclick="toggleFieldVis('cfgTenantId',this)" title="Mostrar/ocultar"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Client ID (Application ID)</label>
+              <div class="form-input-wrap">
+                <input type="password" class="form-input" id="cfgClientId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off">
+                <button type="button" class="form-toggle-vis" onclick="toggleFieldVis('cfgClientId',this)" title="Mostrar/ocultar"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Client Secret</label>
+              <div class="form-input-wrap">
+                <input type="password" class="form-input" id="cfgClientSecret" placeholder="Deixe vazio para manter o atual" autocomplete="off">
+                <button type="button" class="form-toggle-vis" onclick="toggleFieldVis('cfgClientSecret',this)" title="Mostrar/ocultar"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+              </div>
+              <div class="form-hint" id="cfgSecretHint"></div>
+            </div>
+            <div class="config-form" style="margin-bottom:0">
+              <div class="form-group">
+                <label>Dominio de email</label>
+                <input type="text" class="form-input" id="cfgDomain" placeholder="liveoficial.com.br" value="liveoficial.com.br">
+              </div>
+              <div class="form-group">
+                <label>OU raiz do AD</label>
+                <input type="text" class="form-input" id="cfgOuRoot" placeholder="Setores" value="Setores">
+              </div>
+            </div>
+          </div>
+          <div class="config-actions" data-perm="edit">
+            <button class="btn btn-outline" onclick="testGraphConnection()">Testar Conexao</button>
+            <button class="btn btn-dark" onclick="saveGraphConfig()">Salvar Credenciais</button>
+          </div>
+          <div class="config-test-result" id="graphTestResult"></div>
+        </div>
+
+        <div class="config-card config-tutorial" id="configTutorial">
+          <div class="config-tutorial-header" onclick="document.getElementById('configTutorial').classList.toggle('open')">
+            <div style="display:flex;align-items:center;gap:8px">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--brown)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span class="config-card-title" style="margin:0">Como configurar o Azure AD</span>
+            </div>
+            <svg class="config-tutorial-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="config-tutorial-body">
+            <div class="config-steps">
+              <div class="config-step"><span class="config-step-num">1</span><div>Acesse <a href="https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/CreateApplicationBlade" target="_blank" rel="noopener">App registrations &rarr; New registration</a><br>Nome: <strong>"LIVE M365 Dashboard"</strong>, Tipo: "Accounts in this organizational directory only"</div></div>
+              <div class="config-step"><span class="config-step-num">2</span><div>Na pagina do app, copie o <strong>Application (client) ID</strong> e <strong>Directory (tenant) ID</strong> da aba Overview</div></div>
+              <div class="config-step"><span class="config-step-num">3</span><div>Acesse <a href="https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade" target="_blank" rel="noopener">Certificates &amp; secrets</a> &rarr; <strong>New client secret</strong> &rarr; copie o <strong>Value</strong></div></div>
+              <div class="config-step"><span class="config-step-num">4</span><div>Acesse <strong>API permissions</strong> &rarr; Add a permission &rarr; <a href="https://learn.microsoft.com/en-us/graph/permissions-reference" target="_blank" rel="noopener">Microsoft Graph</a> &rarr; <strong>Application permissions</strong>:<br><code>User.Read.All</code> <code>Directory.Read.All</code> <code>Reports.Read.All</code></div></div>
+              <div class="config-step"><span class="config-step-num">5</span><div>Clique em <strong>Grant admin consent</strong> para aprovar as permissoes</div></div>
+              <div class="config-step"><span class="config-step-num">6</span><div>Cole as credenciais nos campos ao lado e clique em <strong>Testar Conexao</strong></div></div>
+            </div>
+            <div class="config-tutorial-links">
+              <a href="https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Azure App Registrations</a>
+              <a href="https://learn.microsoft.com/en-us/graph/auth-register-app-v2" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Documentacao Microsoft Graph</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- COLUNA DIREITA -->
+      <div class="config-col">
+        <div class="config-card">
+          <div class="config-card-title">Sincronizacao</div>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px">
+            <label class="config-toggle">
+              <input type="checkbox" id="cfgAutoSync">
+              <span class="config-toggle-slider"></span>
+              Sync automatico
+            </label>
+            <div class="form-group" style="margin:0;min-width:120px">
+              <label style="font-size:11px">Intervalo</label>
+              <select class="form-select" id="cfgSyncInterval">
+                <option value="1">A cada 1h</option>
+                <option value="6">A cada 6h</option>
+                <option value="12">A cada 12h</option>
+                <option value="24" selected>A cada 24h</option>
+              </select>
+            </div>
+          </div>
+          <div class="config-actions" style="margin-bottom:8px" data-perm="edit">
+            <button class="btn btn-dark" id="btnSyncNow" onclick="triggerGraphSync()">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+              Sincronizar agora
+            </button>
+            <button class="btn btn-outline" id="btnRemapSetores" onclick="remapSetores()">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7h18M3 12h18M3 17h18"/></svg>
+              Reprocessar setores
+            </button>
+          </div>
+          <div style="font-size:11px;color:var(--muted)">
+            <strong>Reprocessar setores</strong> rele os DNs do AD e reatribui setor/area (respeita overrides fixos).
+          </div>
+          <div class="config-sync-log" id="graphSyncLog"></div>
+        </div>
+
+        <div class="config-card">
+          <div class="config-card-title">
+            Checklist de Consistencia
+            <span style="font-size:11px;color:var(--muted);font-weight:400;margin-left:8px">AD vs Sistema</span>
+          </div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">
+            Compara dados do sistema com o AD/Graph API. Identifica divergencias em nome, setor, cargo, licenca e status.
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+            <label class="btn btn-dark" style="cursor:pointer">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Comparar CSV
+              <input type="file" accept=".csv" onchange="auditFromCSV(event)" style="display:none">
+            </label>
+            <button class="btn btn-outline" id="btnRunAudit" onclick="runGraphAudit()">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              Comparar via Graph API
+            </button>
+            <span id="auditStatusText" style="font-size:12px;color:var(--muted)"></span>
+          </div>
+          <div id="auditResults"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</main>
+</div>
+
+
+<!-- EDIT MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="bgClose(event)">
+  <div class="modal">
+    <div class="modal-hdr">
+      <div><div class="modal-title" id="modalTitleText">Novo Colaborador</div><div class="modal-sub">Preencha os dados e atribua uma licença Microsoft 365</div></div>
+      <button class="close-btn" onclick="closeModal()">×</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label>Nome completo *</label><input type="text" class="form-input" id="fNome" placeholder="Ex: Ana Souza"></div>
+      <div class="form-group"><label>E-mail corporativo</label><input type="email" class="form-input" id="fEmail" placeholder="ana@liveoficial.com.br"></div>
+      <div class="form-group"><label>Setor *</label><input type="text" class="form-input" id="fSetor" placeholder="Ex: TI" list="setorList"><datalist id="setorList"></datalist></div>
+      <div class="form-group"><label>Cargo</label><input type="text" class="form-input" id="fCargo" placeholder="Ex: Analista Sênior"></div>
+      <div class="form-group" id="fResponsavelGroup">
+        <label>Responsável</label>
+        <input type="text" class="form-input" id="fResponsavel" placeholder="Ex: Nome do responsável" list="respList">
+        <datalist id="respList"></datalist>
+      </div>
+      <div class="form-group"><label>Status</label><select class="form-select" id="fStatus"><option value="Ativo">Ativo</option><option value="Pendente">Pendente</option><option value="Inativo">Inativo</option></select></div>
+      <div class="form-group"><label>Data de criação</label><input type="date" class="form-input" id="fData"></div>
+      <div class="form-group form-full"><label>Licença Microsoft 365</label><div class="lic-grid" id="licGrid"></div></div>
+      <div class="form-group form-full"><label>Resumo de custo</label>
+        <div class="cost-preview">
+          <div class="cp-row"><span>Plano principal</span><span id="cpLic">—</span></div>
+          <div class="cp-row"><span>O que inclui</span><span id="cpDesc" style="text-align:right;max-width:60%">—</span></div>
+          <div class="cp-row"><span>Custo mensal</span><span id="cpMes">R$ 0,00</span></div>
+          <div class="cp-total"><span>Custo anual estimado</span><span id="cpAno">R$ 0,00</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-dark" id="saveBtn" onclick="saveColaborador()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- OVERRIDE MODAL — Editar Setor Fixo -->
+<div class="modal-overlay" id="overrideOverlay" onclick="if(event.target.id==='overrideOverlay')closeOverrideModal()">
+  <div class="modal" style="width:440px">
+    <div class="modal-hdr">
+      <div><div class="modal-title">Editar Setor</div><div class="modal-sub">Definir setor fixo (não sobrescrito nas importações)</div></div>
+      <button class="close-btn" onclick="closeOverrideModal()">×</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group form-full" style="padding:10px 14px;background:var(--sand-lt);border-radius:8px;border:1px solid var(--border);margin-bottom:4px">
+        <div style="font-weight:700;font-size:13px" id="ovNome">—</div>
+        <div style="font-size:11px;color:var(--muted)" id="ovEmail">—</div>
+      </div>
+      <div class="form-group form-full">
+        <label>Setor</label>
+        <select class="form-select" id="ovSetor"></select>
+      </div>
+      <div class="form-group form-full" id="ovNovoSetorWrap" style="display:none">
+        <label>Nome do novo setor</label>
+        <input type="text" class="form-input" id="ovNovoSetor" placeholder="Ex: Lojas SP">
+      </div>
+      <div class="form-group form-full">
+        <label>Área (sub-setor)</label>
+        <select class="form-select" id="ovArea"></select>
+      </div>
+      <div class="form-group form-full" id="ovNovaAreaWrap" style="display:none">
+        <label>Nome da nova área</label>
+        <input type="text" class="form-input" id="ovNovaArea" placeholder="Ex: Desenvolvimento Web">
+      </div>
+      <div class="form-group">
+        <label>Tipo</label>
+        <select class="form-select" id="ovTipo">
+          <option value="">— Não definido —</option>
+          <option value="Usuario">Usuário</option>
+          <option value="Loja">Loja</option>
+          <option value="Servico">Serviço</option>
+          <option value="Compartilhado">Compartilhado</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Cargo</label>
+        <select class="form-select" id="ovCargo">
+          <option value="">— Manter do CSV —</option>
+          <option value="Colaborador">Colaborador</option>
+          <option value="Serviço">Serviço</option>
+          <option value="Compartilhado">Compartilhado</option>
+          <option value="Sala de Reunião">Sala de Reunião</option>
+          <option value="Equipamento">Equipamento</option>
+          <option value="Sistema">Sistema</option>
+          <option value="Automação">Automação</option>
+          <option value="__custom__">+ Outro...</option>
+        </select>
+      </div>
+      <div class="form-group" id="ovCargoCustomWrap" style="display:none">
+        <label>Cargo personalizado</label>
+        <input type="text" class="form-input" id="ovCargoCustom" placeholder="Ex: Quiosque">
+      </div>
+      <div class="form-group" style="display:flex;align-items:center;gap:8px;padding-top:22px">
+        <input type="checkbox" id="ovFixo" checked>
+        <label for="ovFixo" style="margin:0;font-size:12px;cursor:pointer">Manter setor fixo (não sobrescrever nas importações)</label>
+      </div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn btn-outline" onclick="closeOverrideModal()">Cancelar</button>
+      <button class="btn btn-dark" onclick="saveOverrideModal()">Salvar Setor</button>
+    </div>
+  </div>
+</div>
+
+<div class="detail-panel" id="detailPanel"><button class="dp-close" onclick="closeDetail()">×</button><div id="detailContent"></div></div>
+<div class="toast" id="toast"></div>
+
+<!-- MODAL AÇÃO -->
+<div class="modal-overlay" id="acaoOverlay" onclick="if(event.target.id==='acaoOverlay')closeAcaoModal()">
+  <div class="modal" style="width:560px">
+    <div class="modal-hdr">
+      <div><div class="modal-title" id="acaoModalTitle">Detalhe da Ação</div><div class="modal-sub" id="acaoModalSub">—</div></div>
+      <button class="close-btn" onclick="closeAcaoModal()">×</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group"><label>Status</label>
+        <select class="form-select" id="acaoStatus" onchange="updateAcaoStatus()">
+          <option value="novo">Novo</option><option value="em_analise">Em Análise</option>
+          <option value="resolvido">Resolvido</option><option value="ignorado">Ignorado</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Responsável</label>
+        <input type="text" class="form-input" id="acaoResponsavel" placeholder="Nome do responsável" onchange="setAcaoResponsavel()">
+      </div>
+      <div class="form-group form-full"><label>Histórico</label><div id="acaoHistorico" style="max-height:120px;overflow-y:auto;font-size:12px;color:var(--muted)"></div></div>
+      <div class="form-group form-full"><label>Comentários</label><div id="acaoComments" style="max-height:200px;overflow-y:auto"></div></div>
+      <div class="form-group form-full" style="display:flex;gap:8px">
+        <input type="text" class="form-input" id="acaoNewComment" placeholder="Adicionar comentário..." style="flex:1">
+        <button class="btn btn-dark" onclick="addAcaoComment()">Enviar</button>
+      </div>
+    </div>
+    <div class="modal-ftr"><button class="btn btn-outline" onclick="closeAcaoModal()">Fechar</button></div>
+  </div>
+</div>
+
+<!-- JS: auth -->
+<script src="src/js/auth.js"></script>
+<!-- JS: data -->
+<script src="src/js/data/licenses.js"></script>
+<script src="src/js/data/hierarchy.js"></script>
+<script src="src/js/data/db.js"></script>
+<!-- JS: utilities -->
+<script src="src/js/utils.js"></script>
+<script src="src/js/snapshot.js"></script>
+<script src="src/js/changelog.js"></script>
+<script src="src/js/variacao.js"></script>
+<script src="src/js/forecast.js"></script>
+<!-- JS: core -->
+<script src="src/js/dashsnap.js"></script>
+<script src="src/js/metrics.js"></script>
+<script src="src/js/charts.js"></script>
+<!-- JS: views -->
+<script src="src/js/views/dashboard.js"></script>
+<script src="src/js/views/colaboradores.js"></script>
+<script src="src/js/views/licencas.js"></script>
+<script src="src/js/views/optimization.js"></script>
+<script src="src/js/views/setores.js"></script>
+<script src="src/js/views/historico.js"></script>
+<script src="src/js/views/contracts.js"></script>
+<script src="src/js/views/radar.js"></script>
+<script src="src/js/views/acoes.js"></script>
+<script src="src/js/views/simulador.js"></script>
+<script src="src/js/views/report.js"></script>
+<script src="src/js/views/auditoria.js"></script>
+<script src="src/js/views/config.js"></script>
+<script src="src/js/views/checklist.js"></script>
+<!-- JS: permissions -->
+<script src="src/js/permissions.js"></script>
+<!-- JS: overrides (setor fixo/manual) -->
+<script src="src/js/overrides.js"></script>
+<!-- JS: interactions -->
+<script src="src/js/navigation.js"></script>
+<script src="src/js/modal.js"></script>
+<script src="src/js/detail.js"></script>
+<script src="src/js/export.js"></script>
+<!-- JS: ui-kit (skeleton, progress, transitions) -->
+<script src="src/js/ui-kit.js"></script>
+<!-- JS: init -->
+<script src="src/js/main.js"></script>
+
+<!-- HIERARCHY CONFIG MODAL -->
+<div class="modal-overlay" id="hierOverlay" onclick="if(event.target.id==='hierOverlay')closeHierarchyModal()">
+  <div class="modal" style="width:600px;max-height:80vh;overflow-y:auto">
+    <div class="modal-hdr">
+      <div><div class="modal-title">Configurar Hierarquia</div><div class="modal-sub">Defina a estrutura: Setor Macro → Áreas. Setores manuais não são sobrescritos nas importações.</div></div>
+      <button class="close-btn" onclick="closeHierarchyModal()">×</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group form-full" id="hierContent"></div>
+      <div class="form-group form-full" style="border-top:1px solid var(--border);padding-top:14px">
+        <div style="font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;font-weight:700;margin-bottom:8px">Adicionar Setor Macro</div>
+        <div style="display:flex;gap:8px">
+          <input type="text" class="form-input" id="hierNewMacro" placeholder="Nome do setor macro">
+          <label style="display:flex;align-items:center;gap:4px;font-size:11px;white-space:nowrap;cursor:pointer"><input type="checkbox" id="hierNewManual"> Manual</label>
+          <button class="btn btn-dark" onclick="addHierMacro()">Adicionar</button>
+        </div>
+      </div>
+      <div class="form-group form-full" style="border-top:1px solid var(--border);padding-top:14px">
+        <div style="font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;font-weight:700;margin-bottom:8px">Adicionar Área a um Setor</div>
+        <div style="display:flex;gap:8px">
+          <select class="form-select" id="hierAreaMacro" style="flex:1"></select>
+          <input type="text" class="form-input" id="hierNewArea" placeholder="Nome da área" style="flex:1">
+          <button class="btn btn-dark" onclick="addHierArea()">Adicionar</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn btn-outline" onclick="closeHierarchyModal()">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONTRACT MODAL -->
+<div class="modal-overlay" id="contractOverlay" onclick="bgCloseContract(event)">
+  <div class="modal" style="width:480px">
+    <div class="modal-hdr">
+      <div><div class="modal-title" id="contractModalTitle">Novo Contrato</div><div class="modal-sub">Informe as licenças contratadas por plano</div></div>
+      <button class="close-btn" onclick="closeContractModal()">×</button>
+    </div>
+    <div class="form-grid">
+      <div class="form-group form-full"><label>Nome do contrato</label><input type="text" class="form-input" id="cNome" placeholder="Ex: Contrato CSP 2024"></div>
+      <div class="form-group"><label>Licença</label>
+        <select class="form-select" id="cLicId" onchange="updateContractPrice()">
+          <option value="">Selecione...</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Quantidade contratada</label><input type="number" class="form-input" id="cQtd" min="1" placeholder="Ex: 300" oninput="updateContractPrice()"></div>
+      <div class="form-group"><label>Preço unitário (R$/mês)</label><input type="number" class="form-input" id="cPreco" step="0.01" placeholder="Ex: 31,21" oninput="updateContractPrice()"></div>
+      <div class="form-group"><label>Vigência início</label><input type="date" class="form-input" id="cInicio"></div>
+      <div class="form-group"><label>Vigência fim</label><input type="date" class="form-input" id="cFim"></div>
+      <div class="form-group form-full">
+        <div class="cost-preview" id="contractPreview">
+          <div class="cp-row"><span>Custo total contratado/mês</span><span id="cpContrato">R$ 0,00</span></div>
+          <div class="cp-total"><span>Custo total anual</span><span id="cpContratoAno">R$ 0,00</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-ftr">
+      <button class="btn btn-outline" onclick="closeContractModal()">Cancelar</button>
+      <button class="btn btn-dark" onclick="saveContract()">Salvar Contrato</button>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
