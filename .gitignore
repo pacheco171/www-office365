@@ -6,5 +6,6 @@ changelog.json
 hierarchy.json
 suggestions.json
 annotations.json
+roles.json
 __pycache__/
 *.pyc

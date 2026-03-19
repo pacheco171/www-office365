@@ -3,7 +3,7 @@
 .config-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;align-items:start;}
 .config-col{display:flex;flex-direction:column;gap:16px;}
 .config-col .config-card{margin-bottom:0;}
-.config-section-title{font-size:18px;font-weight:800;font-family:'Barlow',sans-serif;margin-bottom:6px;}
+.config-section-title{font-size:18px;font-weight:800;font-family:'Lexend',sans-serif;margin-bottom:6px;}
 .config-section-desc{font-size:13px;color:var(--muted);line-height:1.6;margin-bottom:20px;}
 
 .config-status-bar{display:flex;align-items:center;gap:8px;padding:10px 16px;background:var(--surface);border:1px solid var(--border);border-radius:8px;margin-bottom:16px;font-size:12px;}
@@ -84,7 +84,7 @@
 
 .audit-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px;}
 .audit-kpi{background:var(--sand-lt);border-radius:8px;padding:12px;text-align:center;}
-.audit-kpi-val{font-size:22px;font-weight:800;font-family:'Barlow',sans-serif;line-height:1.1;}
+.audit-kpi-val{font-size:22px;font-weight:800;font-family:'Lexend',sans-serif;line-height:1.1;}
 .audit-kpi-label{font-size:11px;color:var(--muted);margin-top:2px;}
 
 .audit-campo-resumo{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px;}

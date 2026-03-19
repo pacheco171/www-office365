@@ -1,0 +1,71 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="view active" id="view-dashboard">
+  <div class="topbar">
+    <div>
+      <div class="page-heading">Dashboard</div>
+      <div class="page-sub" id="dashSub">—</div>
+      <div id="dashSnapTabs" class="dash-snap-tabs" style="display:none"></div>
+    </div>
+    <div class="topbar-actions">
+      <button class="btn btn-outline" onclick="exportCSV()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>Exportar
+      </button>
+    </div>
+  </div>
+  <!-- Smart Alerts Banner -->
+  <div id="dashAlertsBanner" class="dash-alerts-banner" style="display:none"></div>
+  <div class="metrics">
+    <div class="mc"><div class="mc-accent" style="background:var(--tan)"></div><div class="mc-label">Total colaboradores</div><div class="mc-val" id="mTotal">0</div><div class="mc-sub" id="mTotalSub">—</div><div class="mc-delta neutral" id="mTotalDelta"></div><div class="mc-bar"><div class="mc-bar-fill" style="width:100%;background:var(--tan)"></div></div></div>
+    <div class="mc"><div class="mc-accent" style="background:#0078d4"></div><div class="mc-label">Com licença M365</div><div class="mc-val" id="mLic">0</div><div class="mc-sub" id="mLicSub">—</div><div class="mc-delta neutral" id="mLicDelta"></div><div class="mc-bar"><div class="mc-bar-fill" id="mLicBar" style="width:0%;background:#0078d4"></div></div></div>
+    <div class="mc"><div class="mc-accent" style="background:var(--brown)"></div><div class="mc-label">Custo mensal</div><div class="mc-val" id="mCusto">R$0</div><div class="mc-sub" id="mCustoSub">—</div><div class="mc-delta neutral" id="mCustoDelta"></div><div class="mc-bar"><div class="mc-bar-fill" id="mCustoBar" style="width:70%;background:var(--brown)"></div></div></div>
+    <div class="mc"><div class="mc-accent" style="background:var(--red)"></div><div class="mc-label">Outros</div><div class="mc-val" id="mSemLic">0</div><div class="mc-sub" id="mSemLicSub">—</div><div class="mc-delta neutral" id="mSemLicDelta"></div><div class="mc-bar"><div class="mc-bar-fill" id="mSemLicBar" style="width:0%;background:var(--red)"></div></div></div>
+  </div>
+  <!-- Botões de análise -->
+  <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
+    <button class="btn btn-outline" onclick="toggleCompare()" id="compareToggleBtn">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/></svg>
+      Comparativo Mensal
+    </button>
+    <button class="btn btn-outline" onclick="toggleForecast()" id="forecastToggleBtn">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+      Forecast de Custo
+    </button>
+  </div>
+  <!-- Comparativo meses -->
+  <div id="comparePanel" style="display:none"><div id="compareSection"></div></div>
+  <!-- Forecast de Custo -->
+  <div id="forecastPanel" style="display:none"><div id="forecastSection"></div></div>
+  <div class="charts-row">
+    <div class="chart-card">
+      <div class="chart-title">Distribuição por licença</div>
+      <div class="donut-wrap"><svg class="donut-svg" id="donutSvg" width="140" height="140" viewBox="0 0 110 110"></svg><div class="donut-legend" id="donutLegend"></div></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Custo por setor (top 10) <a onclick="toggleSetorAll()">ver todos</a></div>
+      <div class="bar-chart" id="barChart"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Por status</div>
+      <div class="bar-chart" id="statusChart"></div>
+      <div class="divider"></div>
+      <div class="chart-title">Custo anual estimado</div>
+      <div class="chart-custo-anual" id="custoAnual">R$ 0</div>
+      <div class="chart-custo-sub">projeção baseada no mês atual</div>
+    </div>
+  </div>
+  <div class="setor-all-panel" id="setorAllPanel">
+    <div style="font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;font-weight:700;margin-bottom:14px">Todos os setores — custo mensal</div>
+    <div id="dashSetorConsolidated" class="setor-consol-row"></div>
+    <div class="sub-tab-strip">
+      <button class="sub-tab-btn active" onclick="switchDashSetorTier('high',this)">Acima de R$ 1.000</button>
+      <button class="sub-tab-btn" onclick="switchDashSetorTier('mid',this)">R$ 500 – R$ 999</button>
+      <button class="sub-tab-btn" onclick="switchDashSetorTier('low',this)">Abaixo de R$ 500</button>
+    </div>
+    <div class="sub-tab-panel active" id="dashSetorTier-high"></div>
+    <div class="sub-tab-panel" id="dashSetorTier-mid"></div>
+    <div class="sub-tab-panel" id="dashSetorTier-low"></div>
+  </div>
+</div>
+{% endblock %}

@@ -65,7 +65,7 @@ function renderVariacaoDetail(snapIdx){
       <div style="display:flex;flex-direction:column;gap:4px">`;
     for(const r of items){
       html+=`<div style="display:flex;align-items:center;gap:10px;padding:6px 10px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:12px">
-        <span style="font-weight:600;min-width:160px">${r.nome}</span>
+        <span style="font-weight:600;min-width:180px">${r.nome}</span>
         <span class="dept-tag" style="font-size:10px">${r.setor||'—'}</span>`;
       if(showLicAnterior&&r.licAnterior){
         html+=`${licBadge(r.licAnterior)}<span style="color:var(--muted)">→</span>${licBadge(r.licId)}`;
@@ -87,7 +87,7 @@ function renderVariacaoDetail(snapIdx){
 
   html+=`<div style="padding:12px 16px;background:var(--sand-lt);border-radius:8px;display:flex;justify-content:space-between;align-items:center;margin-top:8px">
     <span style="font-size:13px;font-weight:700">Impacto líquido no custo mensal</span>
-    <span style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:${v.totalImpact>0?'var(--red)':v.totalImpact<0?'var(--green)':'var(--muted)'}">${v.totalImpact>0?'+':''}${fmtBRL(Math.abs(v.totalImpact))}</span>
+    <span style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:800;color:${v.totalImpact>0?'var(--red)':v.totalImpact<0?'var(--green)':'var(--muted)'}">${v.totalImpact>0?'+':''}${fmtBRL(Math.abs(v.totalImpact))}</span>
   </div>`;
 
   return html;

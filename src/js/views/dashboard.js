@@ -4,6 +4,7 @@
 function toggleCompare(){
   var panel=document.getElementById('comparePanel');
   var btn=document.getElementById('compareToggleBtn');
+  if(!panel)return;
   if(panel.style.display==='none'){
     panel.style.display='block';
     if(btn)btn.classList.add('active');

@@ -8,6 +8,7 @@
 var licDrillLevel = 'macro'; // 'macro' | 'areas' | 'pessoas'
 var licDrillMacro = null;    // setor macro selecionado
 var licDrillArea = null;     // area selecionada
+var licDrillSubarea = null;  // subarea selecionada
 var licHierData = [];        // cache do agrupamento
 
 /* ── Render principal ── */
@@ -46,8 +47,8 @@ function renderLicView() {
   renderLicDrill();
 }
 
-function setLicFilter(id) { filterLicId = filterLicId === id ? null : id; licDrillLevel = 'macro'; licDrillMacro = null; licDrillArea = null; renderLicView(); }
-function clearLicFilter() { filterLicId = null; licDrillLevel = 'macro'; licDrillMacro = null; licDrillArea = null; renderLicView(); }
+function setLicFilter(id) { filterLicId = filterLicId === id ? null : id; licDrillLevel = 'macro'; licDrillMacro = null; licDrillArea = null; licDrillSubarea = null; renderLicView(); }
+function clearLicFilter() { filterLicId = null; licDrillLevel = 'macro'; licDrillMacro = null; licDrillArea = null; licDrillSubarea = null; renderLicView(); }
 
 /* ── Breadcrumb ── */
 function renderLicBreadcrumb() {
@@ -64,8 +65,8 @@ function renderLicBreadcrumb() {
 }
 
 function licGoToLevel(level) {
-  if (level === 'macro') { licDrillMacro = null; licDrillArea = null; }
-  if (level === 'areas') { licDrillArea = null; }
+  if (level === 'macro') { licDrillMacro = null; licDrillArea = null; licDrillSubarea = null; }
+  if (level === 'areas') { licDrillArea = null; licDrillSubarea = null; }
   licDrillLevel = level;
   renderLicDrill();
 }
@@ -127,7 +128,7 @@ function licDrillIntoMacro(macro) {
   renderLicDrill();
 }
 
-/* ── Nivel 2: Areas dentro de um setor ── */
+/* ── Nivel 2: Areas dentro de um setor (expansivel com pessoas) ── */
 function renderAreasLevel() {
   var macroData = licHierData.find(function(m) { return m.macro === licDrillMacro; });
   if (!macroData) return '<div class="lic-drill-empty">Setor nao encontrado.</div>';
@@ -139,18 +140,57 @@ function renderAreasLevel() {
     '</div>' +
   '</div>';
 
-  var areasHtml = '<div class="lic-area-list">' + macroData.areas.map(function(a) {
+  var chevronSvg = '<svg class="lic-area-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>';
+
+  var areasHtml = '<div class="lic-area-list">' + macroData.areas.map(function(a, idx) {
     var pct = macroData.totalCusto > 0 ? Math.round(a.custo / macroData.totalCusto * 100) : 0;
-    return '<div class="lic-area-item" onclick="licDrillIntoArea(\'' + escAttr(a.name) + '\')">' +
-      '<div class="lic-area-item-left">' +
-        '<div class="lic-area-item-name">' + esc(a.name) + '</div>' +
-        '<div class="lic-area-item-meta">' + a.members.length + ' pessoa' + (a.members.length !== 1 ? 's' : '') + ' / ' + a.licCount + ' licenca' + (a.licCount !== 1 ? 's' : '') + '</div>' +
+    var areaId = 'lic-area-' + idx;
+
+    // Construir conteudo expansivel com pessoas
+    var bodyContent = '';
+    var hasSubareas = a.subareas && a.subareas.length > 0;
+
+    if (hasSubareas) {
+      // Subareas expansiveis dentro da area
+      bodyContent = a.subareas.map(function(sa, saIdx) {
+        var saId = areaId + '-sa-' + saIdx;
+        var saSorted = sa.members.slice().sort(function(x,y){return (x.nome||'').localeCompare(y.nome||'');});
+        return '<div class="lic-subarea-group" id="' + saId + '">' +
+          '<div class="lic-subarea-header" onclick="event.stopPropagation();toggleLicSubarea(\'' + saId + '\')">' +
+            chevronSvg +
+            '<span class="lic-subarea-name">' + esc(sa.name) + '</span>' +
+            '<span class="lic-subarea-meta">' + sa.members.length + ' pessoa' + (sa.members.length !== 1 ? 's' : '') + '</span>' +
+            '<span class="lic-subarea-cost">' + fmtBRL(sa.custo) + '</span>' +
+          '</div>' +
+          '<div class="lic-subarea-body">' + _renderLicPessoasTable(saSorted) + '</div>' +
+        '</div>';
+      }).join('');
+      // Pessoas diretas (sem subarea)
+      var directMembers = a.members.filter(function(r) { return !r.subarea; });
+      if (directMembers.length > 0) {
+        var directSorted = directMembers.slice().sort(function(x,y){return (x.nome||'').localeCompare(y.nome||'');});
+        bodyContent += '<div style="margin-top:8px;padding:8px 0 4px;font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:1px">Sem sub-area (' + directMembers.length + ')</div>' +
+          _renderLicPessoasTable(directSorted);
+      }
+    } else {
+      var sorted = a.members.slice().sort(function(x,y){return (x.nome||'').localeCompare(y.nome||'');});
+      bodyContent = _renderLicPessoasTable(sorted);
+    }
+
+    return '<div class="lic-area-item lic-area-expandable" id="' + areaId + '">' +
+      '<div class="lic-area-item-header" onclick="toggleLicArea(\'' + areaId + '\')">' +
+        chevronSvg +
+        '<div class="lic-area-item-left">' +
+          '<div class="lic-area-item-name">' + esc(a.name) + '</div>' +
+          '<div class="lic-area-item-meta">' + a.members.length + ' pessoa' + (a.members.length !== 1 ? 's' : '') + ' / ' + a.licCount + ' licenca' + (a.licCount !== 1 ? 's' : '') + '</div>' +
+        '</div>' +
+        '<div class="lic-area-item-right">' +
+          '<div class="lic-area-item-cost">' + fmtBRL(a.custo) + '</div>' +
+          '<div class="lic-area-item-pct">' + pct + '% do setor</div>' +
+        '</div>' +
       '</div>' +
-      '<div class="lic-area-item-right">' +
-        '<div class="lic-area-item-cost">' + fmtBRL(a.custo) + '</div>' +
-        '<div class="lic-area-item-pct">' + pct + '% do setor</div>' +
-      '</div>' +
-      '<div class="lic-card-bar" style="margin-top:8px"><div class="lic-card-bar-fill" style="width:' + pct + '%;background:var(--brown)"></div></div>' +
+      '<div class="lic-card-bar" style="margin:0 16px"><div class="lic-card-bar-fill" style="width:' + pct + '%;background:var(--brown)"></div></div>' +
+      '<div class="lic-area-item-body">' + bodyContent + '</div>' +
     '</div>';
   }).join('') + '</div>';
 
@@ -163,18 +203,135 @@ function renderAreasLevel() {
   return headerHtml + areasHtml + footerHtml;
 }
 
+function toggleLicArea(id) {
+  var el = document.getElementById(id);
+  if (el) el.classList.toggle('open');
+}
+
+function toggleLicSubarea(id) {
+  var el = document.getElementById(id);
+  if (el) el.classList.toggle('open');
+}
+
 function licDrillIntoArea(area) {
   licDrillArea = area;
   licDrillLevel = 'pessoas';
   renderLicDrill();
 }
 
-/* ── Nivel 3: Pessoas dentro de uma area ── */
+/** Contador global para IDs de tabelas de licenças paginadas */
+var _licTableIdx = 0;
+
+/** Renderiza tabela de pessoas (helper reutilizavel) com paginação */
+function _renderLicPessoasTable(members) {
+  var tid = 'lic-tbl-' + (_licTableIdx++);
+  var defaultPer = members.length;
+
+  if (!window._licTableData) window._licTableData = {};
+  window._licTableData[tid] = { members: members, per: defaultPer, page: 1 };
+
+  return '<div id="' + tid + '-wrap">' +
+    _buildLicTable(tid, members, 1, defaultPer) +
+  '</div>';
+}
+
+function _buildLicTable(tid, members, page, per) {
+  var total = members.length;
+  var pages = Math.max(1, Math.ceil(total / per));
+  if (page > pages) page = pages;
+  var start = (page - 1) * per;
+  var pageRows = members.slice(start, start + per);
+
+  var rows = pageRows.map(function(r) {
+    var c = userCost(r);
+    return '<tr onclick="openDetail(' + r.id + ')">' +
+      '<td><div class="person-cell"><div class="avatar">' + ini(r.nome) + '</div>' +
+        '<div><div class="person-name">' + esc(r.nome) + '</div></div></div></td>' +
+      '<td><span class="lic-pessoa-email">' + esc(r.email) + '</span></td>' +
+      '<td>' + licBadge(r.licId) + '</td>' +
+      '<td><span class="cost-val">' + (c > 0 ? fmtBRL(c) : '—') + '</span>' + (c > 0 ? '<span class="cost-per">/mes</span>' : '') + '</td>' +
+      '<td>' + statusBadge(r.status) + '</td>' +
+      '<td><button class="act-btn" onclick="event.stopPropagation();openDetail(' + r.id + ')">Ver</button></td>' +
+    '</tr>';
+  }).join('');
+
+  var table = '<div class="lic-pessoas-table-wrap">' +
+    '<table class="lic-pessoas-table">' +
+      '<thead><tr><th>Colaborador</th><th>E-mail</th><th>Licenca</th><th>Custo/mes</th><th>Status</th><th></th></tr></thead>' +
+      '<tbody>' + rows + '</tbody>' +
+    '</table>' +
+  '</div>';
+
+  if (total <= 10) return table;
+
+  var perSelect = '<div class="per-page"><label>Exibir</label>' +
+    '<select onchange="_licTableSetPer(\'' + tid + '\',this.value)">' +
+    [10, 20, 30, 40, 50].map(function(n) {
+      return '<option value="' + n + '"' + (n === per ? ' selected' : '') + '>' + n + '</option>';
+    }).join('') +
+    '<option value="' + total + '"' + (per >= total ? ' selected' : '') + '>Todas</option>' +
+    '</select></div>';
+
+  var pagBtns = '';
+  if (pages > 1) {
+    for (var i = 1; i <= Math.min(pages, 10); i++) {
+      pagBtns += '<button class="page-btn' + (i === page ? ' active' : '') + '" onclick="_licTableGoPage(\'' + tid + '\',' + i + ')">' + i + '</button>';
+    }
+  }
+
+  var info = 'Mostrando ' + (start + 1) + '–' + Math.min(start + per, total) + ' de ' + total;
+
+  var controls = '<div class="area-table-controls">' +
+    '<span class="area-table-info">' + info + '</span>' +
+    perSelect +
+    (pagBtns ? '<div class="area-table-pag">' + pagBtns + '</div>' : '') +
+  '</div>';
+
+  return table + controls;
+}
+
+function _licTableSetPer(tid, per) {
+  per = parseInt(per, 10) || 10;
+  var d = window._licTableData[tid];
+  if (!d) return;
+  d.per = per;
+  d.page = 1;
+  var wrap = document.getElementById(tid + '-wrap');
+  if (wrap) wrap.innerHTML = _buildLicTable(tid, d.members, 1, per);
+}
+
+function _licTableGoPage(tid, page) {
+  var d = window._licTableData[tid];
+  if (!d) return;
+  d.page = page;
+  var wrap = document.getElementById(tid + '-wrap');
+  if (wrap) wrap.innerHTML = _buildLicTable(tid, d.members, page, d.per);
+}
+
+/* ── Nivel 3: Pessoas/subareas dentro de uma area ── */
 function renderPessoasLevel() {
   var macroData = licHierData.find(function(m) { return m.macro === licDrillMacro; });
   if (!macroData) return '<div class="lic-drill-empty">Setor nao encontrado.</div>';
   var areaData = macroData.areas.find(function(a) { return a.name === licDrillArea; });
   if (!areaData) return '<div class="lic-drill-empty">Area nao encontrada.</div>';
+
+  // Se veio de subarea drill, filtrar apenas essa subarea
+  if (licDrillSubarea) {
+    var saData = (areaData.subareas || []).find(function(sa) { return sa.name === licDrillSubarea; });
+    var saMembers = saData ? saData.members : [];
+    var headerHtml = '<div class="lic-area-header">' +
+      '<div class="lic-area-header-info">' +
+        '<div class="lic-area-header-name">' + esc(licDrillMacro) + ' / ' + esc(licDrillArea) + ' / ' + esc(licDrillSubarea) + '</div>' +
+        '<div class="lic-area-header-sub">' + saMembers.length + ' pessoa' + (saMembers.length !== 1 ? 's' : '') + ' / ' + fmtBRL(saMembers.reduce(function(s,r){return s+userCost(r);},0)) + '/mes</div>' +
+      '</div>' +
+    '</div>';
+    var sorted = saMembers.slice().sort(function(a,b){return (a.nome||'').localeCompare(b.nome||'');});
+    var footerHtml = '<div class="lic-area-footer">' +
+      '<span class="lic-area-footer-label">Total ' + esc(licDrillSubarea) + ' (' + saMembers.length + ' pessoas)</span>' +
+      '<span class="lic-area-footer-val">' + fmtBRL(saMembers.reduce(function(s,r){return s+userCost(r);},0)) + '/mes</span>' +
+    '</div>';
+    return headerHtml + _renderLicPessoasTable(sorted) + footerHtml;
+  }
 
   var headerHtml = '<div class="lic-area-header">' +
     '<div class="lic-area-header-info">' +
@@ -183,35 +340,38 @@ function renderPessoasLevel() {
     '</div>' +
   '</div>';
 
-  // Tabela de pessoas
-  var sortedMembers = areaData.members.slice().sort(function(a, b) {
-    return (a.nome||'').localeCompare(b.nome||'');
-  });
+  var hasSubareas = areaData.subareas && areaData.subareas.length > 0;
+  var contentHtml = '';
 
-  var tableHtml = '<div class="lic-pessoas-table-wrap">' +
-    '<table class="lic-pessoas-table">' +
-      '<thead><tr>' +
-        '<th>Colaborador</th>' +
-        '<th>E-mail</th>' +
-        '<th>Licenca</th>' +
-        '<th>Custo/mes</th>' +
-        '<th>Status</th>' +
-        '<th></th>' +
-      '</tr></thead>' +
-      '<tbody>' + sortedMembers.map(function(r) {
-        var c = userCost(r);
-        return '<tr onclick="openDetail(' + r.id + ')">' +
-          '<td><div class="person-cell"><div class="avatar">' + ini(r.nome) + '</div>' +
-            '<div><div class="person-name">' + esc(r.nome) + '</div></div></div></td>' +
-          '<td><span class="lic-pessoa-email">' + esc(r.email) + '</span></td>' +
-          '<td>' + licBadge(r.licId) + '</td>' +
-          '<td><span class="cost-val">' + (c > 0 ? fmtBRL(c) : '—') + '</span>' + (c > 0 ? '<span class="cost-per">/mes</span>' : '') + '</td>' +
-          '<td>' + statusBadge(r.status) + '</td>' +
-          '<td><button class="act-btn" onclick="event.stopPropagation();openDetail(' + r.id + ')">Ver</button></td>' +
-        '</tr>';
-      }).join('') + '</tbody>' +
-    '</table>' +
-  '</div>';
+  if (hasSubareas) {
+    // Mostrar cards de subareas (igual ao nivel 2 mostra areas)
+    contentHtml = '<div class="lic-area-list">' + areaData.subareas.map(function(sa) {
+      var pct = areaData.custo > 0 ? Math.round(sa.custo / areaData.custo * 100) : 0;
+      return '<div class="lic-area-item" onclick="licDrillIntoSubarea(\'' + escAttr(sa.name) + '\')">' +
+        '<div class="lic-area-item-left">' +
+          '<div class="lic-area-item-name">' + esc(sa.name) + '</div>' +
+          '<div class="lic-area-item-meta">' + sa.members.length + ' pessoa' + (sa.members.length !== 1 ? 's' : '') + ' / ' + sa.licCount + ' licenca' + (sa.licCount !== 1 ? 's' : '') + '</div>' +
+        '</div>' +
+        '<div class="lic-area-item-right">' +
+          '<div class="lic-area-item-cost">' + fmtBRL(sa.custo) + '</div>' +
+          '<div class="lic-area-item-pct">' + pct + '% da area</div>' +
+        '</div>' +
+        '<div class="lic-card-bar" style="margin-top:8px"><div class="lic-card-bar-fill" style="width:' + pct + '%;background:var(--brown)"></div></div>' +
+      '</div>';
+    }).join('') + '</div>';
+    // Pessoas diretas (sem subarea)
+    var directMembers = areaData.members.filter(function(r) { return !r.subarea; });
+    if (directMembers.length > 0) {
+      var directSorted = directMembers.slice().sort(function(a,b){return (a.nome||'').localeCompare(b.nome||'');});
+      contentHtml += '<div style="margin-top:12px;padding:8px 0 4px;font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:1px">Sem sub-area (' + directMembers.length + ')</div>' +
+        _renderLicPessoasTable(directSorted);
+    }
+  } else {
+    var sortedMembers = areaData.members.slice().sort(function(a, b) {
+      return (a.nome||'').localeCompare(b.nome||'');
+    });
+    contentHtml = _renderLicPessoasTable(sortedMembers);
+  }
 
   // Totalizador
   var footerHtml = '<div class="lic-area-footer">' +
@@ -219,7 +379,12 @@ function renderPessoasLevel() {
     '<span class="lic-area-footer-val">' + fmtBRL(areaData.custo) + '/mes</span>' +
   '</div>';
 
-  return headerHtml + tableHtml + footerHtml;
+  return headerHtml + contentHtml + footerHtml;
+}
+
+function licDrillIntoSubarea(subarea) {
+  licDrillSubarea = subarea;
+  renderLicDrill();
 }
 
 /* ── Historico (mantido) ── */

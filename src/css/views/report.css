@@ -15,18 +15,18 @@
 }
 .report-wrap{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:36px 40px;max-width:900px;margin:0 auto;}
 .report-header{display:grid;grid-template-columns:1fr auto;gap:20px;align-items:start;margin-bottom:32px;padding-bottom:20px;border-bottom:2px solid var(--black);}
-.report-logo{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;letter-spacing:2px;line-height:1;}
+.report-logo{font-family:'Outfit',sans-serif;font-size:26px;font-weight:800;letter-spacing:2px;line-height:1;}
 .report-logo em{color:var(--tan);font-style:normal;}
 .report-logo-sub{font-size:9px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;margin-top:4px;}
 .report-meta{text-align:right;}
-.report-meta-ref{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;}
+.report-meta-ref{font-family:'Outfit',sans-serif;font-size:18px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;}
 .report-meta-date{font-size:11px;color:var(--muted);margin-top:3px;}
 .report-section{margin-bottom:28px;}
 .report-section-title{font-size:9.5px;color:var(--muted);letter-spacing:2.5px;text-transform:uppercase;font-weight:700;margin-bottom:14px;padding-bottom:8px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
 .report-section-title svg{width:13px;height:13px;opacity:.5;}
 .report-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;}
 .report-kpi{padding:16px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;}
-.report-kpi-val{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;line-height:1;color:var(--black);}
+.report-kpi-val{font-family:'Outfit',sans-serif;font-size:clamp(18px,1.8vw,24px);font-weight:800;line-height:1;color:var(--black);}
 .report-kpi-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-top:4px;}
 .report-kpi-delta{font-size:11px;font-weight:700;margin-top:5px;}
 .report-alert{display:grid;grid-template-columns:24px 1fr;gap:12px;align-items:start;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:13px 16px;margin-bottom:8px;}

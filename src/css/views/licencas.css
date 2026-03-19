@@ -5,7 +5,7 @@
 .lic-card.selected-lic{border-color:var(--tan);background:rgba(181,164,142,.06);}
 .lic-card-top{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px;}
 .lic-card-badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:4px;border:1px solid;}
-.lic-card-count{font-family:'Barlow Condensed',sans-serif;font-size:30px;font-weight:800;}
+.lic-card-count{font-family:'Outfit',sans-serif;font-size:clamp(20px,2vw,26px);font-weight:800;}
 .lic-card-name{font-size:12px;color:var(--muted);margin-top:1px;}
 .lic-card-price{font-size:11px;margin-top:8px;color:var(--muted);}
 .lic-card-cost{font-size:13px;font-weight:700;color:var(--brown);margin-top:4px;}
@@ -14,7 +14,7 @@
 
 /* HISTORICO MENSAL — tab strip */
 .tab-strip{display:flex;gap:4px;margin-bottom:18px;border-bottom:1px solid var(--border);padding-bottom:0;}
-.tab-btn{padding:8px 16px;font-size:12px;font-weight:700;font-family:'Barlow',sans-serif;color:var(--muted);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;text-transform:uppercase;letter-spacing:.4px;}
+.tab-btn{padding:8px 16px;font-size:12px;font-weight:700;font-family:'Lexend',sans-serif;color:var(--muted);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;text-transform:uppercase;letter-spacing:.4px;}
 .tab-btn.active{color:var(--black);border-bottom-color:var(--tan);}
 .tab-btn:hover{color:var(--black);}
 .tab-panel{display:none;}
@@ -44,7 +44,7 @@
 .lic-macro-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
 .lic-summary-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px;}
 .lic-summary-label{font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;font-weight:700;margin-bottom:6px;}
-.lic-summary-val{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:var(--black);}
+.lic-summary-val{font-family:'Outfit',sans-serif;font-size:clamp(18px,1.8vw,22px);font-weight:800;color:var(--black);}
 .lic-summary-cost{color:var(--brown);}
 
 /* Macro grid */
@@ -52,33 +52,54 @@
 .lic-macro-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px;cursor:pointer;transition:all .18s;}
 .lic-macro-card:hover{box-shadow:0 4px 18px rgba(0,0,0,.08);transform:translateY(-2px);border-color:var(--tan-lt);}
 .lic-macro-card-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px;}
-.lic-macro-card-name{font-weight:800;font-size:15px;font-family:'Barlow',sans-serif;}
+.lic-macro-card-name{font-weight:800;font-size:15px;font-family:'Lexend',sans-serif;}
 .lic-macro-manual-badge{font-size:9px;font-weight:700;padding:2px 7px;border-radius:4px;background:var(--sand-lt);color:var(--muted);border:1px solid var(--border);text-transform:uppercase;letter-spacing:.5px;}
 .lic-macro-card-stats{display:flex;gap:16px;margin-bottom:14px;}
 .lic-macro-stat{}
-.lic-macro-stat-val{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;color:var(--black);}
+.lic-macro-stat-val{font-family:'Outfit',sans-serif;font-size:20px;font-weight:800;color:var(--black);}
 .lic-macro-stat-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600;}
-.lic-macro-card-cost{font-weight:800;font-size:16px;color:var(--brown);font-family:'Barlow Condensed',sans-serif;display:flex;align-items:baseline;gap:8px;}
+.lic-macro-card-cost{font-weight:800;font-size:16px;color:var(--brown);font-family:'Outfit',sans-serif;display:flex;align-items:baseline;gap:8px;}
 .lic-macro-card-pct{font-size:11px;font-weight:600;color:var(--muted);}
 
-/* ── Nivel 2: Areas ── */
+/* ── Nivel 2: Areas (expansiveis com pessoas) ── */
 .lic-area-header{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:18px 20px;margin-bottom:16px;}
-.lic-area-header-name{font-weight:800;font-size:17px;font-family:'Barlow',sans-serif;}
+.lic-area-header-name{font-weight:800;font-size:17px;font-family:'Lexend',sans-serif;}
 .lic-area-header-sub{font-size:12px;color:var(--muted);margin-top:4px;}
 
 .lic-area-list{display:flex;flex-direction:column;gap:8px;margin-bottom:16px;}
-.lic-area-item{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px;cursor:pointer;transition:all .15s;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;}
-.lic-area-item:hover{box-shadow:0 2px 12px rgba(0,0,0,.06);border-color:var(--tan-lt);}
+.lic-area-item.lic-area-expandable{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:0;cursor:default;transition:all .15s;display:block;overflow:hidden;}
+.lic-area-item.lic-area-expandable:hover{box-shadow:0 2px 12px rgba(0,0,0,.06);border-color:var(--tan-lt);}
+.lic-area-item-header{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:16px 18px;cursor:pointer;user-select:none;transition:background .1s;}
+.lic-area-item-header:hover{background:var(--sand-lt);}
+.lic-area-chevron{width:16px;height:16px;flex-shrink:0;transition:transform .2s;color:var(--muted);}
+.lic-area-expandable.open .lic-area-chevron{transform:rotate(90deg);}
 .lic-area-item-left{flex:1;min-width:200px;}
 .lic-area-item-name{font-weight:700;font-size:14px;}
 .lic-area-item-meta{font-size:11px;color:var(--muted);margin-top:3px;}
 .lic-area-item-right{text-align:right;}
-.lic-area-item-cost{font-weight:800;font-size:15px;color:var(--brown);font-family:'Barlow Condensed',sans-serif;}
+.lic-area-item-cost{font-weight:800;font-size:15px;color:var(--brown);font-family:'Outfit',sans-serif;}
 .lic-area-item-pct{font-size:10px;color:var(--muted);margin-top:2px;}
+.lic-area-item-body{max-height:0;overflow:hidden;transition:max-height .3s ease;}
+.lic-area-expandable.open .lic-area-item-body{max-height:5000px;overflow:visible;}
+.lic-area-item-body>.lic-pessoas-table-wrap,
+.lic-area-item-body>div{margin:0 16px 16px;}
+
+/* Subareas dentro de area (licencas) */
+.lic-subarea-group{background:var(--surface);border:1px solid var(--border);border-left:3px solid var(--tan);border-radius:6px;margin:0 16px 6px;overflow:hidden;}
+.lic-subarea-header{display:flex;align-items:center;gap:8px;padding:10px 14px;cursor:pointer;user-select:none;font-size:12px;transition:background .1s;}
+.lic-subarea-header:hover{background:var(--sand-lt);}
+.lic-subarea-group .lic-area-chevron{width:14px;height:14px;}
+.lic-subarea-group.open .lic-area-chevron{transform:rotate(90deg);}
+.lic-subarea-name{font-weight:700;font-size:12px;flex:1;}
+.lic-subarea-meta{font-size:11px;color:var(--muted);white-space:nowrap;}
+.lic-subarea-cost{font-weight:700;font-size:12px;color:var(--brown);text-align:right;min-width:100px;}
+.lic-subarea-body{max-height:0;overflow:hidden;transition:max-height .3s ease;}
+.lic-subarea-group.open .lic-subarea-body{max-height:3000px;overflow:visible;}
+.lic-subarea-body .lic-pessoas-table-wrap{margin:0 8px 8px;}
 
 .lic-area-footer{background:var(--sand-lt);border:1px solid var(--border);border-radius:10px;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;}
 .lic-area-footer-label{font-size:11px;color:var(--muted);font-weight:700;text-transform:uppercase;letter-spacing:1px;}
-.lic-area-footer-val{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:var(--brown);}
+.lic-area-footer-val{font-family:'Outfit',sans-serif;font-size:clamp(16px,1.5vw,20px);font-weight:800;color:var(--brown);white-space:nowrap;}
 
 /* ── Nivel 3: Pessoas ── */
 .lic-pessoas-table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:11px;overflow:hidden;margin-bottom:16px;}
@@ -98,8 +119,8 @@
 .setor-count{font-size:11px;color:var(--muted);font-weight:400;}
 .setor-lic-row{display:flex;align-items:center;gap:8px;margin-bottom:5px;font-size:12px;}
 .setor-lic-name{flex:1;color:var(--muted);}
-.setor-lic-val{font-weight:600;min-width:30px;text-align:right;}
-.setor-lic-cost{font-size:11px;color:var(--brown);min-width:60px;text-align:right;}
+.setor-lic-val{font-weight:600;min-width:40px;text-align:right;}
+.setor-lic-cost{font-size:11px;color:var(--brown);min-width:75px;text-align:right;}
 .setor-lic-bar{flex:2;height:5px;background:var(--sand-lt);border-radius:3px;overflow:hidden;}
 .setor-lic-fill{height:100%;border-radius:3px;}
 .setor-total{margin-top:10px;padding-top:8px;border-top:1px solid var(--border);display:flex;justify-content:space-between;font-size:12px;}
@@ -117,12 +138,12 @@
 .setor-consol-card.mid::before{background:var(--yellow);}
 .setor-consol-card.low::before{background:var(--green);}
 .setor-consol-label{font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;font-weight:700;margin-bottom:6px;}
-.setor-consol-val{font-family:'Barlow Condensed',sans-serif;font-size:26px;font-weight:800;color:var(--brown);}
+.setor-consol-val{font-family:'Outfit',sans-serif;font-size:clamp(18px,1.8vw,22px);font-weight:800;color:var(--brown);}
 .setor-consol-sub{font-size:11px;color:var(--muted);margin-top:4px;}
 
 /* Sub-abas de faixa */
 .sub-tab-strip{display:flex;gap:4px;margin-bottom:16px;border-bottom:1px solid var(--border);padding-bottom:0;}
-.sub-tab-btn{padding:7px 14px;font-size:11px;font-weight:700;font-family:'Barlow',sans-serif;color:var(--muted);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;text-transform:uppercase;letter-spacing:.3px;}
+.sub-tab-btn{padding:7px 14px;font-size:11px;font-weight:700;font-family:'Lexend',sans-serif;color:var(--muted);background:none;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s;text-transform:uppercase;letter-spacing:.3px;}
 .sub-tab-btn.active{color:var(--black);border-bottom-color:var(--brown);}
 .sub-tab-btn:hover{color:var(--black);}
 .sub-tab-panel{display:none;}
@@ -136,7 +157,7 @@
 .setor-tier-item.open .setor-tier-chevron{transform:rotate(90deg);}
 .setor-tier-name{font-weight:700;font-size:13px;}
 .setor-tier-meta{font-size:11px;color:var(--muted);white-space:nowrap;}
-.setor-tier-cost{font-weight:700;font-size:13px;color:var(--brown);text-align:right;min-width:90px;}
+.setor-tier-cost{font-weight:700;font-size:13px;color:var(--brown);text-align:right;min-width:110px;}
 
 /* Corpo expansivel */
 .setor-tier-body{max-height:0;overflow:hidden;transition:max-height .3s ease;}
@@ -156,7 +177,7 @@
 /* Rodape da faixa */
 .setor-tier-footer{background:var(--sand-lt);border-top:1px solid var(--border);padding:12px 16px;display:flex;justify-content:space-between;align-items:center;border-radius:0 0 10px 10px;margin-top:4px;}
 .setor-tier-footer-label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:1px;}
-.setor-tier-footer-val{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:var(--brown);}
+.setor-tier-footer-val{font-family:'Outfit',sans-serif;font-size:clamp(16px,1.5vw,20px);font-weight:800;color:var(--brown);white-space:nowrap;}
 
 /* Estado vazio */
 .setor-tier-empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:13px;}
@@ -170,13 +191,26 @@
 .setor-sub-group.open .setor-sub-chevron{transform:rotate(90deg);}
 .setor-sub-name{font-weight:700;font-size:12px;}
 .setor-sub-meta{font-size:11px;color:var(--muted);white-space:nowrap;}
-.setor-sub-cost{font-weight:700;font-size:12px;color:var(--brown);text-align:right;min-width:80px;}
+.setor-sub-cost{font-weight:700;font-size:12px;color:var(--brown);text-align:right;min-width:100px;}
 .setor-sub-body{max-height:0;overflow:hidden;transition:max-height .3s ease;}
-.setor-sub-group.open .setor-sub-body{max-height:2000px;}
+.setor-sub-group.open>.setor-sub-body{max-height:5000px;}
+.setor-subarea-group.open>.setor-sub-body{max-height:3000px;}
 .setor-sub-body-inner{padding:0 14px 14px;}
 .setor-sub-footer{background:var(--sand-lt);border-top:1px solid var(--border);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;margin-top:8px;border-radius:0 0 8px 8px;}
 .setor-sub-footer-label{font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:1px;}
-.setor-sub-footer-val{font-family:'Barlow Condensed',sans-serif;font-size:18px;font-weight:800;color:var(--brown);}
+.setor-sub-footer-val{font-family:'Outfit',sans-serif;font-size:clamp(15px,1.4vw,18px);font-weight:800;color:var(--brown);white-space:nowrap;}
+
+/* ══════════ SUBAREA (3º nível — pastinha dentro da area) ══════════ */
+.setor-subarea-group{margin:4px 0 4px 12px;border-left:3px solid var(--border);border-radius:6px;}
+.setor-subarea-header{font-size:11px;padding:8px 12px;}
+.setor-subarea-group .setor-sub-name{font-size:11px;font-weight:700;}
+.setor-subarea-group .setor-sub-cost{font-size:11px;min-width:80px;}
+
+/* ══════════ AREA TABLE PAGINATION ══════════ */
+.area-table-controls{display:flex;align-items:center;gap:12px;padding:10px 4px 4px;flex-wrap:wrap;}
+.area-table-info{font-size:11px;color:var(--muted);flex:1;min-width:120px;}
+.area-table-pag{display:flex;gap:3px;}
+.area-table-pag .page-btn{min-width:28px;height:28px;font-size:11px;}
 
 /* ══════════ HIERARCHY CONFIG MODAL ══════════ */
 .hier-section{margin-bottom:16px;}

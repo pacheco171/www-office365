@@ -1,5 +1,14 @@
 /* ══════════ COLLABORATORS TABLE — Tabela principal de colaboradores ══════════ */
 
+/** Renderiza celula de cargo com indicador de certeza */
+function cargoCell(r){
+  var orig=r.cargoOrigem||'ad';
+  var cls='cargo-origin cargo-origin-'+orig;
+  var tip=orig==='ad'?'Cargo do AD':'Cargo não definido no AD';
+  if(r.cargoFixo||orig==='override'){cls='cargo-origin cargo-origin-override';tip='Cargo definido manualmente';}
+  return '<span class="'+cls+'" title="'+tip+'">'+esc(r.cargo)+'</span>';
+}
+
 var _colabReq=0; // controle de request obsoleta
 var _colabDebounce=null;
 
@@ -22,6 +31,7 @@ function renderTable(){
   var fs=document.getElementById('fltSetor').value;
   var fl=document.getElementById('fltLic').value;
   var fst=document.getElementById('fltStatus').value;
+  var fc=document.getElementById('fltCargo')?document.getElementById('fltCargo').value:'';
   var effectivePer=PER===Infinity?9999:PER;
 
   var params='page='+currentPage+'&per='+effectivePer;
@@ -29,6 +39,7 @@ function renderTable(){
   if(fs)params+='&setor='+encodeURIComponent(fs);
   if(fl)params+='&licId='+encodeURIComponent(fl);
   if(fst)params+='&status='+encodeURIComponent(fst);
+  if(fc)params+='&cargoOrigem='+encodeURIComponent(fc);
   if(sortField){
     params+='&sort='+encodeURIComponent(sortField);
     params+='&order='+(sortAsc?'asc':'desc');
@@ -57,8 +68,8 @@ function renderTable(){
         return'<tr onclick="openDetail('+r.id+')">'
           +'<td><div class="person-cell"><div class="avatar">'+ini(r.nome)+'</div>'
           +'<div><div class="person-name">'+r.nome+'</div><div class="person-email">'+r.email+'</div></div></div></td>'
-          +'<td><span class="dept-tag">'+r.setor+'</span>'+(r.area?'<span style="font-size:10px;color:var(--muted);margin-left:4px">/ '+r.area+'</span>':'')+(r.setorFixo?'<span class="setor-lock" title="Setor fixo — não sobrescrito na importação">🔒</span>':'')+'</td>'
-          +'<td style="color:var(--muted);font-size:12px">'+r.cargo+(r.cargoFixo?'<span class="setor-lock" title="Cargo fixo — não sobrescrito na importação">🔒</span>':'')+'</td>'
+          +'<td><span class="dept-tag">'+r.setor+'</span>'+(r.area?'<span style="font-size:10px;color:var(--muted);margin-left:4px">/ '+r.area+'</span>':'')+(r.subarea?'<span style="font-size:10px;color:var(--muted);margin-left:2px">/ '+r.subarea+'</span>':'')+(r.setorFixo?'<span class="setor-lock" title="Setor fixo — não sobrescrito na importação">🔒</span>':'')+'</td>'
+          +'<td style="font-size:12px">'+cargoCell(r)+'</td>'
           +'<td>'+licBadge(r.licId)+(r.addons||[]).filter(function(a){return licById[a]&&licById[a].price>0;}).map(function(a){return' '+licBadge(a);}).join('')+'</td>'
           +'<td><span class="cost-val">'+(c>0?fmtBRL(c):'—')+'</span>'+(c>0?'<span class="cost-per">/mês</span>':'')+'</td>'
           +'<td>'+statusBadge(r.status)+'</td>'
@@ -110,10 +121,16 @@ function _renderTableLocal(){
   var fs=document.getElementById('fltSetor').value;
   var fl=document.getElementById('fltLic').value;
   var fst=document.getElementById('fltStatus').value;
+  var fc=document.getElementById('fltCargo')?document.getElementById('fltCargo').value:'';
   var rows=db.filter(function(r){
     var l=getLic(r.licId);
     var txt=(r.nome+r.email+r.setor+(r.area||'')+r.cargo+l.name+l.short).toLowerCase();
-    return(!q||txt.indexOf(q)>=0)&&(!fs||r.setor===fs)&&(!fl||r.licId===fl)&&(!fst||r.status===fst);
+    if(q&&txt.indexOf(q)<0)return false;
+    if(fs&&r.setor!==fs)return false;
+    if(fl&&r.licId!==fl)return false;
+    if(fst&&r.status!==fst)return false;
+    if(fc){var orig=r.cargoFixo?'override':(r.cargoOrigem||'ad');if(orig!==fc)return false;}
+    return true;
   });
   if(sortField){
     rows.sort(function(a,b){
@@ -138,7 +155,7 @@ function _renderTableLocal(){
       +'<td><div class="person-cell"><div class="avatar">'+ini(r.nome)+'</div>'
       +'<div><div class="person-name">'+r.nome+'</div><div class="person-email">'+r.email+'</div></div></div></td>'
       +'<td><span class="dept-tag">'+r.setor+'</span>'+(r.area?'<span style="font-size:10px;color:var(--muted);margin-left:4px">/ '+r.area+'</span>':'')+(r.setorFixo?'<span class="setor-lock" title="Setor fixo">🔒</span>':'')+'</td>'
-      +'<td style="color:var(--muted);font-size:12px">'+r.cargo+(r.cargoFixo?'<span class="setor-lock" title="Cargo fixo">🔒</span>':'')+'</td>'
+      +'<td style="font-size:12px">'+cargoCell(r)+'</td>'
       +'<td>'+licBadge(r.licId)+(r.addons||[]).filter(function(a){return licById[a]&&licById[a].price>0;}).map(function(a){return' '+licBadge(a);}).join('')+'</td>'
       +'<td><span class="cost-val">'+(c>0?fmtBRL(c):'—')+'</span>'+(c>0?'<span class="cost-per">/mês</span>':'')+'</td>'
       +'<td>'+statusBadge(r.status)+'</td>'

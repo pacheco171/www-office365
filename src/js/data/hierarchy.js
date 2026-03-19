@@ -62,7 +62,7 @@ function resolveHierarchy(r) {
 }
 
 /** Agrupa registros pela hierarquia.
-    Retorna: [{ macro, manual, areas: [{ name, members:[], custo, licCount }], totalMembers, totalCusto }] */
+    Retorna: [{ macro, manual, areas: [{ name, members:[], custo, licCount, subareas: [{ name, members:[], custo, licCount }] }], totalMembers, totalCusto }] */
 function groupByHierarchy(records) {
   var macroMap = {};
 
@@ -75,18 +75,37 @@ function groupByHierarchy(records) {
     }
     var m = macroMap[h.macro];
     if (!m.areaMap[h.area]) {
-      m.areaMap[h.area] = { name: h.area, members: [], custo: 0, licCount: 0 };
+      m.areaMap[h.area] = { name: h.area, members: [], custo: 0, licCount: 0, subareaMap: {} };
     }
     var a = m.areaMap[h.area];
     a.members.push(r);
     a.custo += userCost(r);
     if (r.licId && r.licId !== 'none') a.licCount++;
+
+    // Agrupar por subarea se existir
+    var subName = r.subarea || null;
+    if (subName) {
+      if (!a.subareaMap[subName]) {
+        a.subareaMap[subName] = { name: subName, members: [], custo: 0, licCount: 0 };
+      }
+      var sa = a.subareaMap[subName];
+      sa.members.push(r);
+      sa.custo += userCost(r);
+      if (r.licId && r.licId !== 'none') sa.licCount++;
+    }
   });
 
   var result = [];
   Object.keys(macroMap).sort().forEach(function(key) {
     var m = macroMap[key];
-    var areas = Object.values(m.areaMap).sort(function(a, b) {
+    var areas = Object.values(m.areaMap).map(function(a) {
+      // Converter subareaMap em array ordenado
+      a.subareas = Object.values(a.subareaMap).sort(function(x, y) {
+        return y.custo - x.custo;
+      });
+      delete a.subareaMap;
+      return a;
+    }).sort(function(a, b) {
       return b.custo - a.custo;
     });
     var totalMembers = areas.reduce(function(s, a) { return s + a.members.length; }, 0);
@@ -167,6 +186,7 @@ function removeMacroSetor(name) {
 /** Renderiza subdivisoes por area dentro de um setor expandido.
     Usado no dashboard (ver todos) e na view Por Setor.
     Mostra TODAS as areas configuradas na hierarquia, mesmo vazias.
+    Suporta 3 niveis: setor > area > subarea (quando existem subareas no AD).
     @param {object} s - setor com {name, members, custo, byLic}
     @param {string} prefix - prefixo unico para IDs
     @returns {string} HTML */
@@ -179,26 +199,41 @@ function renderSetorSubAreas(s, prefix) {
   ativos.forEach(function(r) {
     var h = resolveHierarchy(r);
     var areaName = h.area || 'Geral';
-    if (!areaMap[areaName]) areaMap[areaName] = [];
-    areaMap[areaName].push(r);
+    if (!areaMap[areaName]) areaMap[areaName] = { members: [], subareaMap: {} };
+    areaMap[areaName].members.push(r);
+
+    // Agrupar por subarea se existir
+    if (r.subarea) {
+      if (!areaMap[areaName].subareaMap[r.subarea]) areaMap[areaName].subareaMap[r.subarea] = [];
+      areaMap[areaName].subareaMap[r.subarea].push(r);
+    }
   });
 
   // Garantir que todas as areas configuradas na hierarquia aparecem
   var hConf = HIERARCHY[s.name];
   if (hConf && hConf.areas) {
     hConf.areas.forEach(function(area) {
-      if (!areaMap[area]) areaMap[area] = [];
+      if (!areaMap[area]) areaMap[area] = { members: [], subareaMap: {} };
+    });
+  }
+  // Garantir subareas configuradas
+  if (hConf && hConf.subareas) {
+    Object.keys(hConf.subareas).forEach(function(area) {
+      if (!areaMap[area]) areaMap[area] = { members: [], subareaMap: {} };
+      (hConf.subareas[area] || []).forEach(function(sub) {
+        if (!areaMap[area].subareaMap[sub]) areaMap[area].subareaMap[sub] = [];
+      });
     });
   }
 
   // Coletar todas as areas e ordenar: com membros primeiro (por custo desc), vazias por ultimo
   var areaKeys = Object.keys(areaMap).sort(function(a, b) {
-    var membrosA = areaMap[a].length;
-    var membrosB = areaMap[b].length;
+    var membrosA = areaMap[a].members.length;
+    var membrosB = areaMap[b].members.length;
     if (membrosA === 0 && membrosB > 0) return 1;
     if (membrosA > 0 && membrosB === 0) return -1;
-    var custoA = areaMap[a].reduce(function(sum, r) { return sum + userCost(r); }, 0);
-    var custoB = areaMap[b].reduce(function(sum, r) { return sum + userCost(r); }, 0);
+    var custoA = areaMap[a].members.reduce(function(sum, r) { return sum + userCost(r); }, 0);
+    var custoB = areaMap[b].members.reduce(function(sum, r) { return sum + userCost(r); }, 0);
     return custoB - custoA;
   });
 
@@ -212,11 +247,58 @@ function renderSetorSubAreas(s, prefix) {
 
   var subIdx = 0;
   var subHtml = areaKeys.map(function(areaName) {
-    var members = areaMap[areaName] || [];
+    var areaData = areaMap[areaName];
+    var members = areaData.members;
     var subCusto = members.reduce(function(sum, r) { return sum + userCost(r); }, 0);
     var licCount = members.filter(function(r) { return r.licId && r.licId !== 'none'; }).length;
     var isEmpty = members.length === 0;
     var idx = subIdx++;
+
+    // Verificar se tem subareas
+    var subareaKeys = Object.keys(areaData.subareaMap).sort(function(a, b) {
+      var custoA = (areaData.subareaMap[a] || []).reduce(function(sum, r) { return sum + userCost(r); }, 0);
+      var custoB = (areaData.subareaMap[b] || []).reduce(function(sum, r) { return sum + userCost(r); }, 0);
+      return custoB - custoA;
+    });
+    var hasSubareas = subareaKeys.length > 0;
+    var directMembers = members.filter(function(r) { return !r.subarea; });
+
+    // Conteudo interno
+    var bodyContent = '';
+    if (isEmpty) {
+      bodyContent = '<div style="padding:16px;text-align:center;color:var(--muted);font-size:12px">Nenhuma pessoa atribuida a esta area.<br>Use o botao <strong>Editar setor</strong> de cada colaborador para atribuir.</div>';
+    } else if (hasSubareas) {
+      // Pastinhas de subarea (mesmo estilo, indentadas)
+      var saIdx = 0;
+      bodyContent = subareaKeys.map(function(saName) {
+        var saMembers = areaData.subareaMap[saName] || [];
+        var saCusto = saMembers.reduce(function(sum, r) { return sum + userCost(r); }, 0);
+        var saLicCount = saMembers.filter(function(r) { return r.licId && r.licId !== 'none'; }).length;
+        var saI = saIdx++;
+        var saPrefix = prefix + '-sub-' + idx + '-sa';
+        return '<div class="setor-sub-group setor-subarea-group" id="' + saPrefix + '-sub-' + saI + '">' +
+          '<div class="setor-sub-header setor-subarea-header" onclick="toggleSubArea(\'' + saPrefix + '\',' + saI + ')">' +
+            chevronSvg +
+            '<span class="setor-sub-name">' + esc(saName) + '</span>' +
+            '<span class="setor-sub-meta">' + (function(){var np=saMembers.filter(function(r){return !r.tipo||r.tipo==='Pessoa';}).length;var no=saMembers.length-np;return np+(no>0?' pessoas · '+no+' comp.':' pessoa'+(np!==1?'s':''));})() + '</span>' +
+            '<span class="setor-sub-meta">' + saLicCount + ' licenca' + (saLicCount !== 1 ? 's' : '') + '</span>' +
+            '<span class="setor-sub-cost">' + fmtBRL(saCusto) + '</span>' +
+          '</div>' +
+          '<div class="setor-sub-body">' +
+            '<div class="setor-sub-body-inner">' +
+              renderAreaUsersTable(saMembers) +
+            '</div>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+      // Pessoas diretas na area (sem subarea)
+      if (directMembers.length > 0) {
+        bodyContent += renderAreaUsersTable(directMembers);
+      }
+    } else {
+      bodyContent = renderAreaUsersTable(members);
+    }
+
     return '<div class="setor-sub-group' + (isEmpty ? ' empty-area' : '') + '" id="' + prefix + '-sub-' + idx + '">' +
       '<div class="setor-sub-header" onclick="toggleSubArea(\'' + prefix + '\',' + idx + ')">' +
         chevronSvg +
@@ -227,9 +309,7 @@ function renderSetorSubAreas(s, prefix) {
       '</div>' +
       '<div class="setor-sub-body">' +
         '<div class="setor-sub-body-inner">' +
-          (isEmpty ?
-            '<div style="padding:16px;text-align:center;color:var(--muted);font-size:12px">Nenhuma pessoa atribuida a esta area.<br>Use o botao <strong>Editar setor</strong> de cada colaborador para atribuir.</div>' :
-            renderAreaUsersTable(members)) +
+          bodyContent +
         '</div>' +
       '</div>' +
     '</div>';
@@ -243,19 +323,93 @@ function renderSetorSubAreas(s, prefix) {
     '</div>';
 }
 
-/** Renderiza tabela de usuarios de uma area */
+/** Contador global para IDs unicos de tabelas paginadas */
+var _areaTableIdx = 0;
+
+/** Renderiza tabela de usuarios de uma area com paginação inline */
 function renderAreaUsersTable(members) {
-  return '<table class="setor-users-table">' +
+  var sorted = members.slice().sort(function(a, b) { return (a.nome||'').localeCompare(b.nome||''); });
+  var tid = 'area-tbl-' + (_areaTableIdx++);
+  var defaultPer = sorted.length;
+
+  // Guardar dados no window para acesso posterior
+  if (!window._areaTableData) window._areaTableData = {};
+  window._areaTableData[tid] = { members: sorted, per: defaultPer, page: 1 };
+
+  return '<div id="' + tid + '-wrap">' +
+    _buildAreaTable(tid, sorted, 1, defaultPer) +
+  '</div>';
+}
+
+/** Constroi HTML da tabela paginada */
+function _buildAreaTable(tid, members, page, per) {
+  var total = members.length;
+  var pages = Math.max(1, Math.ceil(total / per));
+  if (page > pages) page = pages;
+  var start = (page - 1) * per;
+  var pageRows = members.slice(start, start + per);
+
+  var rows = pageRows.map(function(r) {
+    return '<tr onclick="openDetail(' + r.id + ')">' +
+      '<td><span class="setor-user-avatar">' + ini(r.nome) + '</span>' + esc(r.nome) + '</td>' +
+      '<td style="font-size:11px;color:var(--muted)">' + esc(r.email) + '</td>' +
+      '<td>' + licBadge(r.licId) + '</td>' +
+      '<td style="color:var(--brown);font-weight:600">' + fmtBRL(userCost(r)) + '</td>' +
+      '<td>' + statusBadge(r.status) + '</td>' +
+    '</tr>';
+  }).join('');
+
+  var table = '<table class="setor-users-table">' +
     '<thead><tr><th>Colaborador</th><th>E-mail</th><th>Licenca</th><th>Custo/mes</th><th>Status</th></tr></thead>' +
-    '<tbody>' + members.slice().sort(function(a, b) { return (a.nome||'').localeCompare(b.nome||''); }).map(function(r) {
-      return '<tr onclick="openDetail(' + r.id + ')">' +
-        '<td><span class="setor-user-avatar">' + ini(r.nome) + '</span>' + esc(r.nome) + '</td>' +
-        '<td style="font-size:11px;color:var(--muted)">' + esc(r.email) + '</td>' +
-        '<td>' + licBadge(r.licId) + '</td>' +
-        '<td style="color:var(--brown);font-weight:600">' + fmtBRL(userCost(r)) + '</td>' +
-        '<td>' + statusBadge(r.status) + '</td>' +
-      '</tr>';
-    }).join('') + '</tbody></table>';
+    '<tbody>' + rows + '</tbody></table>';
+
+  // Controles de paginação (só se tiver mais de 10 membros)
+  if (total <= 10) return table;
+
+  var perSelect = '<div class="per-page"><label>Exibir</label>' +
+    '<select onchange="_areaTableSetPer(\'' + tid + '\',this.value)">' +
+    [10, 20, 30, 40, 50].map(function(n) {
+      return '<option value="' + n + '"' + (n === per ? ' selected' : '') + '>' + n + '</option>';
+    }).join('') +
+    '<option value="' + total + '"' + (per >= total ? ' selected' : '') + '>Todas</option>' +
+    '</select></div>';
+
+  var pagBtns = '';
+  if (pages > 1) {
+    for (var i = 1; i <= Math.min(pages, 10); i++) {
+      pagBtns += '<button class="page-btn' + (i === page ? ' active' : '') + '" onclick="_areaTableGoPage(\'' + tid + '\',' + i + ')">' + i + '</button>';
+    }
+  }
+
+  var info = 'Mostrando ' + (start + 1) + '–' + Math.min(start + per, total) + ' de ' + total;
+
+  var controls = '<div class="area-table-controls">' +
+    '<span class="area-table-info">' + info + '</span>' +
+    perSelect +
+    (pagBtns ? '<div class="area-table-pag">' + pagBtns + '</div>' : '') +
+  '</div>';
+
+  return table + controls;
+}
+
+/** Muda quantidade por pagina */
+function _areaTableSetPer(tid, per) {
+  per = parseInt(per, 10) || 10;
+  var d = window._areaTableData[tid];
+  if (!d) return;
+  d.per = per;
+  d.page = 1;
+  var wrap = document.getElementById(tid + '-wrap');
+  if (wrap) wrap.innerHTML = _buildAreaTable(tid, d.members, 1, per);
+}
+
+/** Vai para pagina especifica */
+function _areaTableGoPage(tid, page) {
+  var d = window._areaTableData[tid];
+  if (!d) return;
+  d.page = page;
+  var wrap = document.getElementById(tid + '-wrap');
+  if (wrap) wrap.innerHTML = _buildAreaTable(tid, d.members, page, d.per);
 }
 
 function toggleSubArea(prefix, idx) {
@@ -281,8 +435,15 @@ function renderHierarchyModal() {
   } else {
     content.innerHTML = macros.map(function(macro) {
       var h = HIERARCHY[macro];
+      var subs = h.subareas || {};
       var areasHtml = (h.areas || []).map(function(a) {
-        return '<span class="hier-area-chip">' + a + '<button onclick="removeHierArea(\'' + escAttr(macro) + '\',\'' + escAttr(a) + '\')">&times;</button></span>';
+        var subList = subs[a] || [];
+        var subHtml = subList.length > 0
+          ? '<div style="padding-left:16px;margin-top:2px">' + subList.map(function(sa) {
+              return '<span class="hier-area-chip" style="font-size:10px;opacity:.8">' + sa + '</span>';
+            }).join('') + '</div>'
+          : '';
+        return '<span class="hier-area-chip">' + a + (subList.length ? ' (' + subList.length + ')' : '') + '<button onclick="removeHierArea(\'' + escAttr(macro) + '\',\'' + escAttr(a) + '\')">&times;</button></span>' + subHtml;
       }).join('');
       return '<div class="hier-macro-row">' +
         '<span class="hier-macro-name">' + esc(macro) + '</span>' +

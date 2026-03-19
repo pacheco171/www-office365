@@ -1,7 +1,7 @@
 /* ══════════ CENTRO DE AÇÕES ══════════ */
 .acao-kpis{display:flex;gap:12px;margin-bottom:20px;flex-wrap:wrap}
 .acao-kpi{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:16px 24px;text-align:center;flex:1;min-width:100px}
-.acao-kpi-val{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800}
+.acao-kpi-val{font-family:'Outfit',sans-serif;font-size:clamp(18px,1.8vw,24px);font-weight:800}
 .acao-kpi-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:700;margin-top:2px}
 .acao-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:12px}
 .acao-card{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:16px;cursor:pointer;transition:box-shadow .15s}

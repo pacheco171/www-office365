@@ -60,7 +60,7 @@ function renderSimulador(){
   let html=`<div class="sim-summary-bar">
     <div>
       <span style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:700">Economia selecionada</span>
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:var(--green)">${fmtBRL(totalEconomia)}<span style="font-size:14px;font-weight:400;color:var(--muted)">/mês</span></div>
+      <div style="font-family:'Outfit',sans-serif;font-size:24px;font-weight:800;color:var(--green)">${fmtBRL(totalEconomia)}<span style="font-size:14px;font-weight:400;color:var(--muted)">/mês</span></div>
       <div style="font-size:12px;color:var(--green)">${fmtBRL(totalEconomia*12)}/ano</div>
     </div>
     <div style="text-align:center">
@@ -69,7 +69,7 @@ function renderSimulador(){
     </div>
     <div style="text-align:right">
       <span style="font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:1px;font-weight:700">Total possível</span>
-      <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:700;color:var(--muted)">${fmtBRL(totalPossivel)}/mês</div>
+      <div style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:700;color:var(--muted)">${fmtBRL(totalPossivel)}/mês</div>
     </div>
     <div style="display:flex;gap:8px;align-items:center">
       <button class="btn btn-outline" onclick="exportSimCSV()" ${!selectedItems.length?'disabled':''}>Exportar CSV</button>
@@ -95,12 +95,12 @@ function renderSimulador(){
           <div style="font-weight:600;font-size:13px">${c.userName}</div>
           <div style="font-size:11px;color:var(--muted)">${c.setor} · ${c.descricao}</div>
         </div>
-        <div style="text-align:center;min-width:120px">
+        <div style="text-align:center;min-width:140px">
           <span style="font-size:11px;color:var(--muted)">${c.licAtual}</span>
           <span style="color:var(--muted)"> → </span>
           <span style="font-size:11px;font-weight:700">${c.proposta}</span>
         </div>
-        <div style="text-align:right;min-width:100px;font-weight:700;color:var(--green)">${fmtBRL(c.economiaMensal)}/mês</div>
+        <div style="text-align:right;min-width:120px;font-weight:700;color:var(--green)">${fmtBRL(c.economiaMensal)}/mês</div>
       </div>`;
     }
     g+=`</div>`;
@@ -148,7 +148,7 @@ function printSimSummary(){
   const total=candidates.reduce((s,c)=>s+c.economiaMensal,0);
   const w=window.open('','_blank','width=800,height=600');
   w.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Simulador de Economia — LIVE! M365</title>
-    <style>body{font-family:'Barlow',sans-serif;padding:40px;color:#1a1816}h1{font-size:22px;margin-bottom:4px}
+    <style>body{font-family:'Lexend',sans-serif;padding:40px;color:#1a1816}h1{font-size:22px;margin-bottom:4px}
     table{width:100%;border-collapse:collapse;margin-top:20px}th,td{padding:8px 12px;border-bottom:1px solid #e5ddd0;text-align:left;font-size:13px}
     th{background:#f5f0e8;font-size:10px;text-transform:uppercase;letter-spacing:1px;font-weight:700;color:#8a8070}
     .total{margin-top:20px;font-size:18px;font-weight:800;color:#5a8a6a}</style></head><body>

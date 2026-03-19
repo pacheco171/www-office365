@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% block title %}Configurações{% endblock %}
+{% block content %}
+<div class="view active" id="view-config">
+  <div class="topbar">
+    <div><div class="page-heading">Configuracoes</div><div class="page-sub">Integracao com Microsoft Graph API para sincronizacao automatica</div></div>
+  </div>
+
+  <div class="config-section">
+    <div class="config-section-title">Microsoft Graph API — Sync Automatico</div>
+    <div class="config-section-desc">
+      Conecte ao Azure AD para sincronizar usuarios, licencas e dados de uso automaticamente.
+    </div>
+
+    <div class="config-status-bar" id="graphStatusBar">
+      <span class="config-status-dot" id="graphStatusDot"></span>
+      <span id="graphStatusText">Carregando...</span>
+    </div>
+
+    <div class="config-grid">
+      <!-- COLUNA ESQUERDA -->
+      <div class="config-col">
+        <div class="config-card">
+          <div class="config-card-title">Credenciais do Azure AD</div>
+          <div class="config-form" style="grid-template-columns:1fr">
+            <div class="form-group">
+              <label>Tenant ID (Directory ID)</label>
+              <div class="form-input-wrap">
+                <input type="password" class="form-input" id="cfgTenantId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off">
+                <button type="button" class="form-toggle-vis" onclick="toggleFieldVis('cfgTenantId',this)" title="Mostrar/ocultar"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Client ID (Application ID)</label>
+              <div class="form-input-wrap">
+                <input type="password" class="form-input" id="cfgClientId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocomplete="off">
+                <button type="button" class="form-toggle-vis" onclick="toggleFieldVis('cfgClientId',this)" title="Mostrar/ocultar"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>Client Secret</label>
+              <div class="form-input-wrap">
+                <input type="password" class="form-input" id="cfgClientSecret" placeholder="Deixe vazio para manter o atual" autocomplete="off">
+                <button type="button" class="form-toggle-vis" onclick="toggleFieldVis('cfgClientSecret',this)" title="Mostrar/ocultar"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+              </div>
+              <div class="form-hint" id="cfgSecretHint"></div>
+            </div>
+            <div class="config-form" style="margin-bottom:0">
+              <div class="form-group">
+                <label>Dominio de email</label>
+                <input type="text" class="form-input" id="cfgDomain" placeholder="liveoficial.com.br" value="liveoficial.com.br">
+              </div>
+              <div class="form-group">
+                <label>OU raiz do AD</label>
+                <input type="text" class="form-input" id="cfgOuRoot" placeholder="Setores" value="Setores">
+              </div>
+            </div>
+          </div>
+          <div class="config-actions" data-perm="edit">
+            <button class="btn btn-outline" onclick="testGraphConnection()">Testar Conexao</button>
+            <button class="btn btn-dark" onclick="saveGraphConfig()">Salvar Credenciais</button>
+          </div>
+          <div class="config-test-result" id="graphTestResult"></div>
+        </div>
+
+        <div class="config-card config-tutorial" id="configTutorial">
+          <div class="config-tutorial-header" onclick="document.getElementById('configTutorial').classList.toggle('open')">
+            <div style="display:flex;align-items:center;gap:8px">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="var(--brown)" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+              <span class="config-card-title" style="margin:0">Como configurar o Azure AD</span>
+            </div>
+            <svg class="config-tutorial-chevron" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </div>
+          <div class="config-tutorial-body">
+            <div class="config-steps">
+              <div class="config-step"><span class="config-step-num">1</span><div>Acesse <a href="https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/CreateApplicationBlade" target="_blank" rel="noopener">App registrations &rarr; New registration</a><br>Nome: <strong>"LIVE M365 Dashboard"</strong>, Tipo: "Accounts in this organizational directory only"</div></div>
+              <div class="config-step"><span class="config-step-num">2</span><div>Na pagina do app, copie o <strong>Application (client) ID</strong> e <strong>Directory (tenant) ID</strong> da aba Overview</div></div>
+              <div class="config-step"><span class="config-step-num">3</span><div>Acesse <a href="https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade" target="_blank" rel="noopener">Certificates &amp; secrets</a> &rarr; <strong>New client secret</strong> &rarr; copie o <strong>Value</strong></div></div>
+              <div class="config-step"><span class="config-step-num">4</span><div>Acesse <strong>API permissions</strong> &rarr; Add a permission &rarr; <a href="https://learn.microsoft.com/en-us/graph/permissions-reference" target="_blank" rel="noopener">Microsoft Graph</a> &rarr; <strong>Application permissions</strong>:<br><code>User.Read.All</code> <code>Directory.Read.All</code> <code>Reports.Read.All</code></div></div>
+              <div class="config-step"><span class="config-step-num">5</span><div>Clique em <strong>Grant admin consent</strong> para aprovar as permissoes</div></div>
+              <div class="config-step"><span class="config-step-num">6</span><div>Cole as credenciais nos campos ao lado e clique em <strong>Testar Conexao</strong></div></div>
+            </div>
+            <div class="config-tutorial-links">
+              <a href="https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Azure App Registrations</a>
+              <a href="https://learn.microsoft.com/en-us/graph/auth-register-app-v2" target="_blank" rel="noopener"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg> Documentacao Microsoft Graph</a>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- COLUNA DIREITA -->
+      <div class="config-col">
+        <div class="config-card">
+          <div class="config-card-title">Sincronizacao</div>
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:10px">
+            <label class="config-toggle">
+              <input type="checkbox" id="cfgAutoSync">
+              <span class="config-toggle-slider"></span>
+              Sync automatico
+            </label>
+            <div class="form-group" style="margin:0;min-width:120px">
+              <label style="font-size:11px">Intervalo</label>
+              <select class="form-select" id="cfgSyncInterval">
+                <option value="1">A cada 1h</option>
+                <option value="6">A cada 6h</option>
+                <option value="12">A cada 12h</option>
+                <option value="24" selected>A cada 24h</option>
+              </select>
+            </div>
+          </div>
+          <div class="config-actions" style="margin-bottom:8px" data-perm="edit">
+            <button class="btn btn-dark" id="btnSyncNow" onclick="triggerGraphSync()">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+              Sincronizar agora
+            </button>
+            <button class="btn btn-outline" id="btnRemapSetores" onclick="remapSetores()">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 7h18M3 12h18M3 17h18"/></svg>
+              Reprocessar setores
+            </button>
+          </div>
+          <div style="font-size:11px;color:var(--muted)">
+            <strong>Reprocessar setores</strong> rele os DNs do AD e reatribui setor/area (respeita overrides fixos).
+          </div>
+          <div class="config-sync-log" id="graphSyncLog"></div>
+        </div>
+
+        <div class="config-card">
+          <div class="config-card-title">
+            Checklist de Consistencia
+            <span style="font-size:11px;color:var(--muted);font-weight:400;margin-left:8px">AD vs Sistema</span>
+          </div>
+          <div style="font-size:12px;color:var(--muted);margin-bottom:12px">
+            Compara dados do sistema com o AD/Graph API. Identifica divergencias em nome, setor, cargo, licenca e status.
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:12px">
+            <label class="btn btn-dark" style="cursor:pointer">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+              Comparar CSV
+              <input type="file" accept=".csv" onchange="auditFromCSV(event)" style="display:none">
+            </label>
+            <button class="btn btn-outline" id="btnRunAudit" onclick="runGraphAudit()">
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+              Comparar via Graph API
+            </button>
+            <span id="auditStatusText" style="font-size:12px;color:var(--muted)"></span>
+          </div>
+          <div id="auditResults"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Assistente IA -->
+    <div class="config-section-title" style="margin-top:32px">Assistente IA — Claude (Anthropic)</div>
+    <div class="config-section-desc">
+      Configure a API key da Anthropic para habilitar o assistente de IA que analisa seus dados M365.
+    </div>
+    <div class="config-grid">
+      <div class="config-col">
+        <div class="config-card">
+          <div class="config-card-title">Credenciais Anthropic</div>
+          <div class="config-form" style="grid-template-columns:1fr">
+            <div class="form-group">
+              <label>API Key</label>
+              <div class="form-input-wrap">
+                <input type="password" class="form-input" id="cfgAiApiKey" placeholder="sk-ant-..." autocomplete="off">
+                <button type="button" class="form-toggle-vis" onclick="toggleFieldVis('cfgAiApiKey',this)" title="Mostrar/ocultar"><svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8S1 12 1 12z"/><circle cx="12" cy="12" r="3"/></svg></button>
+              </div>
+              <div class="form-hint" id="cfgAiKeyHint"></div>
+            </div>
+          </div>
+          <div class="config-actions" data-perm="edit">
+            <button class="btn btn-outline" onclick="testAiConnection()">Testar Conexao</button>
+            <button class="btn btn-dark" onclick="saveAiConfig()">Salvar</button>
+          </div>
+          <div class="config-test-result" id="aiTestResult"></div>
+        </div>
+      </div>
+      <div class="config-col">
+        <div class="config-card">
+          <div class="config-card-title">Sobre o Assistente</div>
+          <div style="font-size:12px;color:var(--muted);line-height:1.7">
+            O assistente analisa seus dados reais (licenças, custos, uso, setores) e responde perguntas como:
+            <ul style="margin:8px 0;padding-left:18px">
+              <li>Quanto estamos gastando por mês?</li>
+              <li>Quais setores gastam mais?</li>
+              <li>Tem licença sendo desperdiçada?</li>
+              <li>Como reduzir custos?</li>
+            </ul>
+            Clique no botão de chat no canto inferior direito para conversar.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

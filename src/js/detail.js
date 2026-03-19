@@ -1,5 +1,13 @@
 /* ══════════ DETAIL PANEL — Painel lateral de detalhes ══════════ */
 
+/** Badge de origem do cargo */
+function cargoOrigemBadge(r){
+  if(r.cargoFixo)return'<span class="cargo-badge cargo-badge-override" title="Definido manualmente">manual</span>';
+  var o=r.cargoOrigem||'ad';
+  if(o==='fallback')return'<span class="cargo-badge cargo-badge-fallback" title="Cargo não preenchido no AD — valor padrão">sem dado no AD</span>';
+  return'<span class="cargo-badge cargo-badge-ad" title="Obtido do Active Directory">AD</span>';
+}
+
 /** Abre painel lateral com detalhes completos do colaborador */
 function openDetail(id){
   const r=db.find(x=>x.id===id);if(!r)return;
@@ -10,14 +18,15 @@ function openDetail(id){
   document.getElementById('detailContent').innerHTML=`
     <div class="dp-avatar">${ini(r.nome)}</div>
     <div class="dp-name">${r.nome}</div>
-    <div class="dp-role">${r.cargo} · ${r.setor}${r.area?' / '+r.area:''}</div>
+    <div class="dp-role">${r.cargo} · ${r.setor}${r.area?' / '+r.area:''}${r.subarea?' / '+r.subarea:''}</div>
     <div class="dp-section">
       <div class="dp-sec-title">Informações</div>
       <div class="dp-row"><span class="dp-key">E-mail</span><span class="dp-val" style="font-size:11px">${r.email}</span></div>
       <div class="dp-row"><span class="dp-key">Setor</span><span class="dp-val">${r.setor}${r.setorFixo?' <span title="Setor fixo" style="font-size:11px">🔒</span>':''}</span></div>
       ${r.area?`<div class="dp-row"><span class="dp-key">Área</span><span class="dp-val">${r.area}</span></div>`:''}
+      ${r.subarea?`<div class="dp-row"><span class="dp-key">Sub-área</span><span class="dp-val">${r.subarea}</span></div>`:''}
       ${r.responsavel?`<div class="dp-row"><span class="dp-key">Responsável</span><span class="dp-val">${r.responsavel}</span></div>`:''}
-      <div class="dp-row"><span class="dp-key">Cargo</span><span class="dp-val">${r.cargo}</span></div>
+      <div class="dp-row"><span class="dp-key">Cargo</span><span class="dp-val">${r.cargo} ${cargoOrigemBadge(r)}</span></div>
       <div class="dp-row"><span class="dp-key">Criado em</span><span class="dp-val">${fmtDate(r.dataISO)}</span></div>
       <div class="dp-row"><span class="dp-key">Status</span><span class="dp-val">${statusBadge(r.status)}</span></div>
       ${r.demissao?`<div class="dp-row"><span class="dp-key">Bloqueado em</span><span class="dp-val" style="color:var(--red)">${fmtDate(r.demissao)}</span></div>`:''}

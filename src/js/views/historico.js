@@ -17,11 +17,11 @@ function renderHistView(){
     return`<div style="background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:20px;margin-bottom:16px;">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;">
         <div>
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;text-transform:uppercase">${snap.label}</div>
+          <div style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:800;text-transform:uppercase">${snap.label}</div>
           <div style="font-size:12px;color:var(--muted)">${snap.data.length} usuários · ${snap.data.filter(r=>r.licId!=='none').length} licenciados</div>
         </div>
         <div style="text-align:right">
-          <div style="font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:var(--brown)">${fmtBRL(c)}</div>
+          <div style="font-family:'Outfit',sans-serif;font-size:24px;font-weight:800;color:var(--brown)">${fmtBRL(c)}</div>
           ${pc!=null?(()=>{
             const uPrev=prev.data.filter(r=>r.status!=='Inativo').length;
             const uCurr=snap.data.filter(r=>r.status!=='Inativo').length;
@@ -36,7 +36,7 @@ function renderHistView(){
         ${LICENSES.filter(l=>byLic[l.id]&&l.id!=='none').sort((a,b)=>(byLic[b.id]||0)*b.price-(byLic[a.id]||0)*a.price).map(l=>`
           <div style="background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:12px;">
             <div style="font-size:11px;color:${l.color};font-weight:700">${l.short}</div>
-            <div style="font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800">${byLic[l.id]}</div>
+            <div style="font-family:'Outfit',sans-serif;font-size:20px;font-weight:800">${byLic[l.id]}</div>
             <div style="font-size:11px;color:var(--muted)">${l.price>0?fmtBRL(byLic[l.id]*l.price):''}</div>
           </div>`).join('')}
       </div>

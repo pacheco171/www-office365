@@ -20,6 +20,7 @@ function loadGraphConfig() {
     var tenantInput = document.getElementById('cfgTenantId');
     var clientInput = document.getElementById('cfgClientId');
     var secretInput = document.getElementById('cfgClientSecret');
+    if (!tenantInput || !clientInput || !secretInput) return;
 
     tenantInput.value = '';
     tenantInput.placeholder = cfg.tenant_id_masked || 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx';
@@ -50,6 +51,7 @@ function updateSyncStatus(status) {
   var dot = document.getElementById('graphStatusDot');
   var text = document.getElementById('graphStatusText');
   var logEl = document.getElementById('graphSyncLog');
+  if (!dot || !text || !logEl) return;
 
   if (!status) { text.textContent = 'Sem informacao'; return; }
 
@@ -219,17 +221,68 @@ function saveAutoSyncSetting() {
   }).catch(function() { toast('Erro ao salvar'); });
 }
 
-// Carregar config quando a view for ativada
-document.addEventListener('DOMContentLoaded', function() {
-  var observer = new MutationObserver(function(mutations) {
-    mutations.forEach(function(m) {
-      if (m.target.id === 'view-config' && m.target.classList.contains('active')) {
-        loadGraphConfig();
-      }
-    });
+/* ══════════ AI CONFIG ══════════ */
+
+function loadAiConfig() {
+  fetch('/api/graph/config').then(function(r) { return r.json(); }).then(function(cfg) {
+    var input = document.getElementById('cfgAiApiKey');
+    var hint = document.getElementById('cfgAiKeyHint');
+    if (!input) return;
+    input.value = '';
+    if (cfg.ai_api_key_masked) {
+      input.placeholder = 'Configurada — deixe vazio para manter';
+      if (hint) hint.textContent = 'Atual: ' + cfg.ai_api_key_masked;
+    } else {
+      input.placeholder = 'sk-ant-...';
+      if (hint) hint.textContent = 'Nenhuma API key configurada';
+    }
+  }).catch(function() {});
+}
+
+function saveAiConfig() {
+  var key = document.getElementById('cfgAiApiKey').value.trim();
+  if (!key) { toast('Nenhuma key informada'); return; }
+
+  fetch('/api/graph/config', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ ai_api_key: key })
+  }).then(function(r) { return r.json(); }).then(function() {
+    toast('API key salva');
+    loadAiConfig();
+  }).catch(function() { toast('Erro ao salvar'); });
+}
+
+function testAiConnection() {
+  var el = document.getElementById('aiTestResult');
+  el.innerHTML = '<span style="color:var(--muted)">Testando conexao...</span>';
+
+  var payload = {};
+  var key = document.getElementById('cfgAiApiKey').value.trim();
+  if (key) payload.ai_api_key = key;
+
+  fetch('/api/ai/test', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload)
+  }).then(function(r) { return r.json(); }).then(function(data) {
+    if (data.ok) {
+      el.innerHTML = '<span class="config-test-ok">Conexao OK — Modelo: <strong>' + (data.model || '?') + '</strong></span>';
+    } else {
+      el.innerHTML = '<span class="config-test-err">Falha: ' + (data.error || 'Erro desconhecido') + '</span>';
+    }
+  }).catch(function(e) {
+    el.innerHTML = '<span class="config-test-err">Erro de rede: ' + e.message + '</span>';
   });
+}
+
+// Carregar config quando a página config for aberta
+document.addEventListener('DOMContentLoaded', function() {
   var el = document.getElementById('view-config');
-  if (el) observer.observe(el, { attributes: true, attributeFilter: ['class'] });
+  if (el && el.classList.contains('active')) {
+    loadGraphConfig();
+    loadAiConfig();
+  }
 
   // Auto-save ao mudar checkbox/select de sync
   var chk = document.getElementById('cfgAutoSync');

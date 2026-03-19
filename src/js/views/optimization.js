@@ -33,7 +33,10 @@ var OPT_RULES = [
       return !needsE3;
     },
     suggest: 'bstd',
-    reason: 'Perfil nao requer recursos Enterprise — Business Standard atende'
+    reason: function(r) {
+      if ((r.cargoOrigem || 'ad') === 'fallback') return 'Cargo nao preenchido no AD — confirmar funcao antes de fazer downgrade';
+      return 'Perfil nao requer recursos Enterprise — Business Standard atende';
+    }
   },
   // 3. Business Standard em cargo operacional → poderia ser Basic ou F3
   {
@@ -87,7 +90,10 @@ var OPT_RULES = [
       return cargo === 'colaborador';
     },
     suggest: 'bbasic',
-    reason: 'Cargo generico — avaliar se precisa de apps desktop (Standard) ou se web basta (Basic)'
+    reason: function(r) {
+      if ((r.cargoOrigem || 'ad') === 'fallback') return 'Cargo nao preenchido no AD — confirmar funcao real antes de alterar licenca';
+      return 'Cargo generico — avaliar se precisa de apps desktop (Standard) ou se web basta (Basic)';
+    }
   }
 ];
 
@@ -116,7 +122,7 @@ function analyzeOptimization() {
           currentCost: currentCost,
           suggestedCost: sugCost + addonCost,
           saving: saving,
-          reason: rule.reason
+          reason: typeof rule.reason === 'function' ? rule.reason(r) : rule.reason
         });
         seen[email] = true;
       }
@@ -223,7 +229,7 @@ function renderOptimization() {
                 '<div><div class="person-name">' + esc(r.nome) + '</div>' +
                 '<div class="person-email">' + esc(r.email) + '</div></div></div></td>' +
               '<td><span class="dept-tag">' + esc(r.setor) + '</span></td>' +
-              '<td style="font-size:12px;color:var(--muted)">' + esc(r.cargo) + '</td>' +
+              '<td style="font-size:12px">' + cargoCell(r) + '</td>' +
               '<td>' + licBadge(m.currentLic) + '<div class="opt-cost-current">' + fmtBRL(m.currentCost) + '</div></td>' +
               '<td>' + licBadge(m.suggestedLic) + '<div class="opt-cost-suggested">' + fmtBRL(m.suggestedCost) + '</div></td>' +
               '<td><span class="opt-saving-badge">' + fmtBRL(m.saving) + '</span></td>' +

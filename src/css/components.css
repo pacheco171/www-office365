@@ -1,3 +1,16 @@
+/* CARGO ORIGIN INDICATORS */
+.cargo-origin{display:inline-flex;align-items:center;gap:4px;}
+.cargo-origin::before{content:'';width:6px;height:6px;border-radius:50%;flex-shrink:0;}
+.cargo-origin-ad{color:var(--text);}.cargo-origin-ad::before{background:var(--green);}
+.cargo-origin-override{color:var(--text);}.cargo-origin-override::before{background:var(--blue,#0078d4);}
+.cargo-origin-fallback{color:var(--muted);font-style:italic;}.cargo-origin-fallback::before{background:var(--yellow);}
+
+/* CARGO BADGE (detail panel) */
+.cargo-badge{font-size:10px;padding:1px 6px;border-radius:4px;font-weight:500;letter-spacing:.02em;vertical-align:middle;}
+.cargo-badge-ad{background:rgba(75,150,75,.1);color:var(--green);}
+.cargo-badge-fallback{background:rgba(196,164,75,.12);color:var(--yellow-dk,#9a7b1a);}
+.cargo-badge-override{background:rgba(0,120,212,.08);color:#0078d4;}
+
 /* SETOR EXPAND PANEL */
 .setor-all-panel{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:20px;margin-bottom:24px;display:none;}
 .setor-all-panel.open{display:block;}
@@ -10,8 +23,8 @@
 .compare-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px;}
 .compare-card{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:20px;}
 .compare-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;}
-.compare-month{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;}
-.compare-total{font-family:'Barlow Condensed',sans-serif;font-size:28px;font-weight:800;color:var(--brown);}
+.compare-month{font-family:'Outfit',sans-serif;font-size:18px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;}
+.compare-total{font-family:'Outfit',sans-serif;font-size:clamp(18px,1.8vw,24px);font-weight:800;color:var(--brown);white-space:nowrap;}
 .compare-row-item{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px;}
 .compare-row-item:last-child{border-bottom:none;}
 .cri-name{color:var(--muted);}
@@ -22,8 +35,8 @@
 .diff-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;}
 .diff-row:last-child{border-bottom:none;}
 .diff-lic{flex:1;font-weight:600;}
-.diff-qty{color:var(--muted);font-size:11px;width:80px;}
-.diff-val{font-weight:700;width:80px;text-align:right;}
+.diff-qty{color:var(--muted);font-size:11px;min-width:90px;}
+.diff-val{font-weight:700;min-width:90px;text-align:right;}
 .diff-reason{font-size:11px;color:var(--muted);flex:2;}
 .chip{display:inline-flex;align-items:center;gap:4px;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:700;}
 .chip-up{background:rgba(184,92,74,.1);color:var(--red);}
@@ -37,10 +50,32 @@
   padding:4px 12px;border-radius:8px;font-size:11px;font-weight:700;
   background:var(--surface2);border:1px solid var(--border);color:var(--muted);
   cursor:pointer;transition:all .15s;text-transform:uppercase;letter-spacing:.5px;
-  font-family:'Barlow Condensed',sans-serif;
+  font-family:'Outfit',sans-serif;
 }
 .dash-snap-tab:hover{background:var(--sand-lt);color:var(--black);}
 .dash-snap-tab.active{background:var(--brown);color:#fff;border-color:var(--brown);}
+
+/* DASHBOARD ALERTS BANNER */
+.dash-alerts-banner{
+  background:var(--surface);border:1px solid var(--border);border-radius:11px;
+  padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:14px;
+  flex-wrap:wrap;
+}
+.dash-alerts-banner.has-warn{border-left:4px solid var(--yellow);}
+.dab-icon{font-size:20px;flex-shrink:0;}
+.dab-text{flex:1;font-size:13px;line-height:1.5;}
+.dab-text strong{font-weight:700;}
+.dab-items{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px;}
+.dab-item{
+  font-size:11px;padding:3px 10px;border-radius:12px;
+  background:var(--sand-lt);color:var(--text);white-space:nowrap;
+}
+.dab-actions{display:flex;gap:6px;flex-shrink:0;}
+.dab-dismiss{
+  background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;
+  padding:4px;border-radius:6px;transition:all .12s;
+}
+.dab-dismiss:hover{background:var(--sand-lt);color:var(--text);}
 
 /* SETOR FIXO — lock icon */
 .setor-lock{display:inline-block;font-size:10px;margin-left:3px;vertical-align:middle;opacity:.7;cursor:help;}

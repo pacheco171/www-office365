@@ -16,7 +16,7 @@ import logging
 import unicodedata
 from datetime import datetime, timezone
 from functools import wraps
-from flask import Flask, request, jsonify, send_from_directory, abort
+from flask import Flask, request, jsonify, send_from_directory, abort, render_template, Response
 import base64
 from hashlib import sha256
 
@@ -43,11 +43,21 @@ PORT = 7319
 
 # ── Criptografia de credenciais em disco ──────────────────────────────────────
 def _derive_fernet_key():
-    """Deriva uma chave Fernet determinística a partir de dados locais da máquina.
-    Garante que o secret não fica em texto puro no JSON, mas só pode ser
-    decifrado na mesma máquina + mesmo caminho do projeto."""
-    import socket
+    """Deriva uma chave Fernet para cifrar/decifrar secrets em disco.
 
+    Prioridade:
+    1. Variável de ambiente FERNET_KEY (mais seguro — recomendado em produção)
+    2. Derivação determinística a partir de dados da máquina (fallback)
+
+    Para gerar uma chave:
+        python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    """
+    env_key = os.environ.get("FERNET_KEY")
+    if env_key:
+        return env_key.encode() if isinstance(env_key, str) else env_key
+
+    # Fallback: derivação determinística (menos seguro — usar apenas em dev)
+    import socket
     material = f"{socket.getfqdn()}:{BASE_DIR}:m365-live-key".encode()
     raw = sha256(material).digest()
     return base64.urlsafe_b64encode(raw)
@@ -101,11 +111,12 @@ DEFAULT_DATA = {"db": [], "snapshots": [], "contracts": [], "acoes": [], "usage"
 # superadmin: acesso total (config, edição, tudo)
 # admin: vê tudo + pode enviar sugestões de melhoria
 # viewer: vê tudo, não edita config nem acessa
-USER_ROLES = {
+ROLES_FILE = os.path.join(BASE_DIR, "roles.json")
+USER_ROLES = load_json_safe(ROLES_FILE, {
     "enzzo.pacheco": "superadmin",
     "alex.fagundes": "admin",
     "douglas.preto": "admin",
-}
+})
 DEFAULT_ROLE = "viewer"
 
 
@@ -159,7 +170,7 @@ def _validate_token(token):
             headers={"Authorization": f"Bearer {token}"},
             timeout=10,
         )
-        log.debug("SSO /auth/me status=%s body=%s", resp.status_code, resp.text[:200])
+        log.debug("SSO /auth/me status=%s", resp.status_code)
 
         if resp.status_code == 200:
             data = resp.json()
@@ -193,6 +204,10 @@ def _validate_token(token):
                     user.get("name", "?"),
                 )
                 return None
+        elif os.environ.get("REQUIRE_AD_GROUP", "false").lower() in ("true", "1", "yes"):
+            # SSO não retornou groups — recusar quando verificação obrigatória
+            log.warning("SSO não retornou groups e REQUIRE_AD_GROUP está ativo — token recusado")
+            return None
 
         # Cachear resultado
         with _token_cache_lock:
@@ -223,7 +238,7 @@ def _get_auth_token():
 # ── Cookie helpers ─────────────────────────────────────────────────────────────
 _COOKIE_OPTS = {
     "httponly": True,
-    "secure": False,       # Mudar para True quando usar HTTPS
+    "secure": os.environ.get("COOKIE_SECURE", "false").lower() in ("true", "1", "yes"),
     "samesite": "Lax",
     "path": "/",
 }
@@ -486,11 +501,14 @@ def apply_overrides(records, overrides_map):
             r["setor"] = ov["setor"]
             if ov.get("area"):
                 r["area"] = ov["area"]
+            if ov.get("subarea"):
+                r["subarea"] = ov["subarea"]
             if "tipo" in ov:
                 r["tipo"] = ov["tipo"]
             if "cargo" in ov and ov["cargo"]:
                 r["cargo"] = ov["cargo"]
                 r["cargoFixo"] = True
+                r["cargoOrigem"] = "override"
             else:
                 r["cargoFixo"] = False
             r["setorFixo"] = True
@@ -625,18 +643,16 @@ def get_data():
     for rec in data.get("db", []):
         if "custo" not in rec:
             rec["custo"] = _compute_cost(rec.get("licId", "none"), rec.get("addons"))
-        if "macro" not in rec:
-            macro, hier_area = _resolve_hierarchy_server(rec.get("setor"), rec.get("area"), hier)
-            rec["macro"] = macro
-            rec["hierArea"] = hier_area
+        macro, hier_area = _resolve_hierarchy_server(rec.get("setor"), rec.get("area"), hier)
+        rec["macro"] = macro
+        rec["hierArea"] = hier_area
     for snap in data.get("snapshots", []):
         for rec in snap.get("data", []):
             if "custo" not in rec:
                 rec["custo"] = _compute_cost(rec.get("licId", "none"), rec.get("addons"))
-            if "macro" not in rec:
-                macro, hier_area = _resolve_hierarchy_server(rec.get("setor"), rec.get("area"), hier)
-                rec["macro"] = macro
-                rec["hierArea"] = hier_area
+            macro, hier_area = _resolve_hierarchy_server(rec.get("setor"), rec.get("area"), hier)
+            rec["macro"] = macro
+            rec["hierArea"] = hier_area
     # Aplica overrides nos registros antes de entregar ao frontend
     with _overrides_lock:
         ov = load_overrides().get("overrides", {})
@@ -673,6 +689,7 @@ def get_colaboradores():
     f_setor = request.args.get("setor") or ""
     f_lic = request.args.get("licId") or ""
     f_status = request.args.get("status") or ""
+    f_cargo_origem = request.args.get("cargoOrigem") or ""
     sort_field = request.args.get("sort", "nome")
     order = request.args.get("order", "asc").lower()
 
@@ -692,10 +709,12 @@ def get_colaboradores():
             rec["setor"] = _norm_setor(rec["setor"])
         if "custo" not in rec:
             rec["custo"] = _compute_cost(rec.get("licId", "none"), rec.get("addons"))
-        if "macro" not in rec:
-            macro, hier_area = _resolve_hierarchy_server(rec.get("setor"), rec.get("area"), hier)
-            rec["macro"] = macro
-            rec["hierArea"] = hier_area
+        # Backfill cargoOrigem para registros antigos
+        if "cargoOrigem" not in rec:
+            rec["cargoOrigem"] = "fallback" if (rec.get("cargo") or "") == "Colaborador" else "ad"
+        macro, hier_area = _resolve_hierarchy_server(rec.get("setor"), rec.get("area"), hier)
+        rec["macro"] = macro
+        rec["hierArea"] = hier_area
     apply_overrides(rows, ov)
 
     # Coletar filtros disponíveis (antes de filtrar)
@@ -723,12 +742,18 @@ def get_colaboradores():
             continue
         if f_status and r.get("status") != f_status:
             continue
+        if f_cargo_origem:
+            orig = r.get("cargoOrigem", "ad")
+            if r.get("cargoFixo"):
+                orig = "override"
+            if orig != f_cargo_origem:
+                continue
         if q:
             lic_text = lic_name_lookup.get(r.get("licId", ""), "")
             txt = " ".join([
                 (r.get("nome") or ""), (r.get("email") or ""),
                 (r.get("setor") or ""), (r.get("area") or ""),
-                (r.get("cargo") or ""), lic_text
+                (r.get("subarea") or ""), (r.get("cargo") or ""), lic_text
             ]).lower()
             if q not in txt:
                 continue
@@ -801,6 +826,8 @@ def post_fatura():
     payload = request.get_json(force=True, silent=True)
     if not isinstance(payload, list):
         return jsonify({"error": "payload deve ser array"}), 400
+    if len(payload) > 1000:
+        return jsonify({"error": "payload excede limite de 1000 itens"}), 400
     with _lock:
         current = load_data()
         current["fatura"] = payload
@@ -922,7 +949,10 @@ def get_changelog():
     if page_str is None:
         return jsonify(entries)
 
-    page = max(1, int(page_str))
+    try:
+        page = max(1, int(page_str))
+    except (ValueError, TypeError):
+        page = 1
     per = min(100, max(1, request.args.get("per", 20, type=int)))
     total = len(entries)
     pages = max(1, -(-total // per))
@@ -941,12 +971,16 @@ def get_changelog():
 @app.route("/api/changelog", methods=["POST"])
 def post_changelog():
     """Substitui histórico de alterações completo."""
+    check = require_role("superadmin")
+    if check:
+        return check
     payload = request.get_json(force=True, silent=True)
     if not isinstance(payload, list):
         return jsonify({"error": "payload inválido"}), 400
+    if len(payload) > 50000:
+        return jsonify({"error": "payload excede limite de 50000 entradas"}), 400
     with _changelog_lock:
-        with open(CHANGELOG_FILE, "w", encoding="utf-8") as f:
-            json.dump(payload, f, ensure_ascii=False)
+        save_json_atomic(CHANGELOG_FILE, payload)
     return jsonify({"ok": True})
 
 
@@ -1145,6 +1179,12 @@ def load_graph_config():
     env_client = os.environ.get("GRAPH_CLIENT_ID", "")
     if env_client:
         cfg["client_id"] = env_client
+    # API key da IA (Anthropic Claude)
+    if cfg.get("ai_api_key") and isinstance(cfg["ai_api_key"], str) and cfg["ai_api_key"].startswith("enc:"):
+        cfg["ai_api_key"] = decrypt_secret(cfg["ai_api_key"])
+    env_ai = os.environ.get("ANTHROPIC_API_KEY", "")
+    if env_ai:
+        cfg["ai_api_key"] = env_ai
     return cfg
 
 
@@ -1162,8 +1202,10 @@ def save_graph_config(cfg):
         safe_cfg.pop("tenant_id", None)
     if os.environ.get("GRAPH_CLIENT_ID"):
         safe_cfg.pop("client_id", None)
+    if os.environ.get("ANTHROPIC_API_KEY"):
+        safe_cfg.pop("ai_api_key", None)
     # Cifrar credenciais antes de salvar em disco
-    for field in ("client_secret", "tenant_id", "client_id"):
+    for field in ("client_secret", "tenant_id", "client_id", "ai_api_key"):
         if safe_cfg.get(field) and not safe_cfg[field].startswith("enc:"):
             safe_cfg[field] = encrypt_secret(safe_cfg[field])
     save_json_atomic(GRAPH_CONFIG_FILE, safe_cfg)
@@ -1182,7 +1224,7 @@ IGNORED_OUS = {
 
 
 def _parse_ou_dn(dn, ou_root="Setores"):
-    """Extrai setor (departamento) + area (sub-depto) do Distinguished Name do AD.
+    """Extrai setor (departamento) + area (sub-depto) + subarea do Distinguished Name do AD.
 
     Estrutura real do AD:
         CN=User,OU=Usuarios,OU=Desenvolvimento,OU=Administrativo,OU=Setores,OU=Live,DC=live,DC=local
@@ -1192,17 +1234,20 @@ def _parse_ou_dn(dn, ou_root="Setores"):
         2. Ignora OUs genéricas (Usuarios, Users, etc.)
         3. Encontra ou_root ('Setores') e descarta tudo do root pra cima (inclusive 'Live')
         4. Descarta a OU de divisão (primeira abaixo do root, ex: 'Administrativo')
-        5. O que sobra: departamento (setor) e sub-departamento (area)
+        5. O que sobra: departamento (setor), area (sub-depto) e subarea (equipe)
 
     Exemplos com ou_root='Setores':
         ...OU=Usuarios,OU=Desenvolvimento,OU=Administrativo,OU=Setores,OU=Live,...
-            → setor='Desenvolvimento', area=None
+            → setor='Desenvolvimento', area=None, subarea=None
 
         ...OU=Desenvolvimento,OU=Usuarios,OU=TI,OU=Administrativo,OU=Setores,OU=Live,...
-            → setor='TI', area='Desenvolvimento'
+            → setor='TI', area='Desenvolvimento', subarea=None
+
+        ...OU=Desenvolvimento Web,OU=Inovacao,OU=Usuarios,OU=TI,OU=Administrativo,OU=Setores,OU=Live,...
+            → setor='TI', area='Inovacao', subarea='Desenvolvimento Web'
     """
     if not dn:
-        return None, None
+        return None, None, None
 
     # Extrair todos os componentes OU do DN (ordem: mais interno → mais externo)
     ous = []
@@ -1214,7 +1259,7 @@ def _parse_ou_dn(dn, ou_root="Setores"):
                 ous.append(val)
 
     if not ous:
-        return None, None
+        return None, None, None
 
     # Encontrar ou_root no path e descartar tudo do root pra cima (inclusive)
     # Se ou_root NÃO está no DN, o usuário não pertence à árvore de setores → None
@@ -1227,11 +1272,11 @@ def _parse_ou_dn(dn, ou_root="Setores"):
                 break
         if root_idx is None:
             # Usuário fora da árvore de setores (Service Accounts, etc.)
-            return None, None
+            return None, None, None
         ous = ous[:root_idx]
 
     if not ous:
-        return None, None
+        return None, None, None
 
     # Descartar a OU de divisão (o nível mais externo restante, ex: 'Administrativo')
     # A divisão é o container organizacional logo abaixo do root.
@@ -1239,15 +1284,23 @@ def _parse_ou_dn(dn, ou_root="Setores"):
     ous = ous[:-1]  # remove divisão (mais externo)
 
     if not ous:
-        return None, None
+        return None, None, None
 
-    # O que sobra: departamento (setor) e sub-departamento (area)
+    # O que sobra: departamento (setor), area (sub-depto) e subarea (equipe)
+    # ous está na ordem mais interno → mais externo
     if len(ous) == 1:
-        return _norm_setor(ous[0]), None
+        return _norm_setor(ous[0]), None, None
+    elif len(ous) == 2:
+        setor = _norm_setor(ous[-1])  # mais externo = departamento
+        area = ous[0]                 # mais interno = sub-departamento
+        return setor, area, None
     else:
-        setor = _norm_setor(ous[-1])  # mais externo restante = departamento
-        area = ous[0]  # mais interno = sub-departamento
-        return setor, area
+        # 3+ níveis: mantém a estrutura completa do AD
+        # Ex: OU=Infraestrutura,OU=Inovacao,...,OU=TI → setor=TI, area=Inovacao, subarea=Infraestrutura
+        setor = _norm_setor(ous[-1])  # mais externo = departamento
+        area = ous[-2]               # segundo nível = sub-grupo (ex: Inovacao)
+        subarea = ous[0]             # mais interno = equipe específica
+        return setor, area, subarea
 
 
 def _parse_dept(dept):
@@ -1379,15 +1432,17 @@ def _process_graph_user(u, sku_id_to_name, ou_root="Setores"):
 
     # Fonte única: OU do Distinguished Name do AD
     dn = u.get("onPremisesDistinguishedName") or ""
-    ou_setor, ou_area = _parse_ou_dn(dn, ou_root)
+    ou_setor, ou_area, ou_subarea = _parse_ou_dn(dn, ou_root)
 
     # AD é a fonte da verdade — sem DN válido, fica como 'Sem Setor'
     if ou_setor:
-        setor, area = ou_setor, ou_area
+        setor, area, subarea = ou_setor, ou_area, ou_subarea
     else:
-        setor, area = "Sem Setor", None
+        setor, area, subarea = "Sem Setor", None, None
 
-    cargo = u.get("jobTitle") or "Colaborador"
+    _raw_job = (u.get("jobTitle") or "").strip()
+    cargo = _raw_job or "Colaborador"
+    cargo_origem = "ad" if _raw_job else "fallback"
     enabled = u.get("accountEnabled", True)
     status = "Ativo" if enabled else "Inativo"
 
@@ -1404,13 +1459,16 @@ def _process_graph_user(u, sku_id_to_name, ou_root="Setores"):
         "nome": nome,
         "setor": setor,
         "area": area,
+        "subarea": subarea,
         "cargo": cargo,
+        "cargoOrigem": cargo_origem,
         "status": status,
         "lic_id": lic_id,
         "addons": addons,
         "lic_raw": lic_raw,
         "ou_setor": ou_setor,
         "ou_area": ou_area,
+        "ou_subarea": ou_subarea,
         "enabled": enabled,
         "created": u.get("createdDateTime", ""),
         "dn": dn,
@@ -1541,7 +1599,7 @@ def do_graph_sync(cfg=None):
         now_iso = datetime.now(timezone.utc).isoformat()
         now_date = now_iso[:10]
         records = []
-        discovered_hierarchy = {}  # macro -> set de areas (auto-descoberta via OU)
+        discovered_hierarchy = {}  # macro -> { area: set(subareas) }
 
         for u in users:
             result = _process_graph_user(u, sku_id_to_name, ou_root)
@@ -1555,14 +1613,18 @@ def do_graph_sync(cfg=None):
             # Registrar hierarquia descoberta via OU (normalizada)
             ou_s = result["ou_setor"]
             ou_a = result["ou_area"]
+            ou_sa = result.get("ou_subarea")
             if ou_s:
                 ou_s = _norm_setor(ou_s)
                 if ou_s not in discovered_hierarchy:
-                    discovered_hierarchy[ou_s] = set()
+                    discovered_hierarchy[ou_s] = {}
                 if ou_a:
                     # Filtrar áreas que são OUs genéricas que escaparam do filtro
                     if ou_a.lower() not in IGNORED_OUS:
-                        discovered_hierarchy[ou_s].add(ou_a)
+                        if ou_a not in discovered_hierarchy[ou_s]:
+                            discovered_hierarchy[ou_s][ou_a] = set()
+                        if ou_sa and ou_sa.lower() not in IGNORED_OUS:
+                            discovered_hierarchy[ou_s][ou_a].add(ou_sa)
 
             records.append(
                 {
@@ -1571,7 +1633,9 @@ def do_graph_sync(cfg=None):
                     "email": result["email"],
                     "setor": result["setor"],
                     "area": result["area"],
+                    "subarea": result.get("subarea"),
                     "cargo": result["cargo"],
+                    "cargoOrigem": result.get("cargoOrigem", "ad"),
                     "licId": result["lic_id"],
                     "addons": result["addons"],
                     "licRaw": result["lic_raw"],
@@ -1593,20 +1657,47 @@ def do_graph_sync(cfg=None):
                 hier_data = load_json_safe(HIERARCHY_FILE, {"hierarchy": {}})
                 hier = hier_data.get("hierarchy", {})
                 updated = False
-                for macro, areas in discovered_hierarchy.items():
+                for macro, area_map in discovered_hierarchy.items():
+                    areas_set = set(area_map.keys())
+                    # Construir subareas dict
+                    subareas = {}
+                    for area_name, subs in area_map.items():
+                        if subs:
+                            subareas[area_name] = sorted(subs)
                     if macro not in hier:
                         hier[macro] = {
-                            "areas": sorted(areas),
+                            "areas": sorted(areas_set),
+                            "subareas": subareas,
                             "manual": False,
                             "source": "ad",
                         }
                         updated = True
                     else:
-                        existing = set(hier[macro].get("areas", []))
-                        new_areas = areas - existing
-                        if new_areas:
-                            hier[macro]["areas"] = sorted(existing | areas)
-                            updated = True
+                        # Para setores AD (não-manuais), substituir áreas
+                        # para limpar dados obsoletos
+                        if not hier[macro].get("manual"):
+                            if set(hier[macro].get("areas", [])) != areas_set:
+                                hier[macro]["areas"] = sorted(areas_set)
+                                updated = True
+                            # Substituir subareas
+                            if hier[macro].get("subareas", {}) != subareas:
+                                hier[macro]["subareas"] = subareas
+                                updated = True
+                        else:
+                            # Para manuais, apenas adicionar novas
+                            existing = set(hier[macro].get("areas", []))
+                            new_areas = areas_set - existing
+                            if new_areas:
+                                hier[macro]["areas"] = sorted(existing | areas_set)
+                                updated = True
+                            existing_subs = hier[macro].get("subareas", {})
+                            for area_name, subs in subareas.items():
+                                ex = set(existing_subs.get(area_name, []))
+                                new_subs = set(subs) - ex
+                                if new_subs:
+                                    existing_subs[area_name] = sorted(ex | set(subs))
+                                    updated = True
+                            hier[macro]["subareas"] = existing_subs
                         if not hier[macro].get("source"):
                             hier[macro]["source"] = "ad"
                             updated = True
@@ -1618,15 +1709,9 @@ def do_graph_sync(cfg=None):
                         len(discovered_hierarchy),
                     )
 
-        # ── 2c. Pré-computar custo e hierarquia nos registros ──
-        with _hierarchy_lock:
-            hier_data = load_json_safe(HIERARCHY_FILE, {"hierarchy": {}})
-            hier = hier_data.get("hierarchy", {})
+        # ── 2c. Pré-computar custo nos registros ──
         for rec in records:
             rec["custo"] = _compute_cost(rec["licId"], rec["addons"])
-            macro, hier_area = _resolve_hierarchy_server(rec["setor"], rec.get("area"), hier)
-            rec["macro"] = macro
-            rec["hierArea"] = hier_area
 
         # ── 3. Buscar relatórios de uso (mailbox + OneDrive) ──
         usage = {}
@@ -1753,6 +1838,17 @@ def do_graph_sync(cfg=None):
                 ov = load_overrides().get("overrides", {})
             apply_overrides(records, ov)
 
+            # Computar hierarquia APÓS overrides para refletir valores finais
+            with _hierarchy_lock:
+                hier_data = load_json_safe(HIERARCHY_FILE, {"hierarchy": {}})
+                hier = hier_data.get("hierarchy", {})
+            for rec in records:
+                macro, hier_area = _resolve_hierarchy_server(
+                    rec["setor"], rec.get("area"), hier
+                )
+                rec["macro"] = macro
+                rec["hierArea"] = hier_area
+
             # Atualizar db
             data["db"] = records
 
@@ -1849,11 +1945,13 @@ def get_graph_config():
     cfg["client_secret_masked"] = _mask(cfg.get("client_secret", ""))
     cfg["tenant_id_masked"] = _mask(cfg.get("tenant_id", ""))
     cfg["client_id_masked"] = _mask(cfg.get("client_id", ""))
+    cfg["ai_api_key_masked"] = _mask(cfg.get("ai_api_key", ""))
 
     # Nunca enviar valores reais ao frontend
     cfg.pop("client_secret", None)
     cfg.pop("tenant_id", None)
     cfg.pop("client_id", None)
+    cfg.pop("ai_api_key", None)
 
     cfg["status"] = _sync_status
     return jsonify(cfg)
@@ -1977,15 +2075,15 @@ def remap_setores():
             if not email or "#ext#" in email:
                 continue
             dn = u.get("onPremisesDistinguishedName") or ""
-            ou_setor, ou_area = _parse_ou_dn(dn, ou_root)
+            ou_setor, ou_area, ou_subarea = _parse_ou_dn(dn, ou_root)
             if ou_setor:
-                dn_map[email] = {"setor": ou_setor, "area": ou_area, "dn": dn}
+                dn_map[email] = {"setor": ou_setor, "area": ou_area, "subarea": ou_subarea, "dn": dn}
             else:
                 # Fallback: campo Department
                 dept = u.get("department") or ""
                 dept_setor, dept_area = _parse_dept(dept)
                 if dept_setor and dept_setor != "Sem Setor":
-                    dn_map[email] = {"setor": dept_setor, "area": dept_area, "dn": dn}
+                    dn_map[email] = {"setor": dept_setor, "area": dept_area, "subarea": None, "dn": dn}
 
         # Carregar overrides para respeitar fixos
         with _overrides_lock:
@@ -2009,9 +2107,20 @@ def remap_setores():
                     old_area = rec.get("area")
                     rec["setor"] = mapping["setor"]
                     rec["area"] = mapping["area"]
+                    rec["subarea"] = mapping.get("subarea")
                     rec["dn"] = mapping.get("dn", "")
                     if rec["setor"] != old_setor or rec["area"] != old_area:
                         updated += 1
+            # Recomputar macro/hierArea após atualizar setores
+            with _hierarchy_lock:
+                hier_data_remap = load_json_safe(HIERARCHY_FILE, {"hierarchy": {}})
+                hier_remap = hier_data_remap.get("hierarchy", {})
+            for rec in data.get("db", []):
+                macro, hier_area = _resolve_hierarchy_server(
+                    rec["setor"], rec.get("area"), hier_remap
+                )
+                rec["macro"] = macro
+                rec["hierArea"] = hier_area
             # Atualizar snapshots também
             for snap in data.get("snapshots", []):
                 for rec in snap.get("data", []):
@@ -2023,32 +2132,52 @@ def remap_setores():
                     if mapping:
                         rec["setor"] = mapping["setor"]
                         rec["area"] = mapping["area"]
+                        rec["subarea"] = mapping.get("subarea")
             save_data(data)
 
-        # Auto-descobrir hierarquia
+        # Auto-descobrir hierarquia (com subareas)
         discovered = {}
         for email, m in dn_map.items():
             macro = m["setor"]
             if macro not in discovered:
-                discovered[macro] = set()
-            if m["area"]:
-                discovered[macro].add(m["area"])
+                discovered[macro] = {}
+            area = m.get("area")
+            subarea = m.get("subarea")
+            if area:
+                if area not in discovered[macro]:
+                    discovered[macro][area] = set()
+                if subarea:
+                    discovered[macro][area].add(subarea)
         if discovered:
             with _hierarchy_lock:
                 hier_data = load_json_safe(HIERARCHY_FILE, {"hierarchy": {}})
                 hier = hier_data.get("hierarchy", {})
-                for macro, areas in discovered.items():
+                for macro, area_map in discovered.items():
+                    areas_list = sorted(area_map.keys())
+                    # Construir subareas dict
+                    subareas = {}
+                    for area_name, subs in area_map.items():
+                        if subs:
+                            subareas[area_name] = sorted(subs)
                     if macro not in hier:
                         hier[macro] = {
-                            "areas": sorted(areas),
+                            "areas": areas_list,
+                            "subareas": subareas,
                             "manual": False,
                             "source": "ad",
                         }
                     else:
-                        existing = set(hier[macro].get("areas", []))
-                        new_areas = areas - existing
-                        if new_areas:
-                            hier[macro]["areas"] = sorted(existing | areas)
+                        if not hier[macro].get("manual"):
+                            hier[macro]["areas"] = areas_list
+                            hier[macro]["subareas"] = subareas
+                        else:
+                            existing = set(hier[macro].get("areas", []))
+                            hier[macro]["areas"] = sorted(existing | set(areas_list))
+                            existing_subs = hier[macro].get("subareas", {})
+                            for area_name, subs in subareas.items():
+                                ex = set(existing_subs.get(area_name, []))
+                                existing_subs[area_name] = sorted(ex | set(subs))
+                            hier[macro]["subareas"] = existing_subs
                 hier_data["hierarchy"] = hier
                 save_json_atomic(HIERARCHY_FILE, hier_data)
 
@@ -2287,7 +2416,9 @@ def graph_audit():
                     "nome": result["nome"],
                     "setor": result["setor"],
                     "area": result["area"],
+                    "subarea": result.get("subarea"),
                     "cargo": result["cargo"],
+                    "cargoOrigem": result.get("cargoOrigem", "ad"),
                     "licId": result["lic_id"],
                     "addons": result["addons"],
                     "status": result["status"],
@@ -2323,6 +2454,7 @@ def graph_audit():
                         "nome": r.get("nome", ""),
                         "setor": r.get("setor", ""),
                         "area": r.get("area"),
+                        "subarea": r.get("subarea"),
                         "cargo": r.get("cargo", ""),
                         "licId": r.get("licId", "none"),
                         "addons": r.get("addons", []),
@@ -2349,6 +2481,9 @@ def graph_audit():
 @app.route("/api/graph/test", methods=["POST"])
 def test_graph_connection():
     """Testa conexão com Graph API sem sincronizar."""
+    check = require_role("superadmin")
+    if check:
+        return check
     cfg = load_graph_config()
     payload = request.get_json(force=True, silent=True) or {}
     # Permitir testar com credenciais do payload (antes de salvar)
@@ -2379,7 +2514,8 @@ def test_graph_connection():
             }
         )
     except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 400
+        log.exception("Erro no graph test")
+        return jsonify({"ok": False, "error": "Falha ao conectar com Azure. Verifique credenciais e logs."}), 400
 
 
 def _ensure_sync_thread():
@@ -2439,10 +2575,34 @@ STATIC_ALLOWED_EXT = {
 
 
 # ── Arquivos estáticos ─────────────────────────────────────────────────────────
+# ── Páginas (multi-page) ──────────────────────────────────────────────────────
+_PAGES = {
+    'dashboard': 'dashboard.html',
+    'colaboradores': 'colaboradores.html',
+    'licencas': 'licencas.html',
+    'setores': 'setores.html',
+    'historico': 'historico.html',
+    'radar': 'radar.html',
+    'contratos': 'contratos.html',
+    'relatorio': 'relatorio.html',
+    'auditoria': 'auditoria.html',
+    'sugestoes': 'sugestoes.html',
+    'config': 'config.html',
+}
+
 @app.route("/")
 def root():
-    """Serve página principal (index.html)."""
-    return send_from_directory(BASE_DIR, "index.html")
+    """Serve página principal (dashboard)."""
+    return render_template('dashboard.html', active_page='dashboard')
+
+
+@app.route("/<page>")
+def page_view(page):
+    """Serve páginas do sistema (cada aba = uma página)."""
+    if page in _PAGES:
+        return render_template(_PAGES[page], active_page=page)
+    # Se não é uma página conhecida, tenta servir como arquivo estático
+    return static_files(page)
 
 
 @app.route("/<path:path>")
@@ -2465,6 +2625,7 @@ def static_files(path):
         "hierarchy.json",
         "suggestions.json",
         "annotations.json",
+        "roles.json",
         ".env",
         "server.py",
     ):
@@ -2474,6 +2635,271 @@ def static_files(path):
     if ext.lower() not in STATIC_ALLOWED_EXT:
         abort(404)
     return send_from_directory(BASE_DIR, path)
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# IA — Assistente de análise M365
+# ──────────────────────────────────────────────────────────────────────────────
+
+_AI_SYSTEM_PROMPT = """Você é o assistente de IA do painel LIVE! Microsoft 365. Você analisa dados reais de licenças, custos e uso do Microsoft 365 da empresa LIVE (liveoficial.com.br).
+
+Suas capacidades:
+- Responder sobre custos atuais, por setor, por licença
+- Identificar desperdício e sugerir otimizações concretas
+- Comparar meses/tendências históricas
+- Explicar os tipos de licença M365 e suas diferenças
+- Sugerir ações concretas de redução de custo com impacto financeiro
+
+Regras:
+- Responda SEMPRE em português brasileiro
+- Use os dados fornecidos como base factual — não invente números
+- Formate valores monetários como R$ 1.234,56
+- Seja conciso mas completo, use bullet points quando apropriado
+- Quando sugerir mudanças, cite o impacto financeiro estimado
+- Se não tiver dados suficientes para responder, diga claramente
+- Use negrito (**texto**) para destacar valores importantes
+
+Preços das licenças (R$/mês por usuário):
+- M365 Business Standard: R$78,15
+- M365 Business Basic: R$31,21
+- M365 Apps for Business: R$51,54 (add-on, sem Exchange/Teams)
+- Office 365 F3: R$25,00 (frontline, básico)
+- Office 365 E3: R$90,29 (enterprise, completo)
+- Power BI Pro: R$87,55 (add-on)"""
+
+
+def _build_ai_data_summary():
+    """Gera resumo compacto dos dados M365 para contexto da IA."""
+    data = load_data()
+    db = data.get("db", [])
+    if not db:
+        return "Nenhum dado disponível. O sistema ainda não foi sincronizado."
+
+    # Single-pass: coleta todas as estatísticas em um único loop
+    total = len(db)
+    ativos = 0
+    tipos = {}
+    lic_stats = {}
+    total_custo = 0
+    setor_stats = {}
+    inativos_com_licenca_count = 0
+    custo_inativos = 0
+
+    for r in db:
+        custo = r.get("custo", 0) or 0
+        status = r.get("status")
+        lid = r.get("licId", "none")
+        is_ativo = status == "Ativo"
+
+        # Contagens básicas
+        if is_ativo:
+            ativos += 1
+        t = r.get("tipo", "Pessoa")
+        tipos[t] = tipos.get(t, 0) + 1
+
+        # Custo por licença
+        if lid not in lic_stats:
+            lic_stats[lid] = {"count": 0, "custo": 0}
+        lic_stats[lid]["count"] += 1
+        lic_stats[lid]["custo"] += custo
+        total_custo += custo
+
+        # Custo por setor
+        s = r.get("setor") or "Sem Setor"
+        if s not in setor_stats:
+            setor_stats[s] = {"count": 0, "custo": 0, "ativos": 0}
+        setor_stats[s]["count"] += 1
+        setor_stats[s]["custo"] += custo
+        if is_ativo:
+            setor_stats[s]["ativos"] += 1
+
+        # Oportunidades de economia
+        if not is_ativo and lid not in ("none", "other", None):
+            inativos_com_licenca_count += 1
+            custo_inativos += custo
+
+    inativos = total - ativos
+
+    lic_names = {
+        "bstd": "Business Standard", "bbasic": "Business Basic",
+        "apps": "Apps for Business", "f3": "Office 365 F3",
+        "e3": "Office 365 E3", "pbi": "Power BI Pro",
+        "none": "Sem licença", "other": "Outra"
+    }
+
+    top_setores = sorted(setor_stats.items(), key=lambda x: -x[1]["custo"])[:10]
+
+    # Uso (se disponível)
+    usage = data.get("usage", {})
+    uso_info = ""
+    if usage:
+        com_mailbox = sum(1 for u in usage.values() if u.get("mailboxMB"))
+        com_onedrive = sum(1 for u in usage.values() if u.get("onedriveMB"))
+        baixo_mail = sum(1 for u in usage.values() if u.get("mailboxMB") and u["mailboxMB"] < 100)
+        baixo_drive = sum(1 for u in usage.values() if u.get("onedriveMB") and u["onedriveMB"] < 100)
+        uso_info = f"\nUSO:\n- {com_mailbox} com dados de mailbox ({baixo_mail} com menos de 100MB)"
+        uso_info += f"\n- {com_onedrive} com dados de OneDrive ({baixo_drive} com menos de 100MB)"
+
+    # Snapshots (tendência)
+    snaps = data.get("snapshots", [])
+    tendencia = ""
+    if len(snaps) >= 2:
+        last = snaps[-1]
+        prev = snaps[-2]
+        custo_last = sum(r.get("custo", 0) or 0 for r in last.get("data", []))
+        custo_prev = sum(r.get("custo", 0) or 0 for r in prev.get("data", []))
+        delta = custo_last - custo_prev
+        sinal = "+" if delta >= 0 else ""
+        tendencia = f"\nTENDÊNCIA:\n- {prev.get('label','?')} → {last.get('label','?')}: R$ {custo_prev:,.2f} → R$ {custo_last:,.2f} ({sinal}R$ {delta:,.2f})"
+
+    # Montar resumo
+    lines = [f"=== RESUMO M365 — {datetime.now().strftime('%d/%m/%Y')} ==="]
+    lines.append(f"Total: {total} contas ({', '.join(f'{v} {k}' for k, v in sorted(tipos.items()))})")
+    lines.append(f"Ativos: {ativos} | Inativos: {inativos}")
+    lines.append(f"\nCUSTO MENSAL POR LICENÇA:")
+    for lid in ["e3", "bstd", "bbasic", "apps", "f3", "pbi", "none", "other"]:
+        st = lic_stats.get(lid)
+        if st and st["count"] > 0:
+            lines.append(f"- {lic_names.get(lid, lid)}: {st['count']} usuários, R$ {st['custo']:,.2f}/mês")
+    lines.append(f"TOTAL MENSAL: R$ {total_custo:,.2f} | ANUAL: R$ {total_custo * 12:,.2f}")
+    lines.append(f"\nTOP SETORES POR CUSTO:")
+    for s, st in top_setores:
+        lines.append(f"- {s}: {st['count']} pessoas ({st['ativos']} ativos), R$ {st['custo']:,.2f}/mês")
+    if inativos_com_licenca_count:
+        lines.append(f"\nOPORTUNIDADES:")
+        lines.append(f"- {inativos_com_licenca_count} inativos com licença paga: economia potencial R$ {custo_inativos:,.2f}/mês")
+    if uso_info:
+        lines.append(uso_info)
+    if tendencia:
+        lines.append(tendencia)
+
+    return "\n".join(lines)
+
+
+@app.route("/api/ai/chat", methods=["POST"])
+def ai_chat():
+    """Endpoint streaming para chat com IA usando dados reais do M365."""
+    check = require_auth()
+    if check:
+        return check
+    if not http_requests:
+        return jsonify({"error": "Módulo requests não instalado"}), 500
+
+    cfg = load_graph_config()
+    api_key = cfg.get("ai_api_key", "")
+    if not api_key:
+        return jsonify({"error": "API key da IA não configurada. Acesse Config para configurar."}), 400
+
+    body = request.get_json(silent=True) or {}
+    messages = body.get("messages", [])
+    if not messages or not isinstance(messages, list):
+        return jsonify({"error": "Nenhuma mensagem enviada"}), 400
+
+    # Validar estrutura das mensagens
+    valid_roles = {"user", "assistant"}
+    sanitized = []
+    for msg in messages[-20:]:
+        if not isinstance(msg, dict) or "role" not in msg or "content" not in msg:
+            continue
+        if msg["role"] not in valid_roles:
+            continue
+        if not isinstance(msg["content"], str) or len(msg["content"]) > 10000:
+            continue
+        sanitized.append({"role": msg["role"], "content": msg["content"]})
+    if not sanitized:
+        return jsonify({"error": "Nenhuma mensagem válida"}), 400
+    messages = sanitized
+
+    # Montar contexto com dados reais
+    data_summary = _build_ai_data_summary()
+    system_prompt = _AI_SYSTEM_PROMPT + "\n\n" + data_summary
+
+    def generate():
+        try:
+            resp = http_requests.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={
+                    "x-api-key": api_key,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                json={
+                    "model": "claude-sonnet-4-20250514",
+                    "max_tokens": 1024,
+                    "system": system_prompt,
+                    "messages": messages,
+                    "stream": True,
+                },
+                stream=True,
+                timeout=60,
+            )
+            if resp.status_code != 200:
+                error_text = resp.text[:200]
+                yield f"data: {json.dumps({'error': f'API error {resp.status_code}: {error_text}'})}\n\n"
+                return
+
+            for line in resp.iter_lines():
+                if not line:
+                    continue
+                line = line.decode("utf-8", errors="replace")
+                if line.startswith("data: "):
+                    payload = line[6:]
+                    if payload.strip() == "[DONE]":
+                        break
+                    try:
+                        evt = json.loads(payload)
+                        if evt.get("type") == "content_block_delta":
+                            text = evt.get("delta", {}).get("text", "")
+                            if text:
+                                yield f"data: {json.dumps({'text': text})}\n\n"
+                    except json.JSONDecodeError:
+                        log.warning("AI chat: malformed SSE chunk: %s", payload[:200])
+                        pass  # skip malformed SSE chunks
+            yield "data: [DONE]\n\n"
+        except Exception as e:
+            log.exception("Erro no AI chat")
+            yield f"data: {json.dumps({'error': 'Erro interno ao processar chat. Verifique os logs.'})}\n\n"
+
+    return Response(generate(), content_type="text/event-stream")
+
+
+@app.route("/api/ai/test", methods=["POST"])
+def ai_test():
+    """Testa conexão com a API da Anthropic."""
+    check = require_role("superadmin")
+    if check:
+        return check
+    if not http_requests:
+        return jsonify({"error": "Módulo requests não instalado"}), 500
+
+    body = request.get_json(silent=True) or {}
+    cfg = load_graph_config()
+    api_key = body.get("ai_api_key") or cfg.get("ai_api_key", "")
+    if not api_key:
+        return jsonify({"ok": False, "error": "Nenhuma API key configurada"}), 400
+
+    try:
+        resp = http_requests.post(
+            "https://api.anthropic.com/v1/messages",
+            headers={
+                "x-api-key": api_key,
+                "anthropic-version": "2023-06-01",
+                "content-type": "application/json",
+            },
+            json={
+                "model": "claude-sonnet-4-20250514",
+                "max_tokens": 10,
+                "messages": [{"role": "user", "content": "oi"}],
+            },
+            timeout=15,
+        )
+        if resp.status_code == 200:
+            return jsonify({"ok": True, "model": "claude-sonnet-4-20250514"})
+        else:
+            return jsonify({"ok": False, "error": f"HTTP {resp.status_code}: resposta inesperada da API"})
+    except Exception as e:
+        log.exception("Erro no AI test")
+        return jsonify({"ok": False, "error": "Erro ao conectar com a API. Verifique os logs."})
 
 
 # ──────────────────────────────────────────────────────────────────────────────

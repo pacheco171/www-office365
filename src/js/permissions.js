@@ -21,7 +21,7 @@ function loadUserRole(){
 /** Aplica restrições visuais baseadas na role */
 function applyRoleRestrictions(){
   // Nav item de config — admin e superadmin vêem
-  var configNav=document.querySelector('[data-view="config"]');
+  var configNav=document.querySelector('a.nav-item[href="/config"]');
   if(configNav) configNav.style.display=(userRole==='superadmin'||userRole==='admin')?'':'none';
 
   // Nav item de sugestões/anotações — admin e superadmin
@@ -349,7 +349,7 @@ function renderAnnotationsList(){
     list.innerHTML='<div style="text-align:center;padding:20px;color:var(--muted);font-size:12px">Nenhuma anotação ainda.</div>';
     return;
   }
-  var statusIcons={pendente:'🟡',feita:'🟢',recusada:'🔴'};
+  var statusIcons={pendente:'◐',feita:'●',recusada:'○'};
   var viewLabels={dashboard:'Dashboard',colaboradores:'Colaboradores',licencas:'Licenças',setores:'Por Setor',historico:'Histórico',radar:'Radar',contratos:'Contratos',relatorio:'Relatório',config:'Config'};
   list.innerHTML=annotations.slice().reverse().map(function(a){
     var viewLabel=viewLabels[a.view]||a.view;

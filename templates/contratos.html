@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Contratos{% endblock %}
+{% block content %}
+<div class="view active" id="view-contratos">
+  <div class="topbar">
+    <div><div class="page-heading">Contratos</div><div class="page-sub">Licenças contratadas vs utilizadas — controle de ocupação por plano</div></div>
+    <div class="topbar-actions">
+      <button class="btn btn-dark" onclick="openContractModal()" data-perm="edit">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>Novo Contrato
+      </button>
+    </div>
+  </div>
+  <div class="contract-kpis" id="contractKpis"></div>
+  <div class="contracts-layout">
+    <div class="contracts-table-wrap">
+      <div class="contracts-table-header">
+        <span class="contracts-table-title">Detalhamento por plano</span>
+        <span class="contracts-source-hint" id="contractSourceHint"></span>
+      </div>
+      <table>
+        <thead><tr><th>Licença</th><th>Contratadas</th><th>Em uso</th><th>Disponíveis</th><th>Ocupação</th><th>Custo em uso / mês</th><th>Custo ocioso / mês</th></tr></thead>
+        <tbody id="contractTableBody"></tbody>
+      </table>
+    </div>
+    <div class="contract-sidebar" id="contractSidebar"></div>
+  </div>
+
+  <!-- Fatura Microsoft -->
+  <div style="margin-top:24px">
+    <div class="contracts-table-wrap">
+      <div class="contracts-table-header">
+        <span class="contracts-table-title">Fatura Microsoft — Detalhamento Mensal</span>
+        <div style="display:flex;gap:8px;align-items:center">
+          <span class="fatura-total-label">Total Geral: <strong id="faturaTotal">R$ 0,00</strong></span>
+          <button class="btn btn-sm btn-outline" onclick="addFaturaRow()" data-perm="edit">+ Linha</button>
+        </div>
+      </div>
+      <table class="fatura-table">
+        <thead><tr>
+          <th>Vencimento</th>
+          <th>Produto</th>
+          <th style="width:80px;text-align:right">Qtd</th>
+          <th style="width:130px;text-align:right">Valor Unit.</th>
+          <th style="width:130px;text-align:right">Valor Total</th>
+          <th style="width:36px" data-perm="edit"></th>
+        </tr></thead>
+        <tbody id="faturaTableBody"></tbody>
+        <tfoot>
+          <tr class="fatura-total-row">
+            <td colspan="4" style="text-align:right;font-weight:700">TOTAL GERAL</td>
+            <td style="text-align:right;font-weight:700" id="faturaTotalFooter">R$ 0,00</td>
+            <td data-perm="edit"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}Radar{% endblock %}
+{% block content %}
+<div class="view active" id="view-radar">
+  <div class="topbar">
+    <div><div class="page-heading">Radar</div><div class="page-sub">Desperdícios e oportunidades de economia identificados automaticamente</div></div>
+    <div class="topbar-actions">
+      <button class="btn btn-outline" onclick="renderRadar();if(typeof syncRadarAcoes==='function')syncRadarAcoes();">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>Atualizar
+      </button>
+    </div>
+  </div>
+  <div class="tab-strip">
+    <button class="tab-btn active" onclick="switchTab('radar','alertas',this)">Alertas</button>
+    <button class="tab-btn" onclick="switchTab('radar','acoes',this)">Centro de Ações</button>
+    <button class="tab-btn" onclick="switchTab('radar','simulador',this)">Simulador</button>
+  </div>
+  <div class="tab-panel active" id="radar-alertas">
+    <div class="radar-kpis" id="radarKpis"></div>
+    <div id="radarContent"></div>
+  </div>
+  <div class="tab-panel" id="radar-acoes">
+    <div id="acoesContent"></div>
+  </div>
+  <div class="tab-panel" id="radar-simulador">
+    <div id="simuladorContent"></div>
+  </div>
+</div>
+{% endblock %}

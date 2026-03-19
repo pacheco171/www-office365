@@ -4,13 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Acesso — LIVE! Microsoft 365</title>
-<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700;800&family=Barlow+Condensed:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="src/css/variables.css">
 <link rel="stylesheet" href="src/css/base.css">
 <link rel="stylesheet" href="src/css/ui-kit.css">
 <!-- Redireciona se já autenticado -->
 <script src="src/js/store.js"></script>
-<script>(function(){if(localStorage.getItem('store_auth'))window.location.replace('index.html');}());</script>
+<script>(function(){if(localStorage.getItem('store_auth'))window.location.replace('/');}());</script>
 <style>
 
 body{display:flex;min-height:100vh;padding:0;background:var(--black);}
@@ -43,7 +43,7 @@ body{display:flex;min-height:100vh;padding:0;background:var(--black);}
 }
 
 .brand-logo .logo{
-  font-family:'Barlow Condensed',sans-serif;font-weight:800;
+  font-family:'Outfit',sans-serif;font-weight:800;
   font-size:38px;color:#fff;letter-spacing:2px;line-height:1;
 }
 .brand-logo .logo em{color:var(--tan);font-style:normal;}
@@ -54,7 +54,7 @@ body{display:flex;min-height:100vh;padding:0;background:var(--black);}
 
 .brand-mid{flex:1;display:flex;align-items:center;padding:48px 0;}
 .brand-tagline{
-  font-family:'Barlow Condensed',sans-serif;
+  font-family:'Outfit',sans-serif;
   font-size:46px;font-weight:800;text-transform:uppercase;
   letter-spacing:1px;color:#fff;line-height:1.08;
 }
@@ -93,7 +93,7 @@ body{display:flex;min-height:100vh;padding:0;background:var(--black);}
 }
 
 .login-heading{
-  font-family:'Barlow Condensed',sans-serif;
+  font-family:'Outfit',sans-serif;
   font-size:40px;font-weight:800;text-transform:uppercase;
   letter-spacing:.5px;color:var(--black);margin-bottom:6px;
 }
@@ -119,7 +119,7 @@ body{display:flex;min-height:100vh;padding:0;background:var(--black);}
 .form-input{
   width:100%;padding:14px 16px;
   border:1.5px solid var(--border);border-radius:8px;
-  font-family:'Barlow',sans-serif;font-size:15.5px;
+  font-family:'Lexend',sans-serif;font-size:15.5px;
   background:var(--surface);color:var(--black);
   outline:none;transition:border-color .15s,box-shadow .15s;
 }
@@ -147,7 +147,7 @@ body{display:flex;min-height:100vh;padding:0;background:var(--black);}
   width:100%;padding:16px 20px;
   background:var(--black);color:#fff;
   border:none;border-radius:8px;
-  font-family:'Barlow',sans-serif;
+  font-family:'Lexend',sans-serif;
   font-size:15px;font-weight:700;letter-spacing:.5px;
   cursor:pointer;margin-top:10px;
   display:flex;align-items:center;justify-content:center;gap:8px;
@@ -182,7 +182,7 @@ body{display:flex;min-height:100vh;padding:0;background:var(--black);}
 .login-transition.active{opacity:1;pointer-events:all;}
 
 .lt-logo{
-  font-family:'Barlow Condensed',sans-serif;font-weight:800;
+  font-family:'Outfit',sans-serif;font-weight:800;
   font-size:56px;color:#fff;letter-spacing:3px;line-height:1;
   margin-bottom:4px;
 }
@@ -375,7 +375,7 @@ function startTransition() {
     clearInterval(tick);
     bar.style.transition = 'width .45s ease';
     bar.style.width = '100%';
-    setTimeout(function() { window.location.replace('index.html'); }, 480);
+    setTimeout(function() { window.location.replace('/'); }, 480);
   }, 1700);
 }
 

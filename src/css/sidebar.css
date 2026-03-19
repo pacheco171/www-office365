@@ -1,9 +1,9 @@
-aside{width:220px;flex-shrink:0;background:var(--black);display:flex;flex-direction:column;padding:28px 16px;position:sticky;top:0;height:100vh;overflow-y:auto;overflow-x:hidden;}
-.logo{font-family:'Barlow Condensed',sans-serif;font-weight:800;font-size:32px;color:#fff;letter-spacing:2px;line-height:1;}
+aside{width:240px;flex-shrink:0;background:var(--black);display:flex;flex-direction:column;padding:28px 16px;position:sticky;top:0;height:100vh;overflow-y:auto;overflow-x:hidden;}
+.logo{font-family:'Outfit',sans-serif;font-weight:800;font-size:32px;color:#fff;letter-spacing:2px;line-height:1;}
 .logo em{color:var(--tan);font-style:normal;}
 .logo-sub{font-size:9px;color:rgba(255,255,255,0.25);letter-spacing:3px;text-transform:uppercase;margin-top:4px;margin-bottom:28px;padding-bottom:22px;border-bottom:1px solid rgba(255,255,255,0.08);}
 .nav-label{font-size:8.5px;color:rgba(255,255,255,0.25);letter-spacing:3px;text-transform:uppercase;margin:14px 0 4px 8px;}
-.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:7px;cursor:pointer;transition:all .18s;font-size:13px;font-weight:500;color:rgba(255,255,255,.4);margin-bottom:1px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:7px;cursor:pointer;transition:all .18s;font-size:13px;font-weight:500;color:rgba(255,255,255,.4);margin-bottom:1px;text-decoration:none;}
 .nav-item svg{width:15px;height:15px;flex-shrink:0;opacity:.6;}
 .nav-item:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.75);}
 .nav-item:hover svg{opacity:.9;}
@@ -11,13 +11,13 @@ aside{width:220px;flex-shrink:0;background:var(--black);display:flex;flex-direct
 .nav-item.active svg{opacity:1;}
 .sb-costs{margin-top:auto;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:10px;padding:14px;}
 .sb-costs-title{font-size:8.5px;color:rgba(255,255,255,.25);letter-spacing:2.5px;text-transform:uppercase;margin-bottom:10px;}
-.sb-row{display:flex;justify-content:space-between;margin-bottom:5px;font-size:11.5px;}
-.sb-k{color:rgba(255,255,255,.35);}
-.sb-v{color:rgba(255,255,255,.75);font-weight:600;}
+.sb-row{display:flex;justify-content:space-between;gap:8px;margin-bottom:5px;font-size:11px;}
+.sb-k{color:rgba(255,255,255,.35);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;}
+.sb-v{color:rgba(255,255,255,.75);font-weight:600;flex-shrink:0;white-space:nowrap;}
 .sb-sep{height:1px;background:rgba(255,255,255,.07);margin:8px 0;}
-.sb-total-row{display:flex;justify-content:space-between;align-items:center;}
-.sb-total-label{font-size:11px;color:rgba(255,255,255,.5);}
-.sb-total-val{font-family:'Barlow Condensed',sans-serif;font-size:20px;font-weight:800;color:var(--tan);}
+.sb-total-row{display:flex;justify-content:space-between;align-items:center;gap:8px;}
+.sb-total-label{font-size:11px;color:rgba(255,255,255,.5);white-space:nowrap;}
+.sb-total-val{font-family:'Outfit',sans-serif;font-size:14px;font-weight:800;color:var(--tan);white-space:nowrap;}
 .sb-user{display:flex;align-items:center;gap:9px;margin-top:10px;padding:9px 12px;border-radius:8px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);}
 .sb-user-icon{width:20px;height:20px;flex-shrink:0;color:rgba(255,255,255,.3);}
 .sb-user-icon svg{width:20px;height:20px;}
@@ -27,7 +27,7 @@ aside{width:220px;flex-shrink:0;background:var(--black);display:flex;flex-direct
   margin-top:6px;padding:9px 12px;border-radius:8px;
   background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08);
   cursor:pointer;color:rgba(255,255,255,.4);
-  font-family:'Barlow',sans-serif;font-size:12px;font-weight:600;
+  font-family:'Lexend',sans-serif;font-size:12px;font-weight:600;
   letter-spacing:.3px;transition:all .18s;
 }
 .logout-btn:hover{background:rgba(181,164,142,.12);border-color:rgba(181,164,142,.25);color:var(--tan);}

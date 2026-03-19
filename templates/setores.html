@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Por Setor{% endblock %}
+{% block content %}
+<div class="view active" id="view-setores">
+  <div class="topbar"><div><div class="page-heading">Por Setor</div><div class="page-sub">Distribuição de licenças e custos por departamento</div></div></div>
+  <div class="tab-strip">
+    <button class="tab-btn active" onclick="switchTab('setores','atual',this)">Mês atual</button>
+    <button class="tab-btn" onclick="switchTab('setores','hist',this)">Histórico mensal</button>
+  </div>
+  <div class="tab-panel active" id="setores-atual">
+    <div id="setorConsolidated" class="setor-consol-row"></div>
+    <div class="sub-tab-strip">
+      <button class="sub-tab-btn active" onclick="switchSetorTier('high',this)">Acima de R$ 1.000</button>
+      <button class="sub-tab-btn" onclick="switchSetorTier('mid',this)">R$ 500 – R$ 999</button>
+      <button class="sub-tab-btn" onclick="switchSetorTier('low',this)">Abaixo de R$ 500</button>
+    </div>
+    <div class="sub-tab-panel active" id="setorTier-high"></div>
+    <div class="sub-tab-panel" id="setorTier-mid"></div>
+    <div class="sub-tab-panel" id="setorTier-low"></div>
+  </div>
+  <div class="tab-panel" id="setores-hist">
+    <div class="hist-table-wrap">
+      <table><thead><tr><th>Mês</th><th>Setor</th><th>Usuários</th><th>Custo Total</th><th>Licença Dominante</th><th>Δ vs anterior</th></tr></thead>
+      <tbody id="setorHistBody"></tbody></table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LIVE! — Microsoft 365</title>
-<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@300;400;500;600;700;800&family=Barlow+Condensed:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <!-- CSS -->
 <link rel="stylesheet" href="src/css/variables.css">
 <link rel="stylesheet" href="src/css/base.css">
@@ -179,6 +179,7 @@
     <select class="filter-select" id="fltSetor" onchange="renderTable()"><option value="">Todos os setores</option></select>
     <select class="filter-select" id="fltLic" onchange="renderTable()"><option value="">Todas as licenças</option></select>
     <select class="filter-select" id="fltStatus" onchange="renderTable()"><option value="">Todos os status</option><option>Ativo</option><option>Pendente</option><option>Inativo</option></select>
+    <select class="filter-select" id="fltCargo" onchange="renderTable()"><option value="">Certeza do cargo</option><option value="ad">AD (confirmado)</option><option value="fallback">Sem dado no AD</option><option value="override">Manual</option></select>
   </div>
   <div class="table-wrap">
     <table><thead><tr><th>Colaborador</th><th>Setor</th><th>Cargo</th><th>Licença M365</th><th class="sort" onclick="sortBy('custo')">Custo/mês ↕</th><th>Status</th><th class="sort" onclick="sortBy('dataISO')">Criado em ↕</th><th></th></tr></thead>
@@ -321,9 +322,9 @@
         <thead><tr>
           <th>Vencimento</th>
           <th>Produto</th>
-          <th style="width:70px;text-align:right">Qtd</th>
-          <th style="width:110px;text-align:right">Valor Unit.</th>
-          <th style="width:110px;text-align:right">Valor Total</th>
+          <th style="width:80px;text-align:right">Qtd</th>
+          <th style="width:130px;text-align:right">Valor Unit.</th>
+          <th style="width:130px;text-align:right">Valor Total</th>
           <th style="width:36px" data-perm="edit"></th>
         </tr></thead>
         <tbody id="faturaTableBody"></tbody>
@@ -566,7 +567,7 @@
 
 <!-- OVERRIDE MODAL — Editar Setor Fixo -->
 <div class="modal-overlay" id="overrideOverlay" onclick="if(event.target.id==='overrideOverlay')closeOverrideModal()">
-  <div class="modal" style="width:440px">
+  <div class="modal" style="width:480px">
     <div class="modal-hdr">
       <div><div class="modal-title">Editar Setor</div><div class="modal-sub">Definir setor fixo (não sobrescrito nas importações)</div></div>
       <button class="close-btn" onclick="closeOverrideModal()">×</button>
@@ -637,7 +638,7 @@
 
 <!-- MODAL AÇÃO -->
 <div class="modal-overlay" id="acaoOverlay" onclick="if(event.target.id==='acaoOverlay')closeAcaoModal()">
-  <div class="modal" style="width:560px">
+  <div class="modal" style="width:600px">
     <div class="modal-hdr">
       <div><div class="modal-title" id="acaoModalTitle">Detalhe da Ação</div><div class="modal-sub" id="acaoModalSub">—</div></div>
       <button class="close-btn" onclick="closeAcaoModal()">×</button>
@@ -742,7 +743,7 @@
 
 <!-- CONTRACT MODAL -->
 <div class="modal-overlay" id="contractOverlay" onclick="bgCloseContract(event)">
-  <div class="modal" style="width:480px">
+  <div class="modal" style="width:520px">
     <div class="modal-hdr">
       <div><div class="modal-title" id="contractModalTitle">Novo Contrato</div><div class="modal-sub">Informe as licenças contratadas por plano</div></div>
       <button class="close-btn" onclick="closeContractModal()">×</button>

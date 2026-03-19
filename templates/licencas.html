@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Licenças{% endblock %}
+{% block content %}
+<div class="view active" id="view-licencas">
+  <div class="topbar">
+    <div><div class="page-heading">Licenças Microsoft 365</div><div class="page-sub">Estrutura organizacional — Setor / Área / Pessoas / Licença</div></div>
+    <div class="topbar-actions">
+      <button class="btn btn-outline" onclick="clearLicFilter()">Limpar filtro</button>
+      <button class="btn btn-outline" onclick="openHierarchyModal()" data-perm="edit">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Hierarquia
+      </button>
+    </div>
+  </div>
+  <div class="lic-overview" id="licOverview"></div>
+  <div class="tab-strip">
+    <button class="tab-btn active" onclick="switchTab('licencas','atual',this)">Estrutura Organizacional</button>
+    <button class="tab-btn" onclick="switchTab('licencas','otimizar',this)">Otimização</button>
+    <button class="tab-btn" onclick="switchTab('licencas','hist',this)">Histórico mensal</button>
+  </div>
+  <div class="tab-panel active" id="licencas-atual">
+    <div id="licBreadcrumb"></div>
+    <div id="licDrillContent"></div>
+  </div>
+  <div class="tab-panel" id="licencas-otimizar">
+    <div id="optContent"></div>
+  </div>
+  <div class="tab-panel" id="licencas-hist">
+    <div class="hist-table-wrap">
+      <table><thead><tr><th>Mês</th><th>Usuários</th><th>Licenciados</th><th>Outros</th><th>Custo Total</th><th>Δ vs mês anterior</th></tr></thead>
+      <tbody id="licHistBody"></tbody></table>
+    </div>
+  </div>
+</div>
+{% endblock %}

@@ -1,6 +1,7 @@
 /* ══════════ DASHBOARD SNAPSHOT SELECTOR ══════════ */
 function renderDashSnapTabs(){
   const el=document.getElementById('dashSnapTabs');
+  if(!el)return;
   if(!snapshots.length){el.style.display='none';return;}
   el.style.display='flex';
   const tabs=[{label:'Atual',idx:null}];

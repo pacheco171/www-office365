@@ -1,7 +1,7 @@
 /* ── CONTRATOS ── */
 .contract-kpis{display:grid;grid-template-columns:repeat(6,1fr);gap:12px;margin-bottom:18px;}
 .contract-kpi{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center;}
-.contract-kpi-val{font-family:'Barlow Condensed',sans-serif;font-size:24px;font-weight:800;line-height:1.1;}
+.contract-kpi-val{font-family:'Outfit',sans-serif;font-size:clamp(16px,1.6vw,22px);font-weight:800;line-height:1.1;}
 .contract-kpi-label{font-size:11px;color:var(--muted);margin-top:4px;}
 .contract-kpi-bar{height:4px;background:var(--sand-lt);border-radius:2px;overflow:hidden;margin-top:8px;}
 .contract-kpi-bar-fill{height:100%;border-radius:2px;transition:width .6s;}
@@ -16,10 +16,10 @@
 .contract-card-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;}
 .contract-card-lic{font-size:13px;font-weight:700;color:var(--black);}
 .contract-card-name{font-size:11px;color:var(--muted);margin-top:2px;}
-.contract-card-edit{background:none;border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:5px;cursor:pointer;font-size:11px;font-family:'Barlow',sans-serif;font-weight:700;transition:all .15s;}
+.contract-card-edit{background:none;border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:5px;cursor:pointer;font-size:11px;font-family:'Lexend',sans-serif;font-weight:700;transition:all .15s;}
 .contract-card-edit:hover{border-color:var(--tan);color:var(--brown);}
 .contract-usage-row{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px;}
-.contract-usage-num{font-family:'Barlow Condensed',sans-serif;font-size:22px;font-weight:800;line-height:1;}
+.contract-usage-num{font-family:'Outfit',sans-serif;font-size:20px;font-weight:800;line-height:1;}
 .contract-usage-total{font-size:11px;color:var(--muted);}
 .contract-bar{height:6px;background:var(--sand-lt);border-radius:3px;overflow:hidden;margin-bottom:5px;}
 .contract-bar-fill{height:100%;border-radius:3px;transition:width .6s;}
@@ -33,14 +33,14 @@
 
 /* Fatura */
 .fatura-total-label{font-size:12px;color:var(--muted);}
-.fatura-total-label strong{color:var(--brown);font-size:14px;font-family:'Barlow Condensed',sans-serif;}
+.fatura-total-label strong{color:var(--brown);font-size:14px;font-family:'Outfit',sans-serif;}
 .fatura-table{width:100%;border-collapse:collapse;}
 .fatura-table th{font-size:10px;color:var(--muted);letter-spacing:.5px;text-transform:uppercase;font-weight:700;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border);}
 .fatura-table td{padding:6px 12px;font-size:13px;border-bottom:1px solid var(--border);}
 .fatura-table tbody tr:hover{background:var(--sand-lt);}
 .fatura-table input{
   width:100%;border:1px solid transparent;background:transparent;
-  font-family:'Barlow',sans-serif;font-size:13px;padding:4px 6px;border-radius:4px;
+  font-family:'Lexend',sans-serif;font-size:13px;padding:4px 6px;border-radius:4px;
   transition:border-color .15s;
 }
 .fatura-table input:hover{border-color:var(--border);}

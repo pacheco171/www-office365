@@ -66,6 +66,7 @@ function computeForecast(monthsAhead){
 
 function renderForecast(){
   var el=document.getElementById('forecastSection');
+  if(!el)return;
   var horizonte=parseInt((document.getElementById('forecastHorizonte')||{}).value||'6');
   var fc=computeForecast(horizonte);
 
@@ -240,6 +241,7 @@ function drawForecastChart(fc){
 function toggleForecast(){
   var panel=document.getElementById('forecastPanel');
   var btn=document.getElementById('forecastToggleBtn');
+  if(!panel)return;
   if(panel.style.display==='none'){
     panel.style.display='block';
     if(btn)btn.classList.add('active');
