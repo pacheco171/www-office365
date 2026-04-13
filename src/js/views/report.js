@@ -119,7 +119,7 @@ function renderReport(){
       <table class="report-table">
         <thead><tr><th>Licença</th><th>Tier</th><th>Usuários</th><th>Preço unit./mês</th><th>Custo total/mês</th><th>% do custo</th></tr></thead>
         <tbody>
-          ${LICENSES.filter(l=>byLic[l.id]&&l.id!=='none').sort((a,b)=>(byLic[b.id]||0)*b.price-(byLic[a.id]||0)*a.price).map(l=>`
+          ${LICENSES.filter(l=>byLic[l.id]&&l.id!=='none'&&l.id!=='other').sort((a,b)=>(byLic[b.id]||0)*b.price-(byLic[a.id]||0)*a.price).map(l=>`
             <tr>
               <td>${licBadge(l.id)}</td>
               <td style="color:var(--muted);font-size:11px">${l.tier}</td>

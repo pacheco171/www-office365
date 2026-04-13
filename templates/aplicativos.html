@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}Aplicativos{% endblock %}
+{% block content %}
+<div class="view active" id="view-aplicativos">
+  <div class="topbar">
+    <div><div class="page-heading" data-i18n="app.titulo">Aplicativos Cadastrados</div><div class="page-sub" data-i18n="app.sub">Registros de aplicativo e entidades de serviço no Azure AD</div></div>
+    <div class="topbar-actions">
+      <button class="btn btn-outline" onclick="renderAplicativosView()">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span data-i18n="btn.atualizar">Atualizar</span>
+      </button>
+    </div>
+  </div>
+  <div class="tab-strip">
+    <button class="tab-btn active" onclick="switchTab('aplicativos','registrations',this)" data-i18n="app.tab_registros">Registros de Aplicativo</button>
+    <button class="tab-btn" onclick="switchTab('aplicativos','principals',this)" data-i18n="app.tab_entidades">Entidades de Serviço</button>
+  </div>
+  <div class="tab-panel active" id="aplicativos-registrations">
+    <div id="appsRegKpis"></div>
+    <div id="appsRegTable"></div>
+  </div>
+  <div class="tab-panel" id="aplicativos-principals">
+    <div id="appsSPKpis"></div>
+    <div id="appsSPTable"></div>
+  </div>
+</div>
+{% endblock %}

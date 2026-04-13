@@ -15,6 +15,11 @@ function toggleFieldVis(inputId, btn) {
 }
 
 function loadGraphConfig() {
+  fetch('/api/me').then(function(r) { return r.json(); }).then(function(me) {
+    var label = document.getElementById('cfgTenantLabel');
+    if (label) label.textContent = me.tenant_id || 'desconhecido';
+  }).catch(function() {});
+
   fetch('/api/graph/config').then(function(r) { return r.json(); }).then(function(cfg) {
     // Credenciais: mostrar placeholder mascarado, campo vazio para edição
     var tenantInput = document.getElementById('cfgTenantId');
@@ -31,8 +36,8 @@ function loadGraphConfig() {
     secretInput.value = '';
     secretInput.placeholder = cfg.client_secret_masked ? 'Configurado — deixe vazio para manter' : 'Nenhum secret configurado';
 
-    document.getElementById('cfgDomain').value = cfg.domain || 'liveoficial.com.br';
-    document.getElementById('cfgOuRoot').value = cfg.ou_root || 'Setores';
+    document.getElementById('cfgDomain').value = cfg.domain || '';
+    document.getElementById('cfgOuRoot').value = cfg.ou_root || '';
     document.getElementById('cfgAutoSync').checked = !!cfg.auto_sync;
     document.getElementById('cfgSyncInterval').value = String(cfg.sync_interval_hours || 24);
 

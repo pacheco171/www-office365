@@ -48,6 +48,14 @@ function syncRadarAcoes(){
     if(a.categoria==='superlicenciado'&&!supIds.has(a.tipo)&&a.status!=='resolvido')a.status='resolvido';
   });
 
+  // Deduplicar: para cada tipo, manter apenas a entrada mais recente
+  const tipoMap=new Map();
+  for(const a of acoes){
+    const ex=tipoMap.get(a.tipo);
+    if(!ex||new Date(a.criadoEm)>new Date(ex.criadoEm))tipoMap.set(a.tipo,a);
+  }
+  acoes=([...tipoMap.values()]);
+
   persist();
 }
 
@@ -80,6 +88,7 @@ function renderAcoes(){
     const statusLabel={novo:'Novo',em_analise:'Em Análise',resolvido:'Resolvido',ignorado:'Ignorado'}[a.status]||a.status;
     const catLabel=a.categoria==='bloqueado'?'Bloqueado com licença':'Super-licenciado';
     const catCls=a.categoria==='bloqueado'?'acao-cat-red':'acao-cat-yellow';
+    const dtCriado=new Date(a.criadoEm).toLocaleDateString('pt-BR');
     html+=`<div class="acao-card" onclick="openAcaoModal(${a.id})">
       <div class="acao-card-top">
         <span class="acao-cat-badge ${catCls}">${catLabel}</span>
@@ -90,6 +99,7 @@ function renderAcoes(){
       <div class="acao-card-footer">
         ${a.responsavel?`<span class="acao-card-resp">Resp: ${a.responsavel}</span>`:'<span class="acao-card-resp" style="color:var(--muted)">Sem responsável</span>'}
         <span class="acao-card-comments">${a.comentarios.length} coment.</span>
+        <span style="color:var(--muted);font-size:11px">#${a.id} · ${dtCriado}</span>
       </div>
     </div>`;
   }

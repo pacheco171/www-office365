@@ -43,6 +43,8 @@
 /* ── Nivel 1: Macro Summary ── */
 .lic-macro-summary{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:20px;}
 .lic-summary-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 18px;}
+.lic-summary-clickable{cursor:pointer;transition:border-color .18s,box-shadow .18s;}
+.lic-summary-clickable:hover{border-color:var(--tan);box-shadow:0 2px 8px rgba(0,0,0,.06);}
 .lic-summary-label{font-size:10px;color:var(--muted);letter-spacing:1.5px;text-transform:uppercase;font-weight:700;margin-bottom:6px;}
 .lic-summary-val{font-family:'Outfit',sans-serif;font-size:clamp(18px,1.8vw,22px);font-weight:800;color:var(--black);}
 .lic-summary-cost{color:var(--brown);}
@@ -80,7 +82,7 @@
 .lic-area-item-cost{font-weight:800;font-size:15px;color:var(--brown);font-family:'Outfit',sans-serif;}
 .lic-area-item-pct{font-size:10px;color:var(--muted);margin-top:2px;}
 .lic-area-item-body{max-height:0;overflow:hidden;transition:max-height .3s ease;}
-.lic-area-expandable.open .lic-area-item-body{max-height:5000px;overflow:visible;}
+.lic-area-expandable.open .lic-area-item-body{max-height:none;overflow:visible;}
 .lic-area-item-body>.lic-pessoas-table-wrap,
 .lic-area-item-body>div{margin:0 16px 16px;}
 
@@ -94,7 +96,7 @@
 .lic-subarea-meta{font-size:11px;color:var(--muted);white-space:nowrap;}
 .lic-subarea-cost{font-weight:700;font-size:12px;color:var(--brown);text-align:right;min-width:100px;}
 .lic-subarea-body{max-height:0;overflow:hidden;transition:max-height .3s ease;}
-.lic-subarea-group.open .lic-subarea-body{max-height:3000px;overflow:visible;}
+.lic-subarea-group.open .lic-subarea-body{max-height:none;overflow:visible;}
 .lic-subarea-body .lic-pessoas-table-wrap{margin:0 8px 8px;}
 
 .lic-area-footer{background:var(--sand-lt);border:1px solid var(--border);border-radius:10px;padding:14px 18px;display:flex;justify-content:space-between;align-items:center;}
@@ -161,7 +163,7 @@
 
 /* Corpo expansivel */
 .setor-tier-body{max-height:0;overflow:hidden;transition:max-height .3s ease;}
-.setor-tier-item.open .setor-tier-body{max-height:2000px;}
+.setor-tier-item.open .setor-tier-body{max-height:none;overflow:visible;}
 .setor-tier-body-inner{padding:0 16px 16px;}
 .setor-tier-body .setor-lic-row{margin-bottom:4px;}
 
@@ -193,8 +195,8 @@
 .setor-sub-meta{font-size:11px;color:var(--muted);white-space:nowrap;}
 .setor-sub-cost{font-weight:700;font-size:12px;color:var(--brown);text-align:right;min-width:100px;}
 .setor-sub-body{max-height:0;overflow:hidden;transition:max-height .3s ease;}
-.setor-sub-group.open>.setor-sub-body{max-height:5000px;}
-.setor-subarea-group.open>.setor-sub-body{max-height:3000px;}
+.setor-sub-group.open>.setor-sub-body{max-height:none;overflow:visible;}
+.setor-subarea-group.open>.setor-sub-body{max-height:none;overflow:visible;}
 .setor-sub-body-inner{padding:0 14px 14px;}
 .setor-sub-footer{background:var(--sand-lt);border-top:1px solid var(--border);padding:10px 14px;display:flex;justify-content:space-between;align-items:center;margin-top:8px;border-radius:0 0 8px 8px;}
 .setor-sub-footer-label{font-size:10px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:1px;}

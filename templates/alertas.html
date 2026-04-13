@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Alertas de Segurança{% endblock %}
+{% block content %}
+<div class="view active" id="view-alertas">
+  <div class="topbar">
+    <div><div class="page-heading" data-i18n="alrt.titulo">Alertas de Segurança</div><div class="page-sub" data-i18n="alrt.sub">Alertas do Microsoft Graph Security + análise local de riscos</div></div>
+    <div class="topbar-actions">
+      <div class="topbar-refresh">
+        <span class="last-updated" id="alertasLastUpdated">—</span>
+        <button class="btn btn-outline" onclick="refreshAlertas()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span data-i18n="btn.atualizar">Atualizar</span>
+        </button>
+      </div>
+    </div>
+  </div>
+  <div class="tab-strip">
+    <button class="tab-btn active" onclick="switchTab('alertas','microsoft',this)" data-i18n="alrt.tab_ms">Alertas Microsoft</button>
+    <button class="tab-btn" onclick="switchTab('alertas','local',this)" data-i18n="alrt.tab_local">Análise Local</button>
+    <button class="tab-btn" onclick="switchTab('alertas','resumo',this)" data-i18n="alrt.tab_resumo">Resumo</button>
+  </div>
+  <div class="tab-panel active" id="alertas-microsoft">
+    <div id="alertasMsContent"></div>
+  </div>
+  <div class="tab-panel" id="alertas-local">
+    <div id="alertasLocalContent"></div>
+  </div>
+  <div class="tab-panel" id="alertas-resumo">
+    <div id="alertasResumoContent"></div>
+  </div>
+</div>
+{% endblock %}

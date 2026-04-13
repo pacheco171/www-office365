@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Exchange D-7{% endblock %}
+{% block content %}
+<div class="view active" id="view-exchange">
+  <div class="topbar">
+    <div><div class="page-heading">Exchange D-7</div><div class="page-sub" data-i18n="xch.sub">Uso de caixas de correio nos últimos 7 dias — dados do Microsoft Graph</div></div>
+    <div class="topbar-actions">
+      <button class="btn btn-outline" onclick="toggleNavSidebar(this)" title="Ocultar painel lateral">–</button>
+      <div class="topbar-refresh">
+        <span class="last-updated" id="exchangeLastUpdated">—</span>
+        <button class="btn btn-outline" onclick="refreshExchange()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span data-i18n="btn.atualizar">Atualizar</span>
+        </button>
+      </div>
+    </div>
+  </div>
+  <div id="exchangeFilters"></div>
+  <div class="exch-body">
+    <div id="exchangeTable"></div>
+    <div id="exchangeTop"></div>
+  </div>
+</div>
+{% endblock %}

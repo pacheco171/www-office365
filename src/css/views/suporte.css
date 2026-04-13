@@ -1,0 +1,19 @@
+#view-suporte .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px;}
+.suporte-form{max-width:600px;margin:0 auto;padding:24px;}
+.suporte-form .form-group{margin-bottom:16px;}
+.suporte-form label{display:block;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:6px;}
+.suporte-form .form-input,.suporte-form .form-select{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:'Lexend',sans-serif;color:var(--text);background:var(--surface);transition:border-color .15s;}
+.suporte-form .form-input:focus,.suporte-form .form-select:focus{border-color:var(--tan);outline:none;}
+.suporte-form textarea.form-input{min-height:120px;resize:vertical;}
+.suporte-chat-inline{max-width:700px;margin:0 auto;padding:20px;min-height:400px;}
+.suporte-chat-inline .ai-chat-messages{max-height:400px;overflow-y:auto;padding:16px;background:var(--surface);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;}
+.suporte-toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:12px;flex-wrap:wrap;}
+.suporte-toolbar .search-box{display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;flex:1;max-width:360px;}
+.suporte-toolbar .search-box svg{width:16px;height:16px;color:var(--muted);flex-shrink:0;}
+.suporte-toolbar .search-input{border:none;outline:none;background:none;font-size:13px;font-family:'Lexend',sans-serif;color:var(--text);width:100%;}
+.ticket-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px 20px;margin-bottom:10px;cursor:pointer;transition:background .12s;}
+.ticket-card:hover{background:var(--surface2);}
+.ticket-card-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;}
+.ticket-card-subject{font-weight:700;font-size:14px;}
+.ticket-card-body{font-size:12px;color:var(--muted);line-height:1.5;}
+.ticket-card-meta{display:flex;gap:12px;margin-top:8px;font-size:11px;color:var(--muted);}

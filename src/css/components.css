@@ -79,3 +79,27 @@
 
 /* SETOR FIXO — lock icon */
 .setor-lock{display:inline-block;font-size:10px;margin-left:3px;vertical-align:middle;opacity:.7;cursor:help;}
+
+/* EMPTY / ERROR STATE */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:64px 32px;gap:12px;text-align:center;}
+.empty-state .empty-icon{font-size:48px;margin-bottom:8px;}
+.empty-state .empty-title{font-size:18px;font-weight:700;color:var(--text);}
+.empty-state .empty-msg{font-size:14px;color:var(--muted);max-width:380px;}
+.empty-state.error-state .empty-icon{color:var(--red);}
+
+/* GLOBAL SEARCH */
+.gs-overlay{position:fixed;inset:0;background:var(--overlay);display:flex;align-items:flex-start;justify-content:center;padding-top:15vh;z-index:9999;}
+.gs-box{background:var(--surface);border-radius:12px;width:560px;max-height:60vh;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.3);display:flex;flex-direction:column;}
+.gs-header{display:flex;align-items:center;padding:4px 16px;border-bottom:1px solid var(--border);}
+.gs-header svg{color:var(--muted);flex-shrink:0;}
+.gs-input{flex:1;border:none;outline:none;font-size:17px;padding:14px 12px;background:transparent;color:var(--text);font-family:'Lexend',sans-serif;}
+.gs-input::placeholder{color:var(--muted);}
+.gs-esc{font-size:11px;color:var(--muted);background:var(--sand-lt);border:1px solid var(--border);border-radius:4px;padding:2px 6px;flex-shrink:0;}
+.gs-results{overflow-y:auto;max-height:380px;}
+.gs-empty{text-align:center;padding:32px;color:var(--muted);font-size:13px;}
+.gs-item{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;transition:background .1s;}
+.gs-item:hover{background:var(--sand-lt);}
+.gs-item-avatar{width:32px;height:32px;border-radius:50%;background:var(--sand);color:var(--brown);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0;}
+.gs-item-info{flex:1;min-width:0;}
+.gs-item-name{font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.gs-item-sub{font-size:11px;color:var(--muted);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}

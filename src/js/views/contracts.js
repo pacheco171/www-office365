@@ -123,78 +123,6 @@ function renderContracts(){
 
   document.getElementById('contractTableBody').innerHTML=rows.join('');
 
-  // ── Sidebar: cards por licença com dados Azure ──
-  let sideHtml='';
-
-  // Cards de licenças com dados Azure
-  const azLics=[...new Set(azureSubs.map(s=>s.licId))];
-  azLics.forEach(licId=>{
-    const l=getLic(licId);
-    const sd=getSubData(licId);
-    const free=Math.max(0,sd.contratadas-sd.emUso);
-    const pct=Math.round(sd.emUso/Math.max(sd.contratadas,1)*100);
-    const over=sd.emUso>sd.contratadas;
-    const warn=pct>=90;
-    const barColor=over?'var(--red)':warn?'var(--yellow)':'var(--green)';
-    const skuNames=sd.azSkus.map(s=>s.skuPartNumber).join(', ');
-    sideHtml+=`<div class="contract-card">
-      <div class="contract-card-header">
-        <div>
-          <div class="contract-card-lic">${l.short} <span style="font-size:10px;font-weight:400;color:var(--green);margin-left:4px">Azure</span></div>
-          <div class="contract-card-name">${skuNames}</div>
-        </div>
-      </div>
-      <div class="contract-usage-row">
-        <div class="contract-usage-num" style="color:${over?'var(--red)':'var(--black)'}">${sd.emUso}</div>
-        <div class="contract-usage-total">de ${sd.contratadas} contratadas</div>
-      </div>
-      <div class="contract-bar"><div class="contract-bar-fill" style="width:${Math.min(pct,100)}%;background:${barColor}"></div></div>
-      <div class="contract-bar-label">
-        <span class="contract-bar-pct" style="color:${over?'var(--red)':warn?'var(--yellow)':'var(--muted)'}">${pct}%${over?' · Acima do limite':warn?' · Atenção':''}</span>
-        <span class="contract-bar-free">${free} livres</span>
-      </div>
-    </div>`;
-  });
-
-  // Cards de contratos manuais (sem dados Azure)
-  const byLic={};
-  contracts.forEach(c=>{if(!byLic[c.licId])byLic[c.licId]=[];byLic[c.licId].push(c);});
-  Object.entries(byLic).forEach(([licId,cons])=>{
-    if(azLics.includes(licId))return; // Já mostrado via Azure
-    const l=getLic(licId);
-    const totalQtd=cons.reduce((s,c)=>s+c.qtd,0);
-    const used=countUsedLic(licId);
-    const free=Math.max(0,totalQtd-used);
-    const pct=Math.round(used/Math.max(totalQtd,1)*100);
-    const over=used>totalQtd;
-    const warn=pct>=90;
-    const barColor=over?'var(--red)':warn?'var(--yellow)':'var(--green)';
-    sideHtml+=`<div class="contract-card">
-      <div class="contract-card-header">
-        <div>
-          <div class="contract-card-lic">${l.short} <span style="font-size:10px;font-weight:400;color:${l.color};margin-left:4px">${l.tier}</span></div>
-          <div class="contract-card-name">${cons[0].nome}${cons.length>1?` +${cons.length-1}`:''}  ·  vence ${cons[0].fim?fmtDate(cons[0].fim):'—'}</div>
-        </div>
-        <button class="contract-card-edit" onclick="openContractModal('${licId}')">Editar</button>
-      </div>
-      <div class="contract-usage-row">
-        <div class="contract-usage-num" style="color:${over?'var(--red)':'var(--black)'}">${used}</div>
-        <div class="contract-usage-total">de ${totalQtd} contratadas</div>
-      </div>
-      <div class="contract-bar"><div class="contract-bar-fill" style="width:${Math.min(pct,100)}%;background:${barColor}"></div></div>
-      <div class="contract-bar-label">
-        <span class="contract-bar-pct" style="color:${over?'var(--red)':warn?'var(--yellow)':'var(--muted)'}">${pct}%${over?' · Acima do limite':warn?' · Atenção':''}</span>
-        <span class="contract-bar-free">${free} livres</span>
-      </div>
-    </div>`;
-  });
-
-  sideHtml+=`<div class="contract-add-card" onclick="openContractModal()">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-    <span class="contract-add-card-label">Novo contrato</span>
-  </div>`;
-  document.getElementById('contractSidebar').innerHTML=sideHtml;
-
   // Renderizar fatura
   initFatura();
 }
@@ -362,6 +290,8 @@ function addFaturaRow(){
 }
 
 function delFaturaRow(idx){
+  const linha=faturaLines[idx];
+  if(!confirm('Remover "'+linha.produto+'" da fatura?'))return;
   faturaLines.splice(idx,1);
   renderFatura();
   saveFatura();

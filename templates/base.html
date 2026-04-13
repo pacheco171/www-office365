@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LIVE! — {% block title %}Microsoft 365{% endblock %}</title>
+<link rel="icon" href="/favicon.ico" type="image/x-icon">
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <!-- CSS -->
 <link rel="stylesheet" href="/src/css/variables.css">
@@ -27,6 +28,16 @@
 <link rel="stylesheet" href="/src/css/views/acoes.css">
 <link rel="stylesheet" href="/src/css/views/simulador.css">
 <link rel="stylesheet" href="/src/css/views/forecast.css">
+<link rel="stylesheet" href="/src/css/views/exchange.css">
+<link rel="stylesheet" href="/src/css/views/onedrive.css">
+<link rel="stylesheet" href="/src/css/views/dominios.css">
+<link rel="stylesheet" href="/src/css/views/grupos.css">
+<link rel="stylesheet" href="/src/css/views/aplicativos.css">
+<link rel="stylesheet" href="/src/css/views/privilegios.css">
+<link rel="stylesheet" href="/src/css/views/politicas.css">
+<link rel="stylesheet" href="/src/css/views/alertas.css">
+<link rel="stylesheet" href="/src/css/views/assessment.css">
+<link rel="stylesheet" href="/src/css/views/suporte.css">
 <link rel="stylesheet" href="/src/css/ai-chat.css">
 <link rel="stylesheet" href="/src/css/ui-kit.css">
 <!-- Guard: redireciona para login se não autenticado -->
@@ -34,54 +45,118 @@
 <script>(function(){if(!localStorage.getItem('store_auth'))window.location.replace('/login.html');}());</script>
 </head>
 <body data-page="{{ active_page }}">
+<div id="bootLoader" class="boot-loader" style="display:none">
+  <div class="boot-brand">
+    <div class="boot-logo">LIVE<em>!</em></div>
+    <div class="boot-sub">Microsoft 365</div>
+  </div>
+  <div class="boot-progress"><div class="boot-progress-bar" id="bootProgressBar"></div></div>
+  <div class="boot-status" id="bootStatus">Conectando ao tenant...</div>
+  <div class="boot-steps">
+    <span class="boot-step active" data-step="1"></span>
+    <span class="boot-step" data-step="2"></span>
+    <span class="boot-step" data-step="3"></span>
+  </div>
+</div>
+<script>(function(){if(sessionStorage.getItem('boot_pending'))document.getElementById('bootLoader').style.display='';}());</script>
 <div class="layout">
 <aside>
   <div class="logo">LIVE<em>!</em></div>
   <div class="logo-sub">Microsoft 365</div>
-  <div class="nav-label">Principal</div>
+  <div id="tenantSwitcher" class="nav-item tenant-nav-item" style="display:none" onclick="openTenantSelector()">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="10" rx="2"/><path d="M16 3l4 4-4 4"/><path d="M8 21l-4-4 4-4"/></svg>
+    <span id="tenantDisplayName" class="tenant-nav-name"></span>
+    <span class="tenant-nav-chevron" id="tenantChevron" style="display:none">&#9662;</span>
+    <div id="tenantDropdown" class="tenant-dropdown hidden"></div>
+  </div>
+  <div class="nav-label" data-i18n="nav.principal">Principal</div>
   <a class="nav-item{% if active_page == 'dashboard' %} active{% endif %}" href="/">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>Dashboard
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg><span data-i18n="term.dashboard">Dashboard</span>
   </a>
   <a class="nav-item{% if active_page == 'colaboradores' %} active{% endif %}" href="/colaboradores">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.87"/></svg>Colaboradores
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.87"/></svg><span data-i18n="term.colaboradores">Colaboradores</span>
   </a>
-  <div class="nav-label">Licenças M365</div>
+  <div class="nav-label" data-i18n="nav.licencas_m365">Licenças M365</div>
   <a class="nav-item{% if active_page == 'licencas' %} active{% endif %}" href="/licencas">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/><line x1="12" y1="12" x2="12" y2="16"/></svg>Licenças
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/><line x1="12" y1="12" x2="12" y2="16"/></svg><span data-i18n="nav.licencas">Licenças</span>
   </a>
   <a class="nav-item{% if active_page == 'setores' %} active{% endif %}" href="/setores">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Por Setor
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg><span data-i18n="nav.por_setor">Por Setor</span>
   </a>
   <a class="nav-item{% if active_page == 'historico' %} active{% endif %}" href="/historico">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Histórico
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg><span data-i18n="nav.historico">Histórico</span>
   </a>
-  <div class="nav-label">Gestão</div>
-  <a class="nav-item{% if active_page == 'radar' %} active{% endif %}" href="/radar">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="2"/><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2"/><path d="M12 6a6 6 0 1 0 0 12A6 6 0 0 0 12 6"/></svg>Radar
-  </a>
-  <a class="nav-item{% if active_page == 'contratos' %} active{% endif %}" href="/contratos">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>Contratos
-  </a>
-  <a class="nav-item{% if active_page == 'relatorio' %} active{% endif %}" href="/relatorio">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>Relatório
-  </a>
-  <a class="nav-item{% if active_page == 'auditoria' %} active{% endif %}" href="/auditoria">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>Auditoria
-  </a>
-  <a class="nav-item{% if active_page == 'sugestoes' %} active{% endif %}" href="/sugestoes" id="navSugestoes" style="display:none">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>Sugestões
-  </a>
-  <a class="nav-item{% if active_page == 'config' %} active{% endif %}" href="/config">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>Config
-  </a>
+  <div class="nav-label collapsible" data-section="relatorios" onclick="toggleNavGroup(this)"><span data-i18n="nav.relatorios">Relatórios</span><span class="nav-chevron">▾</span></div>
+  <div class="nav-group" data-section="relatorios">
+    <a class="nav-item{% if active_page == 'exchange' %} active{% endif %}" href="/exchange">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="2"/><polyline points="22 7 12 13 2 7"/></svg><span data-i18n="term.exchange">Exchange</span> D-7
+    </a>
+    <a class="nav-item{% if active_page == 'onedrive' %} active{% endif %}" href="/onedrive">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/></svg><span data-i18n="term.onedrive">OneDrive</span> D-7
+    </a>
+    <a class="nav-item{% if active_page == 'grupos' %} active{% endif %}" href="/grupos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg><span data-i18n="term.grupos">Grupos</span>
+    </a>
+    <a class="nav-item{% if active_page == 'dominios' %} active{% endif %}" href="/dominios">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg><span data-i18n="term.dominios">Domínios</span>
+    </a>
+    <a class="nav-item{% if active_page == 'aplicativos' %} active{% endif %}" href="/aplicativos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg><span data-i18n="term.aplicativos">Aplicativos</span>
+    </a>
+    <a class="nav-item{% if active_page == 'privilegios' %} active{% endif %}" href="/privilegios">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><span data-i18n="term.privilegios">Privilégios</span>
+    </a>
+  </div>
+  <div class="nav-label collapsible" data-section="seguranca" onclick="toggleNavGroup(this)"><span data-i18n="nav.seguranca">Segurança</span><span class="nav-chevron">▾</span></div>
+  <div class="nav-group" data-section="seguranca">
+    <a class="nav-item{% if active_page == 'alertas' %} active{% endif %}" href="/alertas">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span data-i18n="term.alertas">Alertas</span>
+    </a>
+    <a class="nav-item{% if active_page == 'politicas' %} active{% endif %}" href="/politicas">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span data-i18n="term.politicas">Políticas</span>
+    </a>
+    <a class="nav-item{% if active_page == 'assessment' %} active{% endif %}" href="/assessment">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg><span data-i18n="term.assessment">Assessment</span>
+    </a>
+  </div>
+  <div class="nav-label collapsible" data-section="gestao" onclick="toggleNavGroup(this)"><span data-i18n="nav.gestao">Gestão</span><span class="nav-chevron">▾</span></div>
+  <div class="nav-group" data-section="gestao">
+    <a class="nav-item{% if active_page == 'radar' %} active{% endif %}" href="/radar">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="2"/><path d="M12 2a10 10 0 1 0 0 20A10 10 0 0 0 12 2"/><path d="M12 6a6 6 0 1 0 0 12A6 6 0 0 0 12 6"/></svg><span data-i18n="term.radar">Radar</span>
+    </a>
+    <a class="nav-item{% if active_page == 'contratos' %} active{% endif %}" href="/contratos">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><span data-i18n="nav.contratos">Contratos</span>
+    </a>
+    <a class="nav-item{% if active_page == 'relatorio' %} active{% endif %}" href="/relatorio">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg><span data-i18n="nav.relatorio">Relatório</span>
+    </a>
+    <a class="nav-item{% if active_page == 'auditoria' %} active{% endif %}" href="/auditoria">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span data-i18n="nav.auditoria">Auditoria</span>
+    </a>
+    <a class="nav-item{% if active_page == 'suporte' %} active{% endif %}" href="/suporte">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg><span data-i18n="nav.suporte">Suporte</span>
+    </a>
+    <a class="nav-item{% if active_page == 'sugestoes' %} active{% endif %}" href="/sugestoes" id="navSugestoes" style="display:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg><span data-i18n="nav.sugestoes">Sugestões</span>
+    </a>
+    <a class="nav-item{% if active_page == 'config' %} active{% endif %}" href="/config">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg><span data-i18n="nav.config">Config</span>
+    </a>
+  </div>
   <div class="sb-costs">
-    <div class="sb-costs-title">Custo M365 / Mês</div>
+    <div class="sb-costs-title" data-i18n="nav.custo_mes">Custo M365 / Mês</div>
     <div id="sbRows"></div>
     <div class="sb-sep"></div>
     <div class="sb-total-row">
-      <span class="sb-total-label">Total mensal</span>
+      <span class="sb-total-label" data-i18n="nav.total_mensal">Total mensal</span>
       <span class="sb-total-val" id="sbTotal">R$ 0</span>
     </div>
+  </div>
+  <!-- Seletor de idioma -->
+  <div class="lang-switcher">
+    <button class="lang-btn" data-lang="pt" onclick="setLanguage('pt')">PT</button>
+    <button class="lang-btn" data-lang="en" onclick="setLanguage('en')">EN</button>
+    <button class="lang-btn" data-lang="es" onclick="setLanguage('es')">ES</button>
   </div>
   <!-- Usuário logado + Sair -->
   <div class="sb-user">
@@ -93,9 +168,13 @@
   </div>
   <button class="logout-btn" onclick="authLogout()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-    Sair
+    <span data-i18n="nav.sair">Sair</span>
   </button>
 </aside>
+<button class="ham-btn" id="hamBtn" onclick="toggleNavSidebar(this)" aria-label="Menu" aria-expanded="false">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+</button>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleNavSidebar(document.getElementById('hamBtn'))"></div>
 <main>
 {% block content %}{% endblock %}
 </main>
@@ -105,34 +184,84 @@
 <div class="modal-overlay" id="modalOverlay" onclick="bgClose(event)">
   <div class="modal">
     <div class="modal-hdr">
-      <div><div class="modal-title" id="modalTitleText">Novo Colaborador</div><div class="modal-sub">Preencha os dados e atribua uma licença Microsoft 365</div></div>
+      <div><div class="modal-title" id="modalTitleText" data-i18n="modal.novo_colab">Novo Colaborador</div><div class="modal-sub" data-i18n="modal.sub_colab">Preencha os dados e atribua uma licença Microsoft 365</div></div>
       <button class="close-btn" onclick="closeModal()">×</button>
     </div>
     <div class="form-grid">
-      <div class="form-group"><label>Nome completo *</label><input type="text" class="form-input" id="fNome" placeholder="Ex: Ana Souza"></div>
-      <div class="form-group"><label>E-mail corporativo</label><input type="email" class="form-input" id="fEmail" placeholder="ana@liveoficial.com.br"></div>
-      <div class="form-group"><label>Setor *</label><input type="text" class="form-input" id="fSetor" placeholder="Ex: TI" list="setorList"><datalist id="setorList"></datalist></div>
-      <div class="form-group"><label>Cargo</label><input type="text" class="form-input" id="fCargo" placeholder="Ex: Analista Sênior"></div>
+      <div class="form-group"><label data-i18n="modal.nome">Nome completo *</label><input type="text" class="form-input" id="fNome" placeholder="Ex: Ana Souza"></div>
+      <div class="form-group"><label data-i18n="modal.email">E-mail corporativo</label><input type="email" class="form-input" id="fEmail" placeholder="ana@liveoficial.com.br"></div>
+      <div class="form-group"><label data-i18n="modal.setor">Setor *</label><input type="text" class="form-input" id="fSetor" placeholder="Ex: TI" list="setorList"><datalist id="setorList"></datalist></div>
+      <div class="form-group"><label data-i18n="modal.cargo">Cargo</label><input type="text" class="form-input" id="fCargo" placeholder="Ex: Analista Sênior"></div>
       <div class="form-group" id="fResponsavelGroup">
-        <label>Responsável</label>
+        <label data-i18n="modal.responsavel">Responsável</label>
         <input type="text" class="form-input" id="fResponsavel" placeholder="Ex: Nome do responsável" list="respList">
         <datalist id="respList"></datalist>
       </div>
-      <div class="form-group"><label>Status</label><select class="form-select" id="fStatus"><option value="Ativo">Ativo</option><option value="Pendente">Pendente</option><option value="Inativo">Inativo</option></select></div>
-      <div class="form-group"><label>Data de criação</label><input type="date" class="form-input" id="fData"></div>
-      <div class="form-group form-full"><label>Licença Microsoft 365</label><div class="lic-grid" id="licGrid"></div></div>
-      <div class="form-group form-full"><label>Resumo de custo</label>
+      <div class="form-group"><label data-i18n="modal.status">Status</label><select class="form-select" id="fStatus"><option value="Ativo" data-i18n="status.ativo">Ativo</option><option value="Pendente" data-i18n="status.pendente">Pendente</option><option value="Inativo" data-i18n="status.inativo">Inativo</option></select></div>
+      <div class="form-group"><label data-i18n="modal.data_criacao">Data de criação</label><input type="date" class="form-input" id="fData"></div>
+      <div class="form-group form-full"><label data-i18n="modal.licenca">Licença Microsoft 365</label><div class="lic-grid" id="licGrid"></div></div>
+      <div class="form-group form-full"><label data-i18n="modal.resumo_custo">Resumo de custo</label>
         <div class="cost-preview">
-          <div class="cp-row"><span>Plano principal</span><span id="cpLic">—</span></div>
-          <div class="cp-row"><span>O que inclui</span><span id="cpDesc" style="text-align:right;max-width:60%">—</span></div>
-          <div class="cp-row"><span>Custo mensal</span><span id="cpMes">R$ 0,00</span></div>
-          <div class="cp-total"><span>Custo anual estimado</span><span id="cpAno">R$ 0,00</span></div>
+          <div class="cp-row"><span data-i18n="modal.plano">Plano principal</span><span id="cpLic">—</span></div>
+          <div class="cp-row"><span data-i18n="modal.o_que_inclui">O que inclui</span><span id="cpDesc" style="text-align:right;max-width:60%">—</span></div>
+          <div class="cp-row"><span data-i18n="modal.custo_mensal">Custo mensal</span><span id="cpMes">R$ 0,00</span></div>
+          <div class="cp-total"><span data-i18n="modal.custo_anual">Custo anual estimado</span><span id="cpAno">R$ 0,00</span></div>
         </div>
       </div>
     </div>
     <div class="modal-ftr">
-      <button class="btn btn-outline" onclick="closeModal()">Cancelar</button>
-      <button class="btn btn-dark" id="saveBtn" onclick="saveColaborador()">Salvar</button>
+      <button class="btn btn-outline" onclick="closeModal()" data-i18n="btn.cancelar">Cancelar</button>
+      <button class="btn btn-dark" id="saveBtn" onclick="saveColaborador()" data-i18n="btn.salvar">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- NEW TENANT MODAL -->
+<div class="modal-overlay" id="newTenantOverlay" onclick="if(event.target.id==='newTenantOverlay')closeAddTenantModal()">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-hdr">
+      <div>
+        <div class="modal-title">Novo Tenant</div>
+        <div class="modal-sub" id="ntStepLabel">Passo 1 de 2 — Identificação</div>
+      </div>
+      <button class="close-btn" onclick="closeAddTenantModal()">×</button>
+    </div>
+    <div id="ntStep1" class="form-grid">
+      <div class="form-group form-full">
+        <label>Nome *</label>
+        <input type="text" class="form-input" id="ntName" placeholder="Ex: Empresa X" oninput="var s=document.getElementById('ntSlug');if(!s._touched)s.value=this.value.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'')">
+      </div>
+      <div class="form-group form-full">
+        <label>Identificador (slug) *</label>
+        <input type="text" class="form-input" id="ntSlug" placeholder="Ex: empresa-x" oninput="this._touched=true">
+        <span style="font-size:11px;color:var(--muted);margin-top:4px;display:block">Apenas letras minúsculas, números e hífens</span>
+      </div>
+    </div>
+    <div id="ntStep2" class="form-grid" style="display:none">
+      <div class="form-group form-full">
+        <label>Tenant ID (Azure AD)</label>
+        <input type="text" class="form-input" id="ntAzureTenantId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+      </div>
+      <div class="form-group form-full">
+        <label>Client ID (App Registration)</label>
+        <input type="text" class="form-input" id="ntClientId" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx">
+      </div>
+      <div class="form-group form-full">
+        <label>Client Secret</label>
+        <input type="password" class="form-input" id="ntClientSecret" placeholder="Insira o client secret">
+      </div>
+      <div class="form-group form-full">
+        <label>Domínio</label>
+        <input type="text" class="form-input" id="ntDomain" placeholder="empresa.com.br">
+      </div>
+      <div class="form-group form-full" style="padding:6px 10px;background:var(--sand-lt);border-radius:6px;border:1px solid var(--border)">
+        <span style="font-size:11px;color:var(--muted)">Todos os campos são opcionais. Você pode configurar a API depois em Configurações.</span>
+      </div>
+    </div>
+    <div style="padding:0 0 8px"><span id="ntError" style="color:var(--danger);font-size:12px"></span></div>
+    <div class="modal-ftr">
+      <button class="btn btn-outline" onclick="closeAddTenantModal()">Cancelar</button>
+      <button class="btn btn-dark" id="ntNextBtn" onclick="ntNext()">Próximo →</button>
     </div>
   </div>
 </div>
@@ -141,7 +270,7 @@
 <div class="modal-overlay" id="overrideOverlay" onclick="if(event.target.id==='overrideOverlay')closeOverrideModal()">
   <div class="modal" style="width:480px">
     <div class="modal-hdr">
-      <div><div class="modal-title">Editar Setor</div><div class="modal-sub">Definir setor fixo (não sobrescrito nas importações)</div></div>
+      <div><div class="modal-title" data-i18n="ovr.titulo">Editar Setor</div><div class="modal-sub" data-i18n="ovr.sub">Definir setor fixo (não sobrescrito nas importações)</div></div>
       <button class="close-btn" onclick="closeOverrideModal()">×</button>
     </div>
     <div class="form-grid">
@@ -150,57 +279,57 @@
         <div style="font-size:11px;color:var(--muted)" id="ovEmail">—</div>
       </div>
       <div class="form-group form-full">
-        <label>Setor</label>
+        <label data-i18n="ovr.setor">Setor</label>
         <select class="form-select" id="ovSetor"></select>
       </div>
       <div class="form-group form-full" id="ovNovoSetorWrap" style="display:none">
-        <label>Nome do novo setor</label>
+        <label data-i18n="ovr.novo_setor">Nome do novo setor</label>
         <input type="text" class="form-input" id="ovNovoSetor" placeholder="Ex: Lojas SP">
       </div>
       <div class="form-group form-full">
-        <label>Área (sub-setor)</label>
+        <label data-i18n="ovr.area">Área (sub-setor)</label>
         <select class="form-select" id="ovArea"></select>
       </div>
       <div class="form-group form-full" id="ovNovaAreaWrap" style="display:none">
-        <label>Nome da nova área</label>
+        <label data-i18n="ovr.nova_area">Nome da nova área</label>
         <input type="text" class="form-input" id="ovNovaArea" placeholder="Ex: Desenvolvimento Web">
       </div>
       <div class="form-group">
-        <label>Tipo</label>
+        <label data-i18n="ovr.tipo">Tipo</label>
         <select class="form-select" id="ovTipo">
-          <option value="">— Não definido —</option>
-          <option value="Usuario">Usuário</option>
-          <option value="Loja">Loja</option>
-          <option value="Servico">Serviço</option>
-          <option value="Compartilhado">Compartilhado</option>
+          <option value="" data-i18n="ovr.nao_def">— Não definido —</option>
+          <option value="Usuario" data-i18n="ovr.usuario">Usuário</option>
+          <option value="Loja" data-i18n="ovr.loja">Loja</option>
+          <option value="Servico" data-i18n="ovr.servico">Serviço</option>
+          <option value="Compartilhado" data-i18n="ovr.compartilhado">Compartilhado</option>
         </select>
       </div>
       <div class="form-group">
-        <label>Cargo</label>
+        <label data-i18n="ovr.cargo">Cargo</label>
         <select class="form-select" id="ovCargo">
-          <option value="">— Manter do CSV —</option>
-          <option value="Colaborador">Colaborador</option>
-          <option value="Serviço">Serviço</option>
-          <option value="Compartilhado">Compartilhado</option>
-          <option value="Sala de Reunião">Sala de Reunião</option>
-          <option value="Equipamento">Equipamento</option>
-          <option value="Sistema">Sistema</option>
-          <option value="Automação">Automação</option>
-          <option value="__custom__">+ Outro...</option>
+          <option value="" data-i18n="ovr.manter_csv">— Manter do CSV —</option>
+          <option value="Colaborador" data-i18n="ovr.colaborador">Colaborador</option>
+          <option value="Serviço" data-i18n="ovr.servico">Serviço</option>
+          <option value="Compartilhado" data-i18n="ovr.compartilhado">Compartilhado</option>
+          <option value="Sala de Reunião" data-i18n="ovr.sala">Sala de Reunião</option>
+          <option value="Equipamento" data-i18n="ovr.equipamento">Equipamento</option>
+          <option value="Sistema" data-i18n="ovr.sistema">Sistema</option>
+          <option value="Automação" data-i18n="ovr.automacao">Automação</option>
+          <option value="__custom__" data-i18n="ovr.outro">+ Outro...</option>
         </select>
       </div>
       <div class="form-group" id="ovCargoCustomWrap" style="display:none">
-        <label>Cargo personalizado</label>
+        <label data-i18n="ovr.cargo_custom">Cargo personalizado</label>
         <input type="text" class="form-input" id="ovCargoCustom" placeholder="Ex: Quiosque">
       </div>
       <div class="form-group" style="display:flex;align-items:center;gap:8px;padding-top:22px">
         <input type="checkbox" id="ovFixo" checked>
-        <label for="ovFixo" style="margin:0;font-size:12px;cursor:pointer">Manter setor fixo (não sobrescrever nas importações)</label>
+        <label for="ovFixo" style="margin:0;font-size:12px;cursor:pointer" data-i18n="modal.setor_fixo">Manter setor fixo (não sobrescrever nas importações)</label>
       </div>
     </div>
     <div class="modal-ftr">
-      <button class="btn btn-outline" onclick="closeOverrideModal()">Cancelar</button>
-      <button class="btn btn-dark" onclick="saveOverrideModal()">Salvar Setor</button>
+      <button class="btn btn-outline" onclick="closeOverrideModal()" data-i18n="btn.cancelar">Cancelar</button>
+      <button class="btn btn-dark" onclick="saveOverrideModal()" data-i18n="ovr.salvar">Salvar Setor</button>
     </div>
   </div>
 </div>
@@ -300,52 +429,82 @@
   </div>
 </div>
 
+<!-- JS: Chart.js -->
+<script defer src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<!-- JS: i18n -->
+<script defer src="/src/js/i18n/pt.js"></script>
+<script defer src="/src/js/i18n/en.js"></script>
+<script defer src="/src/js/i18n/es.js"></script>
+<script defer src="/src/js/i18n.js"></script>
 <!-- JS: auth -->
-<script src="/src/js/auth.js"></script>
+<script defer src="/src/js/auth.js"></script>
 <!-- JS: data -->
-<script src="/src/js/data/licenses.js"></script>
-<script src="/src/js/data/hierarchy.js"></script>
-<script src="/src/js/data/db.js"></script>
+<script defer src="/src/js/data/licenses.js"></script>
+<script defer src="/src/js/data/hierarchy.js"></script>
+<script defer src="/src/js/data/db.js"></script>
 <!-- JS: utilities -->
-<script src="/src/js/utils.js"></script>
-<script src="/src/js/snapshot.js"></script>
-<script src="/src/js/changelog.js"></script>
-<script src="/src/js/variacao.js"></script>
-<script src="/src/js/forecast.js"></script>
+<script defer src="/src/js/utils.js"></script>
+<script defer src="/src/js/snapshot.js"></script>
+<script defer src="/src/js/changelog.js"></script>
+<script defer src="/src/js/variacao.js"></script>
+<script defer src="/src/js/forecast.js"></script>
 <!-- JS: core -->
-<script src="/src/js/dashsnap.js"></script>
-<script src="/src/js/metrics.js"></script>
-<script src="/src/js/charts.js"></script>
+<script defer src="/src/js/dashsnap.js"></script>
+<script defer src="/src/js/metrics.js"></script>
+<script defer src="/src/js/charts.js"></script>
 <!-- JS: views -->
-<script src="/src/js/views/dashboard.js"></script>
-<script src="/src/js/views/colaboradores.js"></script>
-<script src="/src/js/views/licencas.js"></script>
-<script src="/src/js/views/optimization.js"></script>
-<script src="/src/js/views/setores.js"></script>
-<script src="/src/js/views/historico.js"></script>
-<script src="/src/js/views/contracts.js"></script>
-<script src="/src/js/views/radar.js"></script>
-<script src="/src/js/views/acoes.js"></script>
-<script src="/src/js/views/simulador.js"></script>
-<script src="/src/js/views/report.js"></script>
-<script src="/src/js/views/auditoria.js"></script>
-<script src="/src/js/views/config.js"></script>
-<script src="/src/js/views/checklist.js"></script>
+<script defer src="/src/js/views/dashboard.js"></script>
+<script defer src="/src/js/views/colaboradores.js"></script>
+<script defer src="/src/js/views/licencas.js"></script>
+<script defer src="/src/js/views/optimization.js"></script>
+<script defer src="/src/js/views/setores.js"></script>
+<script defer src="/src/js/views/historico.js"></script>
+<script defer src="/src/js/views/contracts.js"></script>
+<script defer src="/src/js/views/radar.js"></script>
+<script defer src="/src/js/views/acoes.js"></script>
+<script defer src="/src/js/views/simulador.js"></script>
+<script defer src="/src/js/views/report.js"></script>
+<script defer src="/src/js/views/auditoria.js"></script>
+<script defer src="/src/js/views/config.js"></script>
+<script defer src="/src/js/views/checklist.js"></script>
+<script defer src="/src/js/report-table.js"></script>
+<script defer src="/src/js/views/exchange.js"></script>
+<script defer src="/src/js/views/onedrive.js"></script>
+<script defer src="/src/js/views/dominios.js"></script>
+<script defer src="/src/js/views/grupos.js"></script>
+<script defer src="/src/js/views/aplicativos.js"></script>
+<script defer src="/src/js/views/privilegios.js"></script>
+<script defer src="/src/js/views/politicas.js"></script>
+<script defer src="/src/js/views/alertas.js"></script>
+<script defer src="/src/js/views/assessment.js"></script>
+<script defer src="/src/js/views/suporte.js"></script>
 <!-- JS: permissions -->
-<script src="/src/js/permissions.js"></script>
+<script defer src="/src/js/permissions.js"></script>
 <!-- JS: overrides (setor fixo/manual) -->
-<script src="/src/js/overrides.js"></script>
+<script defer src="/src/js/overrides.js"></script>
 <!-- JS: interactions -->
-<script src="/src/js/navigation.js"></script>
-<script src="/src/js/modal.js"></script>
-<script src="/src/js/detail.js"></script>
-<script src="/src/js/export.js"></script>
+<script defer src="/src/js/navigation.js"></script>
+<script defer src="/src/js/modal.js"></script>
+<script defer src="/src/js/detail.js"></script>
+<script defer src="/src/js/export.js"></script>
 <!-- JS: ui-kit (skeleton, progress, transitions) -->
-<script src="/src/js/ui-kit.js"></script>
+<script defer src="/src/js/ui-kit.js"></script>
 <!-- JS: AI assistant -->
-<script src="/src/js/ai-chat.js"></script>
+<script defer src="/src/js/ai-chat.js"></script>
 <!-- JS: init -->
-<script src="/src/js/main.js"></script>
+<script defer src="/src/js/main.js"></script>
+
+<!-- BUSCA GLOBAL -->
+<div id="globalSearchOverlay" style="display:none" class="gs-overlay" onclick="if(event.target.id==='globalSearchOverlay')closeGlobalSearch()">
+  <div class="gs-box" onclick="event.stopPropagation()">
+    <div class="gs-header">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="18" height="18"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input type="text" id="globalSearchInput" class="gs-input" data-i18n-placeholder="search.placeholder" placeholder="Buscar colaborador, setor, licença..." oninput="globalSearchQuery(this.value)">
+      <span class="gs-esc">Esc</span>
+    </div>
+    <div id="globalSearchResults" class="gs-results"></div>
+  </div>
+</div>
 
 </body>
 </html>

@@ -16,11 +16,15 @@ let LICENSES=[
    csvNames:['office 365 e3','office 365 e3 (no teams)'], features:['Apps desktop ilimitados','Teams Enterprise','Exchange ilimitado','Compliance e auditoria']},
   {id:'pbi',     name:'Power BI Pro',           short:'PBI Pro',     price:87.55,addon:true,  tier:'Add-on',    cls:'lic-pbi',     ico:'◈', color:'#b8903a',
    csvNames:['power bi pro','power bi premium per user','m 365 power bi pro'], features:['Dashboards compartilhados','Relatórios avançados','API e embed']},
+  {id:'planner1',name:'Planner Plan 1',          short:'Planner 1',   price:62.54,addon:true,  tier:'Add-on',    cls:'lic-planner1',ico:'▣', color:'#217346',
+   csvNames:['planner plan 1'], features:['Planner Premium','Gestão de tarefas avançada','Visualizações de cronograma']},
+  {id:'planner3',name:'Planner and Project Plan 3',short:'Planner+Project 3',price:187.55,addon:true,tier:'Add-on',  cls:'lic-planner3',ico:'▩', color:'#1a5c30',
+   csvNames:['planner and project plan 3','project professional'], features:['Planner Premium','Project Online','Gestão de projetos completa','Relatórios de portfólio']},
   {id:'other',   name:'Outra Licença',          short:'Outro',       price:0,    addon:false, tier:'Outro',     cls:'lic-none',    ico:'○', color:'#8a8070',
    csvNames:[], features:['Licença não mapeada']},
 ];
 
-const LIC_PRIORITY=['e3','bstd','bbasic','f3','pbi','apps','other','none'];
+const LIC_PRIORITY=['e3','bstd','bbasic','f3','pbi','planner3','planner1','apps','other','none'];
 
 // Detecta se uma string de licença significa "sem licença"
 function isSemLicenca(txt) {
@@ -40,10 +44,11 @@ const SKU_LIC_MAP={
   'OFFICE_365_E3':'e3','OFFICE_365_E3_(NO_TEAMS)':'e3','OFFICESUBSCRIPTION':'apps',
   'SPB':'bstd','SMB_BUSINESS_PREMIUM':'bstd','SMB_BUSINESS_ESSENTIALS':'bbasic','SMB_BUSINESS':'apps',
   'ENTERPRISEPACK':'e3','DESKLESSPACK':'f3','POWER_BI_PRO':'pbi','M365_F1_COMM':'f3','SPE_F1':'f3',
+  'PROJECT_P1':'planner1','PROJECTPROFESSIONAL':'planner3',
 };
 const SKU_FREE=new Set(['FLOW_FREE','POWER_BI_STANDARD','TEAMS_EXPLORATORY','STREAM',
-  'MICROSOFT_TEAMS_ENTERPRISE_NEW','AAD_PREMIUM','EXCHANGEARCHIVE_ADDON','PROJECTPROFESSIONAL',
-  'PROJECT_P1','POWERAPPS_DEV','CCIBOTS_PRIVPREV_VIRAL','MICROSOFT_365_COPILOT',
+  'MICROSOFT_TEAMS_ENTERPRISE_NEW','AAD_PREMIUM','EXCHANGEARCHIVE_ADDON',
+  'POWERAPPS_DEV','CCIBOTS_PRIVPREV_VIRAL','MICROSOFT_365_COPILOT',
   'POWER_PAGES_VTRIAL_FOR_MAKERS','WACONEDRIVEENTERPRISE','RIGHTSMANAGEMENT_ADHOC',
   'MCOEV','MCOMEETADV','PHONESYSTEM_VIRTUALUSER','WINDOWS_STORE','POWER_AUTOMATE_FREE','FORMS_PRO',
   'VISIOCLIENT','THREAT_INTELLIGENCE']);

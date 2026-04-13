@@ -28,17 +28,42 @@ except ImportError:
     _HAS_FERNET = False
 
 try:
-    import requests as http_requests
+    from flask_compress import Compress as _FlaskCompress
+    _HAS_COMPRESS = True
+except ImportError:
+    _HAS_COMPRESS = False
+
+try:
+    import requests as _requests_mod
+    from requests.adapters import HTTPAdapter
+    from urllib3.util.retry import Retry
+
+    _retry_strategy = Retry(
+        total=3,
+        backoff_factor=0.5,
+        status_forcelist=[429, 500, 502, 503, 504],
+        allowed_methods=["GET", "POST"],
+    )
+    _adapter = HTTPAdapter(
+        pool_connections=10,
+        pool_maxsize=20,
+        max_retries=_retry_strategy,
+    )
+    http_requests = _requests_mod.Session()
+    http_requests.mount("https://", _adapter)
+    http_requests.mount("http://", _adapter)
 except ImportError:
     http_requests = None
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_FILE = os.path.join(BASE_DIR, "data.json")
-CHANGELOG_FILE = os.path.join(BASE_DIR, "changelog.json")
-OVERRIDES_FILE = os.path.join(BASE_DIR, "overrides.json")
-HIERARCHY_FILE = os.path.join(BASE_DIR, "hierarchy.json")
-GRAPH_CONFIG_FILE = os.path.join(BASE_DIR, "graph_config.json")
+TENANTS_DIR = os.path.join(BASE_DIR, "tenants")
+TENANTS_CONFIG_FILE = os.path.join(BASE_DIR, "tenants.json")
 PORT = 7319
+
+
+def tenant_path(tenant_id: str, filename: str) -> str:
+    safe = re.sub(r"[^a-zA-Z0-9_-]", "", tenant_id)
+    return os.path.join(TENANTS_DIR, safe, filename)
 
 
 # ── Criptografia de credenciais em disco ──────────────────────────────────────
@@ -94,69 +119,143 @@ log = logging.getLogger("graph-sync")
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(name)s] %(message)s")
 
 app = Flask(__name__, static_folder=BASE_DIR)
+if _HAS_COMPRESS:
+    _FlaskCompress(app)
 
-_lock = threading.Lock()  # garante que só uma escrita acontece por vez
-_changelog_lock = threading.Lock()
-_overrides_lock = threading.Lock()
-_hierarchy_lock = threading.Lock()
+_tenant_locks: dict = {}
+_tenant_locks_meta = threading.Lock()
 
-# Cache de tokens validados: { token_hash: { 'user': ..., 'expires': timestamp } }
+
+def get_tenant_lock(tenant_id: str, name: str) -> threading.Lock:
+    with _tenant_locks_meta:
+        if tenant_id not in _tenant_locks:
+            _tenant_locks[tenant_id] = {
+                k: threading.Lock()
+                for k in ("data", "changelog", "overrides", "hierarchy", "graph")
+            }
+        return _tenant_locks[tenant_id][name]
+
 _token_cache = {}
 _token_cache_lock = threading.Lock()
-TOKEN_CACHE_TTL = 300  # 5 minutos — evita bater no SSO a cada request
+_token_inflight = {}
+_token_inflight_lock = threading.Lock()
+TOKEN_CACHE_TTL = 300
 
 DEFAULT_DATA = {"db": [], "snapshots": [], "contracts": [], "acoes": [], "usage": {}, "fatura": []}
+
+
+def load_json_safe(path, default):
+    """Carrega JSON de forma segura, retornando default se falhar."""
+    if os.path.exists(path):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return default() if callable(default) else default
+
 
 # ── Roles / permissões ──────────────────────────────────────────────────────
 # superadmin: acesso total (config, edição, tudo)
 # admin: vê tudo + pode enviar sugestões de melhoria
 # viewer: vê tudo, não edita config nem acessa
-ROLES_FILE = os.path.join(BASE_DIR, "roles.json")
-USER_ROLES = load_json_safe(ROLES_FILE, {
-    "enzzo.pacheco": "superadmin",
-    "alex.fagundes": "admin",
-    "douglas.preto": "admin",
-})
 DEFAULT_ROLE = "viewer"
+_DEFAULT_ROLES = {
+    "enzzo.pacheco": "superadmin",
+    "alex.fagundes": "superadmin",
+    "douglas.preto": "superadmin",
+}
 
 
-def _get_user_role(username):
-    """Retorna a role do usuário (superadmin, admin, viewer)."""
+def _get_user_role(username, tenant_id="live"):
+    """Retorna a role do usuário (superadmin, admin, viewer) para o tenant."""
     if not username:
         return DEFAULT_ROLE
-    # Normaliza: remove domínio se presente
+    if _is_global_admin(username):
+        return "superadmin"
+    roles = load_json_safe(tenant_path(tenant_id, "roles.json"), _DEFAULT_ROLES)
     clean = username.split("@")[0].lower().strip()
-    return USER_ROLES.get(clean, DEFAULT_ROLE)
+    return roles.get(clean, DEFAULT_ROLE)
+
+
+def _load_tenants_config() -> dict:
+    return load_json_safe(TENANTS_CONFIG_FILE, {"tenants": {}, "global_admins": []})
+
+
+def _is_valid_tenant(slug: str) -> bool:
+    cfg = _load_tenants_config()
+    t = cfg.get("tenants", {}).get(slug)
+    return bool(t and t.get("active"))
+
+
+def _is_global_admin(username: str) -> bool:
+    if not username:
+        return False
+    clean = username.split("@")[0].lower().strip()
+    cfg = _load_tenants_config()
+    return clean in [g.lower() for g in cfg.get("global_admins", [])]
+
+
+def resolve_tenant_id() -> str:
+    cookie = request.cookies.get("active_tenant", "")
+    if cookie and _is_valid_tenant(cookie):
+        return cookie
+    host = request.host.split(":")[0]
+    parts = host.split(".")
+    if len(parts) >= 2:
+        subdomain = parts[0]
+        cfg = _load_tenants_config()
+        for tid, t in cfg.get("tenants", {}).items():
+            if subdomain in t.get("subdomains", []) and t.get("active"):
+                return tid
+    cfg = _load_tenants_config()
+    default = cfg.get("default_tenant", "")
+    if default and _is_valid_tenant(default):
+        return default
+    for tid, t in cfg.get("tenants", {}).items():
+        if t.get("active"):
+            return tid
+    return "live"
 
 
 # ── Middleware de autenticação ─────────────────────────────────────────────────
 def _validate_token(token):
-    """Valida access_token contra o SSO server. Usa cache local para performance.
-
-    Tenta múltiplos endpoints do SSO para máxima compatibilidade:
-    1. GET /auth/me (com Bearer token)
-    2. POST /auth/refresh (com o token como refresh_token)
-
-    A verificação de grupo é feita quando os dados do usuário contêm groups.
-    Se o SSO não retorna groups, aceita o token como válido (a verificação
-    de grupo já foi feita no login pelo frontend).
-    """
     if not token:
         return None
 
     token_hash = sha256(token.encode()).hexdigest()
 
-    # Verifica cache
     with _token_cache_lock:
         cached = _token_cache.get(token_hash)
         if cached and cached["expires"] > time.time():
             return cached["user"]
-        # Limpar entradas expiradas periodicamente
         now = time.time()
         expired = [k for k, v in _token_cache.items() if v["expires"] <= now]
         for k in expired:
             del _token_cache[k]
 
+    with _token_inflight_lock:
+        if token_hash not in _token_inflight:
+            _token_inflight[token_hash] = threading.Event()
+        else:
+            evt = _token_inflight[token_hash]
+            evt.wait(timeout=12)
+            with _token_cache_lock:
+                cached = _token_cache.get(token_hash)
+                if cached and cached["expires"] > time.time():
+                    return cached["user"]
+            return None
+
+    try:
+        return _do_validate_sso(token, token_hash)
+    finally:
+        with _token_inflight_lock:
+            evt = _token_inflight.pop(token_hash, None)
+            if evt:
+                evt.set()
+
+
+def _do_validate_sso(token, token_hash):
     if not http_requests:
         log.warning("Módulo requests não instalado — auth bypass")
         return None
@@ -164,26 +263,23 @@ def _validate_token(token):
     try:
         user = None
 
-        # Tentativa 1: GET /auth/me
         resp = http_requests.get(
             SSO_API + "/auth/me",
             headers={"Authorization": f"Bearer {token}"},
-            timeout=10,
+            timeout=8,
         )
         log.debug("SSO /auth/me status=%s", resp.status_code)
 
         if resp.status_code == 200:
             data = resp.json()
-            # Resposta pode ser {user: {...}} ou diretamente {...}
             if isinstance(data, dict):
                 user = data.get("user", data)
             else:
                 user = {"name": "authenticated"}
 
-        # Tentativa 2: POST /auth/refresh (se /auth/me falhou)
         if user is None:
             resp2 = http_requests.post(
-                SSO_API + "/auth/refresh", json={"refresh_token": token}, timeout=10
+                SSO_API + "/auth/refresh", json={"refresh_token": token}, timeout=8
             )
             log.debug("SSO /auth/refresh status=%s", resp2.status_code)
             if resp2.status_code == 200:
@@ -193,7 +289,6 @@ def _validate_token(token):
             log.warning("Token não validado pelo SSO (status=%s)", resp.status_code)
             return None
 
-        # Verificar grupo AD (se disponível na resposta)
         groups = user.get("groups") or []
         if isinstance(groups, list) and len(groups) > 0:
             has_access = any(REQUIRED_GROUP.lower() in str(g).lower() for g in groups)
@@ -205,11 +300,9 @@ def _validate_token(token):
                 )
                 return None
         elif os.environ.get("REQUIRE_AD_GROUP", "false").lower() in ("true", "1", "yes"):
-            # SSO não retornou groups — recusar quando verificação obrigatória
             log.warning("SSO não retornou groups e REQUIRE_AD_GROUP está ativo — token recusado")
             return None
 
-        # Cachear resultado
         with _token_cache_lock:
             _token_cache[token_hash] = {
                 "user": user,
@@ -404,11 +497,10 @@ def require_auth():
         user = _validate_token(token)
         if not user:
             return jsonify({"error": "Token inválido ou sem permissão"}), 403
-        # Armazenar usuário no request context para audit log
         request.auth_user = user
-        # Calcular role a partir do username/email
+        request.tenant_id = resolve_tenant_id()
         uname = user.get("username") or user.get("email") or user.get("name", "")
-        request.auth_role = _get_user_role(uname)
+        request.auth_role = _get_user_role(uname, request.tenant_id)
         return None
 
     # Outros paths (estáticos HTML/JS/CSS) — permitir
@@ -456,17 +548,6 @@ def validate_text_field(val, field_name, max_len=MAX_FIELD_LEN):
     return val, None
 
 
-def load_json_safe(path, default):
-    """Carrega JSON de forma segura, retornando default se falhar."""
-    if os.path.exists(path):
-        try:
-            with open(path, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            pass
-    return default() if callable(default) else default
-
-
 def save_json_atomic(path, data):
     """Grava JSON de forma atômica: escreve em temp e renomeia (evita corrupção)."""
     dir_name = os.path.dirname(path)
@@ -481,14 +562,13 @@ def save_json_atomic(path, data):
         raise
 
 
-def load_overrides():
-    """Carrega overrides de setor/cargo fixo (overrides.json)."""
-    return load_json_safe(OVERRIDES_FILE, {"overrides": {}})
+def load_overrides(tenant_id="live"):
+    return load_json_safe(tenant_path(tenant_id, "overrides.json"), {"overrides": {}})
 
 
-def save_overrides(data):
-    """Grava overrides de forma atômica."""
-    save_json_atomic(OVERRIDES_FILE, data)
+def save_overrides(data, tenant_id="live"):
+    with get_tenant_lock(tenant_id, "overrides"):
+        save_json_atomic(tenant_path(tenant_id, "overrides.json"), data)
 
 
 def apply_overrides(records, overrides_map):
@@ -518,10 +598,9 @@ def apply_overrides(records, overrides_map):
     return records
 
 
-def load_data():
-    """Carrega banco de dados principal (data.json)."""
+def load_data(tenant_id="live"):
     return load_json_safe(
-        DATA_FILE,
+        tenant_path(tenant_id, "data.json"),
         lambda: {
             k: list(v) if isinstance(v, list) else dict(v) if isinstance(v, dict) else v
             for k, v in DEFAULT_DATA.items()
@@ -529,44 +608,54 @@ def load_data():
     )
 
 
-def save_data(data):
-    """Grava banco de dados principal de forma atômica."""
-    save_json_atomic(DATA_FILE, data)
+_data_response_cache = {}
+_processed_rows_cache = {}
+
+def _invalidate_data_cache(tenant_id="live"):
+    _data_response_cache.pop(tenant_id, None)
+    _boot_cache.pop(tenant_id, None)
+    _processed_rows_cache.pop(tenant_id, None)
+
+def save_data(data, tenant_id="live"):
+    with get_tenant_lock(tenant_id, "data"):
+        save_json_atomic(tenant_path(tenant_id, "data.json"), data)
+    _invalidate_data_cache(tenant_id)
 
 
 # ── API: info do usuário logado ──────────────────────────────────────────────
 @app.route("/api/me", methods=["GET"])
 def get_me():
-    """Retorna dados e role do usuário logado."""
     user = getattr(request, "auth_user", {})
     role = getattr(request, "auth_role", DEFAULT_ROLE)
+    tid = getattr(request, "tenant_id", "live")
+    uname = user.get("username") or user.get("email") or user.get("name", "")
     return jsonify(
         {
             "name": user.get("name", ""),
-            "username": user.get("username", user.get("email", "")),
+            "username": uname,
             "email": user.get("email", ""),
             "role": role,
+            "tenant_id": tid,
+            "global_admin": _is_global_admin(uname),
         }
     )
 
 
 # ── API: anotações visuais (admin+ criam, superadmin gerencia) ───────────────
-ANNOTATIONS_FILE = os.path.join(BASE_DIR, "annotations.json")
 
 
 @app.route("/api/annotations", methods=["GET"])
 def get_annotations():
-    """Retorna todas as anotações visuais."""
     check = require_role("admin", "superadmin")
     if check:
         return check
-    data = load_json_safe(ANNOTATIONS_FILE, [])
+    tid = getattr(request, "tenant_id", "live")
+    data = load_json_safe(tenant_path(tid, "annotations.json"), [])
     return jsonify(data)
 
 
 @app.route("/api/annotations", methods=["POST"])
 def add_annotation():
-    """Adiciona uma anotação visual no site."""
     check = require_role("admin", "superadmin")
     if check:
         return check
@@ -575,6 +664,7 @@ def add_annotation():
     if not text:
         return jsonify({"error": "Texto da anotação é obrigatório"}), 400
     user = getattr(request, "auth_user", {})
+    tid = getattr(request, "tenant_id", "live")
     entry = {
         "id": int(time.time() * 1000),
         "text": text,
@@ -587,94 +677,281 @@ def add_annotation():
         "elSelector": payload.get("elSelector", ""),
         "elText": payload.get("elText", ""),
     }
-    data = load_json_safe(ANNOTATIONS_FILE, [])
+    ann_path = tenant_path(tid, "annotations.json")
+    data = load_json_safe(ann_path, [])
     data.append(entry)
-    save_json_atomic(ANNOTATIONS_FILE, data)
+    save_json_atomic(ann_path, data)
     return jsonify({"ok": True, "annotation": entry})
 
 
 @app.route("/api/annotations/<int:aid>", methods=["PATCH"])
 def update_annotation(aid):
-    """Atualiza status de uma anotação (superadmin)."""
     check = require_role("superadmin")
     if check:
         return check
     payload = request.get_json(force=True, silent=True) or {}
-    data = load_json_safe(ANNOTATIONS_FILE, [])
+    tid = getattr(request, "tenant_id", "live")
+    ann_path = tenant_path(tid, "annotations.json")
+    data = load_json_safe(ann_path, [])
     for a in data:
         if a.get("id") == aid:
             if "status" in payload:
                 a["status"] = payload["status"]
-            save_json_atomic(ANNOTATIONS_FILE, data)
+            save_json_atomic(ann_path, data)
             return jsonify({"ok": True})
     return jsonify({"error": "Anotação não encontrada"}), 404
 
 
 @app.route("/api/annotations/<int:aid>", methods=["DELETE"])
 def delete_annotation(aid):
-    """Remove uma anotação (superadmin)."""
     check = require_role("superadmin")
     if check:
         return check
-    data = load_json_safe(ANNOTATIONS_FILE, [])
+    tid = getattr(request, "tenant_id", "live")
+    ann_path = tenant_path(tid, "annotations.json")
+    data = load_json_safe(ann_path, [])
     data = [a for a in data if a.get("id") != aid]
-    save_json_atomic(ANNOTATIONS_FILE, data)
+    save_json_atomic(ann_path, data)
     return jsonify({"ok": True})
 
 
+def _backfill_lic(rec):
+    """Recalcula licId/addons/custo a partir de licRaw para registros desatualizados."""
+    lic_raw = rec.get("licRaw", "")
+    if lic_raw:
+        parts = [p.strip() for p in lic_raw.split("+")]
+        addon_skus = {"pbi", "apps", "planner1", "planner3"}
+        main_ids = set()
+        addon_ids = set()
+        for part in parts:
+            upper = part.upper().replace(" ", "_")
+            lid = SKU_MAP.get(upper)
+            if not lid:
+                lower = part.lower()
+                for pattern, mapped_id in LIC_NAME_MAP:
+                    if pattern in lower:
+                        lid = mapped_id
+                        break
+            if not lid or lid == "_free":
+                continue
+            if lid in addon_skus:
+                addon_ids.add(lid)
+            else:
+                main_ids.add(lid)
+        lic_id = "none"
+        for pid in LIC_PRIORITY:
+            if pid in main_ids:
+                lic_id = pid
+                break
+        if lic_id == "none" and main_ids:
+            lic_id = "other"
+        rec["licId"] = lic_id
+        rec["addons"] = list(addon_ids)
+    rec["custo"] = _compute_cost(rec.get("licId", "none"), rec.get("addons"))
+
+
 # ── API de dados compartilhados ────────────────────────────────────────────────
-@app.route("/api/data", methods=["GET"])
-def get_data():
-    """Retorna todos os dados (db, snapshots, contracts, usage) com overrides aplicados."""
-    with _lock:
-        data = load_data()
-    # Normaliza nomes de setores (corrige variantes salvas com grafia diferente)
-    for rec in data.get("db", []):
+def _process_records(records, ov, area_to_macro, macro_set):
+    for rec in records:
         if rec.get("setor"):
             rec["setor"] = _norm_setor(rec["setor"])
-    for snap in data.get("snapshots", []):
-        for rec in snap.get("data", []):
-            if rec.get("setor"):
-                rec["setor"] = _norm_setor(rec["setor"])
-    # Backfill custo e macro para registros antigos (pré-Fase1)
-    with _hierarchy_lock:
-        hier_data = load_json_safe(HIERARCHY_FILE, {"hierarchy": {}})
-        hier = hier_data.get("hierarchy", {})
-    for rec in data.get("db", []):
-        if "custo" not in rec:
-            rec["custo"] = _compute_cost(rec.get("licId", "none"), rec.get("addons"))
-        macro, hier_area = _resolve_hierarchy_server(rec.get("setor"), rec.get("area"), hier)
+        _backfill_lic(rec)
+        if "cargoOrigem" not in rec:
+            rec["cargoOrigem"] = "fallback" if (rec.get("cargo") or "") == "Colaborador" else "ad"
+        macro, hier_area = _resolve_hierarchy_server(
+            rec.get("setor"), rec.get("area"), area_to_macro, macro_set)
         rec["macro"] = macro
         rec["hierArea"] = hier_area
+    apply_overrides(records, ov)
+
+
+def _get_processed_rows(tid):
+    cached = _processed_rows_cache.get(tid)
+    if cached is not None:
+        return cached
+    data = load_data(tid)
+    hier_data = load_json_safe(tenant_path(tid, "hierarchy.json"), {"hierarchy": {}})
+    hier = hier_data.get("hierarchy", {})
+    area_to_macro, macro_set = _build_area_to_macro(hier)
+    ov = load_overrides(tid).get("overrides", {})
+    rows = data.get("db", [])
+    _process_records(rows, ov, area_to_macro, macro_set)
+    _processed_rows_cache[tid] = rows
+    return rows
+
+
+def _build_data_response(tid):
+    data = load_data(tid)
+    hier_data = load_json_safe(tenant_path(tid, "hierarchy.json"), {"hierarchy": {}})
+    hier = hier_data.get("hierarchy", {})
+    area_to_macro, macro_set = _build_area_to_macro(hier)
+    ov = load_overrides(tid).get("overrides", {})
+    _process_records(data.get("db", []), ov, area_to_macro, macro_set)
     for snap in data.get("snapshots", []):
-        for rec in snap.get("data", []):
-            if "custo" not in rec:
-                rec["custo"] = _compute_cost(rec.get("licId", "none"), rec.get("addons"))
-            macro, hier_area = _resolve_hierarchy_server(rec.get("setor"), rec.get("area"), hier)
-            rec["macro"] = macro
-            rec["hierArea"] = hier_area
-    # Aplica overrides nos registros antes de entregar ao frontend
-    with _overrides_lock:
-        ov = load_overrides().get("overrides", {})
-    apply_overrides(data.get("db", []), ov)
-    for snap in data.get("snapshots", []):
-        apply_overrides(snap.get("data", []), ov)
-    return jsonify(data)
+        _process_records(snap.get("data", []), ov, area_to_macro, macro_set)
+    resp_bytes = json.dumps(data, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+    _data_response_cache[tid] = resp_bytes
+    return resp_bytes
+
+
+@app.route("/api/data", methods=["GET"])
+def get_data():
+    tid = getattr(request, "tenant_id", "live")
+    cached = _data_response_cache.get(tid)
+    if cached:
+        return Response(cached, mimetype="application/json")
+    return Response(_build_data_response(tid), mimetype="application/json")
+
+
+_boot_cache = {}
+
+
+def _invalidate_boot_cache(tenant_id="live"):
+    _boot_cache.pop(tenant_id, None)
+
+
+_LIC_CATALOG = [
+    {"id": "none", "name": "Outros", "short": "Outros", "price": 0, "addon": False, "tier": "\u2014", "cls": "lic-none", "ico": "\u25cb", "color": "#8a8070", "csvNames": ["unlicensed"], "features": ["Sem acesso ao Microsoft 365"]},
+    {"id": "bstd", "name": "M365 Business Standard", "short": "Business Standard", "price": 78.15, "addon": False, "tier": "Business", "cls": "lic-bstd", "ico": "\u25c9", "color": "#7a5c30", "csvNames": ["microsoft 365 business standard"], "features": ["Apps desktop completos", "Teams + Webinars", "Exchange 50 GB", "OneDrive 1 TB", "SharePoint"]},
+    {"id": "bbasic", "name": "M365 Business Basic", "short": "Business Basic", "price": 31.21, "addon": False, "tier": "Business", "cls": "lic-bbasic", "ico": "\u25ce", "color": "#9c7a52", "csvNames": ["microsoft 365 business basic"], "features": ["Apps Office web e mobile", "Teams completo", "Exchange 50 GB", "OneDrive 1 TB", "SharePoint"]},
+    {"id": "apps", "name": "M365 Apps for Business", "short": "Apps Business", "price": 51.54, "addon": True, "tier": "Add-on", "cls": "lic-apps", "ico": "\u25cd", "color": "#c97a20", "csvNames": ["microsoft 365 apps for business"], "features": ["Word/Excel/PowerPoint desktop", "OneDrive 1 TB", "Sem Exchange", "Sem Teams"]},
+    {"id": "f3", "name": "Office 365 F3", "short": "O365 F3", "price": 25, "addon": False, "tier": "Frontline", "cls": "lic-f3", "ico": "\u25cc", "color": "#0078d4", "csvNames": ["office 365 f3"], "features": ["Apps web e mobile", "Teams Essentials", "Exchange 2 GB", "OneDrive 2 GB"]},
+    {"id": "e3", "name": "Office 365 E3", "short": "O365 E3", "price": 90.29, "addon": False, "tier": "Enterprise", "cls": "lic-e3", "ico": "\u2b21", "color": "#3a7050", "csvNames": ["office 365 e3", "office 365 e3 (no teams)"], "features": ["Apps desktop ilimitados", "Teams Enterprise", "Exchange ilimitado", "Compliance e auditoria"]},
+    {"id": "pbi", "name": "Power BI Pro", "short": "PBI Pro", "price": 87.55, "addon": True, "tier": "Add-on", "cls": "lic-pbi", "ico": "\u25c8", "color": "#b8903a", "csvNames": ["power bi pro", "power bi premium per user", "m 365 power bi pro"], "features": ["Dashboards compartilhados", "Relat\u00f3rios avan\u00e7ados", "API e embed"]},
+    {"id": "planner1", "name": "Planner Plan 1", "short": "Planner 1", "price": 62.54, "addon": True, "tier": "Add-on", "cls": "lic-planner1", "ico": "\u25a3", "color": "#217346", "csvNames": ["planner plan 1"], "features": ["Planner Premium", "Gest\u00e3o de tarefas avan\u00e7ada", "Visualiza\u00e7\u00f5es de cronograma"]},
+    {"id": "planner3", "name": "Planner and Project Plan 3", "short": "Planner+Project 3", "price": 187.55, "addon": True, "tier": "Add-on", "cls": "lic-planner3", "ico": "\u25a9", "color": "#1a5c30", "csvNames": ["planner and project plan 3", "project professional"], "features": ["Planner Premium", "Project Online", "Gest\u00e3o de projetos completa", "Relat\u00f3rios de portf\u00f3lio"]},
+    {"id": "other", "name": "Outra Licen\u00e7a", "short": "Outro", "price": 0, "addon": False, "tier": "Outro", "cls": "lic-none", "ico": "\u25cb", "color": "#8a8070", "csvNames": [], "features": ["Licen\u00e7a n\u00e3o mapeada"]},
+]
+
+
+def _ensure_boot_cache(tid, uname):
+    cached_boot = _boot_cache.get(tid)
+    if cached_boot:
+        return cached_boot
+    ov = load_overrides(tid)
+    hier = load_json_safe(tenant_path(tid, "hierarchy.json"), {"hierarchy": {}})
+    subs = load_data(tid).get("subscriptions", [])
+    cfg = _load_tenants_config()
+    tenants_list = cfg.get("tenants", {})
+    clean = uname.split("@")[0].lower().strip() if uname else ""
+    if _is_global_admin(uname):
+        t_result = [{"slug": s, "name": t.get("name", s), "active": t.get("active", False)} for s, t in tenants_list.items() if t.get("active")]
+    else:
+        t_result = []
+        for s, t in tenants_list.items():
+            if not t.get("active"):
+                continue
+            roles = load_json_safe(tenant_path(s, "roles.json"), {})
+            if clean in [k.lower() for k in roles]:
+                t_result.append({"slug": s, "name": t.get("name", s), "active": True})
+    current_t = tenants_list.get(tid, {})
+    tenants_obj = {"tenants": t_result, "current": tid, "current_name": current_t.get("name", tid)}
+    _boot_cache[tid] = {
+        "overrides": ov,
+        "hierarchy": hier,
+        "subscriptions": subs,
+        "licenses": _LIC_CATALOG,
+        "tenants": tenants_obj,
+    }
+    return _boot_cache[tid]
+
+
+def _build_me_obj(user, uname, role):
+    return {
+        "name": user.get("name", ""),
+        "username": uname,
+        "role": role,
+        "global_admin": _is_global_admin(uname),
+    }
+
+
+@app.route("/api/boot", methods=["GET"])
+def api_boot():
+    import time as _time
+    t0 = _time.time()
+
+    tid = getattr(request, "tenant_id", "live")
+    user = getattr(request, "auth_user", {})
+    uname = user.get("username") or user.get("email") or user.get("name", "")
+    role = getattr(request, "auth_role", DEFAULT_ROLE)
+    phase = request.args.get("phase", "")
+
+    boot_parts = _ensure_boot_cache(tid, uname)
+    me_obj = _build_me_obj(user, uname, role)
+
+    if phase == "core":
+        data = load_data(tid)
+        hier = boot_parts["hierarchy"].get("hierarchy", {})
+        area_to_macro, macro_set = _build_area_to_macro(hier)
+        ov = boot_parts["overrides"].get("overrides", {})
+        db_rows = data.get("db", [])
+        _process_records(db_rows, ov, area_to_macro, macro_set)
+        result = {
+            "data": {"db": db_rows},
+            "me": me_obj,
+            "overrides": boot_parts["overrides"],
+            "hierarchy": boot_parts["hierarchy"],
+            "licenses": boot_parts["licenses"],
+            "tenants": boot_parts["tenants"],
+        }
+        elapsed = round((_time.time() - t0) * 1000)
+        app.logger.info("boot phase=core tenant=%s %dms", tid, elapsed)
+        return jsonify(result)
+
+    if phase == "history":
+        data = load_data(tid)
+        hier = boot_parts["hierarchy"].get("hierarchy", {})
+        area_to_macro, macro_set = _build_area_to_macro(hier)
+        ov = boot_parts["overrides"].get("overrides", {})
+        for snap in data.get("snapshots", []):
+            _process_records(snap.get("data", []), ov, area_to_macro, macro_set)
+        result = {
+            "data": {
+                "snapshots": data.get("snapshots", []),
+                "contracts": data.get("contracts", []),
+                "acoes": data.get("acoes", []),
+                "usage": data.get("usage", {}),
+                "fatura": data.get("fatura", []),
+            },
+            "subscriptions": boot_parts["subscriptions"],
+        }
+        elapsed = round((_time.time() - t0) * 1000)
+        app.logger.info("boot phase=history tenant=%s %dms", tid, elapsed)
+        return jsonify(result)
+
+    cached_data = _data_response_cache.get(tid)
+    if not cached_data:
+        _build_data_response(tid)
+        cached_data = _data_response_cache.get(tid)
+
+    static_json = json.dumps({
+        "overrides": boot_parts["overrides"],
+        "hierarchy": boot_parts["hierarchy"],
+        "subscriptions": boot_parts["subscriptions"],
+        "licenses": boot_parts["licenses"],
+        "tenants": boot_parts["tenants"],
+    }, ensure_ascii=False, separators=(",", ":"))
+
+    me_json = json.dumps(me_obj, ensure_ascii=False, separators=(",", ":"))
+
+    body = b'{"data":' + (cached_data or b'{}') + b',"me":' + me_json.encode("utf-8") + b',' + static_json[1:].encode("utf-8")
+    elapsed = round((_time.time() - t0) * 1000)
+    app.logger.info("boot phase=full tenant=%s %dms", tid, elapsed)
+    return Response(body, mimetype="application/json")
 
 
 @app.route("/api/data", methods=["POST"])
 def post_data():
-    """Atualiza dados parcialmente — aceita apenas chaves válidas do DEFAULT_DATA."""
     check = require_role("superadmin")
     if check:
         return check
     payload = request.get_json(force=True, silent=True)
     if not isinstance(payload, dict):
         return jsonify({"error": "payload inválido"}), 400
-    with _lock:
-        current = load_data()
-        current.update({k: v for k, v in payload.items() if k in DEFAULT_DATA})
-        save_data(current)
+    tid = getattr(request, "tenant_id", "live")
+    current = load_data(tid)
+    current.update({k: v for k, v in payload.items() if k in DEFAULT_DATA})
+    save_data(current, tid)
     return jsonify({"ok": True})
 
 
@@ -693,29 +970,8 @@ def get_colaboradores():
     sort_field = request.args.get("sort", "nome")
     order = request.args.get("order", "asc").lower()
 
-    with _lock:
-        data = load_data()
-
-    # Normalizar setores + backfill custo/macro
-    with _hierarchy_lock:
-        hier_data = load_json_safe(HIERARCHY_FILE, {"hierarchy": {}})
-        hier = hier_data.get("hierarchy", {})
-    with _overrides_lock:
-        ov = load_overrides().get("overrides", {})
-
-    rows = data.get("db", [])
-    for rec in rows:
-        if rec.get("setor"):
-            rec["setor"] = _norm_setor(rec["setor"])
-        if "custo" not in rec:
-            rec["custo"] = _compute_cost(rec.get("licId", "none"), rec.get("addons"))
-        # Backfill cargoOrigem para registros antigos
-        if "cargoOrigem" not in rec:
-            rec["cargoOrigem"] = "fallback" if (rec.get("cargo") or "") == "Colaborador" else "ad"
-        macro, hier_area = _resolve_hierarchy_server(rec.get("setor"), rec.get("area"), hier)
-        rec["macro"] = macro
-        rec["hierArea"] = hier_area
-    apply_overrides(rows, ov)
+    tid = getattr(request, "tenant_id", "live")
+    rows = _get_processed_rows(tid)
 
     # Coletar filtros disponíveis (antes de filtrar)
     all_setores = sorted(set(r.get("setor", "") for r in rows if r.get("setor")))
@@ -739,6 +995,8 @@ def get_colaboradores():
         if f_setor and r.get("setor") != f_setor:
             continue
         if f_lic and r.get("licId") != f_lic:
+            continue
+        if not f_lic and r.get("licId") in ("none", "other"):
             continue
         if f_status and r.get("status") != f_status:
             continue
@@ -809,6 +1067,12 @@ def get_licenses():
         {"id": "pbi", "name": "Power BI Pro", "short": "PBI Pro", "price": 87.55, "addon": True,
          "tier": "Add-on", "cls": "lic-pbi", "ico": "◈", "color": "#b8903a",
          "csvNames": ["power bi pro", "power bi premium per user", "m 365 power bi pro"], "features": ["Dashboards compartilhados", "Relatórios avançados", "API e embed"]},
+        {"id": "planner1", "name": "Planner Plan 1", "short": "Planner 1", "price": 62.54, "addon": True,
+         "tier": "Add-on", "cls": "lic-planner1", "ico": "▣", "color": "#217346",
+         "csvNames": ["planner plan 1"], "features": ["Planner Premium", "Gestão de tarefas avançada", "Visualizações de cronograma"]},
+        {"id": "planner3", "name": "Planner and Project Plan 3", "short": "Planner+Project 3", "price": 187.55, "addon": True,
+         "tier": "Add-on", "cls": "lic-planner3", "ico": "▩", "color": "#1a5c30",
+         "csvNames": ["planner and project plan 3", "project professional"], "features": ["Planner Premium", "Project Online", "Gestão de projetos completa", "Relatórios de portfólio"]},
         {"id": "other", "name": "Outra Licença", "short": "Outro", "price": 0, "addon": False,
          "tier": "Outro", "cls": "lic-none", "ico": "○", "color": "#8a8070",
          "csvNames": [], "features": ["Licença não mapeada"]},
@@ -828,24 +1092,23 @@ def post_fatura():
         return jsonify({"error": "payload deve ser array"}), 400
     if len(payload) > 1000:
         return jsonify({"error": "payload excede limite de 1000 itens"}), 400
-    with _lock:
-        current = load_data()
-        current["fatura"] = payload
-        save_data(current)
+    tid = getattr(request, "tenant_id", "live")
+    current = load_data(tid)
+    current["fatura"] = payload
+    save_data(current, tid)
     return jsonify({"ok": True})
 
 
 # ── API de overrides (setor fixo/manual) ───────────────────────────────────────
 @app.route("/api/overrides", methods=["GET"])
 def get_overrides():
-    """Retorna todos os overrides de setor/cargo fixo."""
-    with _overrides_lock:
-        return jsonify(load_overrides())
+    tid = getattr(request, "tenant_id", "live")
+    with get_tenant_lock(tid, "overrides"):
+        return jsonify(load_overrides(tid))
 
 
 @app.route("/api/overrides/<path:email>", methods=["PUT"])
 def put_override(email):
-    """Cria ou atualiza override de setor para um email."""
     check = require_role("superadmin")
     if check:
         return check
@@ -862,8 +1125,9 @@ def put_override(email):
         return jsonify({"error": err}), 400
 
     fixo = payload.get("fixo", True)
-    with _overrides_lock:
-        data = load_overrides()
+    tid = getattr(request, "tenant_id", "live")
+    with get_tenant_lock(tid, "overrides"):
+        data = load_overrides(tid)
         if not fixo:
             data["overrides"].pop(email, None)
         else:
@@ -880,63 +1144,64 @@ def put_override(email):
                         return jsonify({"error": err}), 400
                     entry[field] = val
             data["overrides"][email] = entry
-        save_overrides(data)
+        save_overrides(data, tid)
+    _invalidate_data_cache(tid)
     return jsonify({"ok": True})
 
 
 @app.route("/api/overrides/<path:email>", methods=["DELETE"])
 def delete_override(email):
-    """Remove override de um email."""
     check = require_role("superadmin")
     if check:
         return check
     email = normalize_email(email)
-    with _overrides_lock:
-        data = load_overrides()
+    tid = getattr(request, "tenant_id", "live")
+    with get_tenant_lock(tid, "overrides"):
+        data = load_overrides(tid)
         data["overrides"].pop(email, None)
-        save_overrides(data)
+        save_overrides(data, tid)
+    _invalidate_data_cache(tid)
     return jsonify({"ok": True})
 
 
 # ── API de hierarquia (estrutura organizacional) ──────────────────────────────
 @app.route("/api/hierarchy", methods=["GET"])
 def get_hierarchy():
-    """Retorna estrutura organizacional (setores e áreas)."""
-    with _hierarchy_lock:
-        return jsonify(load_json_safe(HIERARCHY_FILE, {"hierarchy": {}}))
+    tid = getattr(request, "tenant_id", "live")
+    with get_tenant_lock(tid, "hierarchy"):
+        return jsonify(load_json_safe(tenant_path(tid, "hierarchy.json"), {"hierarchy": {}}))
 
 
 @app.route("/api/hierarchy", methods=["POST"])
 def post_hierarchy():
-    """Substitui estrutura organizacional completa."""
     check = require_role("superadmin")
     if check:
         return check
     payload = request.get_json(force=True, silent=True)
     if not isinstance(payload, dict):
         return jsonify({"error": "payload invalido"}), 400
-    with _hierarchy_lock:
-        save_json_atomic(HIERARCHY_FILE, payload)
+    tid = getattr(request, "tenant_id", "live")
+    with get_tenant_lock(tid, "hierarchy"):
+        save_json_atomic(tenant_path(tid, "hierarchy.json"), payload)
+    _invalidate_data_cache(tid)
     return jsonify({"ok": True})
 
 
 # ── API de changelog (arquivo separado) ────────────────────────────────────────
 @app.route("/api/changelog", methods=["GET"])
 def get_changelog():
-    """Retorna histórico de alterações manuais (changelog.json).
-    Sem params de paginação: retorna array raw (backward compat).
-    Com page/per: retorna {entries, total, page, pages}."""
-    with _changelog_lock:
-        if os.path.exists(CHANGELOG_FILE):
+    tid = getattr(request, "tenant_id", "live")
+    clog_path = tenant_path(tid, "changelog.json")
+    with get_tenant_lock(tid, "changelog"):
+        if os.path.exists(clog_path):
             try:
-                with open(CHANGELOG_FILE, "r", encoding="utf-8") as f:
+                with open(clog_path, "r", encoding="utf-8") as f:
                     entries = json.load(f)
             except Exception:
                 entries = []
         else:
             entries = []
 
-    # Filtros opcionais
     action = request.args.get("action") or ""
     entity_type = request.args.get("entityType") or ""
     if action:
@@ -944,7 +1209,6 @@ def get_changelog():
     if entity_type:
         entries = [e for e in entries if e.get("entityType") == entity_type]
 
-    # Se não tem params de paginação, retorna array raw (backward compat)
     page_str = request.args.get("page")
     if page_str is None:
         return jsonify(entries)
@@ -970,7 +1234,6 @@ def get_changelog():
 
 @app.route("/api/changelog", methods=["POST"])
 def post_changelog():
-    """Substitui histórico de alterações completo."""
     check = require_role("superadmin")
     if check:
         return check
@@ -979,21 +1242,17 @@ def post_changelog():
         return jsonify({"error": "payload inválido"}), 400
     if len(payload) > 50000:
         return jsonify({"error": "payload excede limite de 50000 entradas"}), 400
-    with _changelog_lock:
-        save_json_atomic(CHANGELOG_FILE, payload)
+    tid = getattr(request, "tenant_id", "live")
+    with get_tenant_lock(tid, "changelog"):
+        save_json_atomic(tenant_path(tid, "changelog.json"), payload)
     return jsonify({"ok": True})
 
 
 # ══════════ MICROSOFT GRAPH API — Sync automático ══════════════════════════════
 
-_graph_lock = threading.Lock()
-_sync_thread = None
-_sync_status = {
-    "running": False,
-    "lastSync": None,
-    "lastError": None,
-    "lastResult": None,
-}
+_sync_threads: dict = {}
+_sync_status: dict = {}
+_server_start_time = time.time()
 
 # Mapa de normalização de setores (mesmo do frontend)
 SETOR_NORMALIZE = {
@@ -1079,8 +1338,8 @@ SKU_MAP = {
     "MICROSOFT_TEAMS_ENTERPRISE_NEW": "_free",  # Teams standalone (grátis com E3/F3)
     "AAD_PREMIUM": "_free",  # Azure AD Premium (incluído em planos)
     "EXCHANGEARCHIVE_ADDON": "_free",  # Exchange Archive (add-on gratuito)
-    "PROJECTPROFESSIONAL": "_free",  # Project Professional (ignorar no custo)
-    "PROJECT_P1": "_free",  # Project Plan 1
+    "PROJECTPROFESSIONAL": "planner3",  # Planner and Project Plan 3
+    "PROJECT_P1": "planner1",  # Planner Plan 1
     "POWERAPPS_DEV": "_free",  # Power Apps Dev
     "CCIBOTS_PRIVPREV_VIRAL": "_free",  # Copilot bots preview
     "MICROSOFT_365_COPILOT": "_free",  # Copilot (trial/preview)
@@ -1102,13 +1361,17 @@ LIC_NAME_MAP = [
     ("power bi (free)", "_free"),
     ("power automate free", "_free"),
     ("fabric (free)", "_free"),
+    ("planner plan 1", "planner1"),
+    ("planner and project plan 3", "planner3"),
+    ("project professional", "planner3"),
 ]
 
-LIC_PRIORITY = ["e3", "bstd", "bbasic", "f3", "apps", "pbi", "other", "none"]
+LIC_PRIORITY = ["e3", "bstd", "bbasic", "f3", "apps", "pbi", "planner3", "planner1", "other", "none"]
 
 LIC_PRICES = {
     "none": 0, "bstd": 78.15, "bbasic": 31.21, "apps": 51.54,
-    "f3": 25, "e3": 90.29, "pbi": 87.55, "other": 0,
+    "f3": 25, "e3": 90.29, "pbi": 87.55, "planner1": 62.54,
+    "planner3": 187.55, "other": 0,
 }
 
 
@@ -1120,37 +1383,35 @@ def _compute_cost(lic_id, addons):
     return round(cost, 2)
 
 
-def _resolve_hierarchy_server(setor, area, hierarchy):
-    """Resolve macro e hierArea no servidor (equivalente ao resolveHierarchy do JS)."""
-    setor = (setor or "Sem Setor").strip()
-    if area and area.strip():
-        return setor, area.strip()
-    # Build reverse map
+def _build_area_to_macro(hierarchy):
     area_to_macro = {}
+    macro_set = set()
     for macro, h in hierarchy.items():
+        macro_set.add(macro)
         for a in (h.get("areas") or []):
             area_to_macro[a.lower()] = macro
         area_to_macro[macro.lower()] = macro
+    return area_to_macro, macro_set
+
+
+def _resolve_hierarchy_server(setor, area, area_to_macro, macro_set):
+    setor = (setor or "Sem Setor").strip()
+    if area and area.strip():
+        return setor, area.strip()
     setor_lower = setor.lower()
     if setor_lower in area_to_macro:
         macro = area_to_macro[setor_lower]
         if setor_lower == macro.lower():
             return macro, "Geral"
-        if setor in hierarchy:
+        if setor in macro_set:
             return setor, "Geral"
         return macro, setor
     return setor, "Geral"
 
 
-def load_graph_config():
-    """Carrega configuração do Graph API.
-
-    O client_secret pode vir de:
-    1. Variável de ambiente GRAPH_CLIENT_SECRET (preferencial — nunca gravado em disco)
-    2. Arquivo graph_config.json (cifrado ou texto puro legado)
-    """
+def load_graph_config(tenant_id="live"):
     cfg = load_json_safe(
-        GRAPH_CONFIG_FILE,
+        tenant_path(tenant_id, "graph_config.json"),
         {
             "tenant_id": "",
             "client_id": "",
@@ -1161,7 +1422,6 @@ def load_graph_config():
             "sync_interval_hours": 24,
         },
     )
-    # Decifrar secrets armazenados em disco
     for field in ("client_secret", "tenant_id", "client_id"):
         if (
             cfg.get(field)
@@ -1169,46 +1429,39 @@ def load_graph_config():
             and cfg[field].startswith("enc:")
         ):
             cfg[field] = decrypt_secret(cfg[field])
-    # Variável de ambiente tem prioridade (mais seguro que arquivo)
-    env_secret = os.environ.get("GRAPH_CLIENT_SECRET", "")
+    suffix = "_" + tenant_id.upper()
+    env_secret = os.environ.get("GRAPH_CLIENT_SECRET" + suffix, "") or os.environ.get("GRAPH_CLIENT_SECRET", "")
     if env_secret:
         cfg["client_secret"] = env_secret
-    env_tenant = os.environ.get("GRAPH_TENANT_ID", "")
+    env_tenant = os.environ.get("GRAPH_TENANT_ID" + suffix, "") or os.environ.get("GRAPH_TENANT_ID", "")
     if env_tenant:
         cfg["tenant_id"] = env_tenant
-    env_client = os.environ.get("GRAPH_CLIENT_ID", "")
+    env_client = os.environ.get("GRAPH_CLIENT_ID" + suffix, "") or os.environ.get("GRAPH_CLIENT_ID", "")
     if env_client:
         cfg["client_id"] = env_client
-    # API key da IA (Anthropic Claude)
     if cfg.get("ai_api_key") and isinstance(cfg["ai_api_key"], str) and cfg["ai_api_key"].startswith("enc:"):
         cfg["ai_api_key"] = decrypt_secret(cfg["ai_api_key"])
-    env_ai = os.environ.get("ANTHROPIC_API_KEY", "")
+    env_ai = os.environ.get("ANTHROPIC_API_KEY" + suffix, "") or os.environ.get("ANTHROPIC_API_KEY", "")
     if env_ai:
         cfg["ai_api_key"] = env_ai
     return cfg
 
 
-def save_graph_config(cfg):
-    """Grava configuração do Graph API de forma atômica.
-
-    Nunca grava client_secret se ele veio de variável de ambiente.
-    Cifra credenciais sensíveis antes de gravar.
-    """
+def save_graph_config(cfg, tenant_id="live"):
     safe_cfg = dict(cfg)
-    # Se o secret veio da env var, não gravar no arquivo
-    if os.environ.get("GRAPH_CLIENT_SECRET"):
+    suffix = "_" + tenant_id.upper()
+    if os.environ.get("GRAPH_CLIENT_SECRET" + suffix) or os.environ.get("GRAPH_CLIENT_SECRET"):
         safe_cfg.pop("client_secret", None)
-    if os.environ.get("GRAPH_TENANT_ID"):
+    if os.environ.get("GRAPH_TENANT_ID" + suffix) or os.environ.get("GRAPH_TENANT_ID"):
         safe_cfg.pop("tenant_id", None)
-    if os.environ.get("GRAPH_CLIENT_ID"):
+    if os.environ.get("GRAPH_CLIENT_ID" + suffix) or os.environ.get("GRAPH_CLIENT_ID"):
         safe_cfg.pop("client_id", None)
-    if os.environ.get("ANTHROPIC_API_KEY"):
+    if os.environ.get("ANTHROPIC_API_KEY" + suffix) or os.environ.get("ANTHROPIC_API_KEY"):
         safe_cfg.pop("ai_api_key", None)
-    # Cifrar credenciais antes de salvar em disco
     for field in ("client_secret", "tenant_id", "client_id", "ai_api_key"):
         if safe_cfg.get(field) and not safe_cfg[field].startswith("enc:"):
             safe_cfg[field] = encrypt_secret(safe_cfg[field])
-    save_json_atomic(GRAPH_CONFIG_FILE, safe_cfg)
+    save_json_atomic(tenant_path(tenant_id, "graph_config.json"), safe_cfg)
 
 
 def _norm_setor(s):
@@ -1334,7 +1587,7 @@ def _resolve_lic(assigned_licenses, sku_names):
     """Resolve licId principal + addons a partir dos dados do Graph."""
     addon_ids = set()
     main_ids = set()
-    addon_skus = {"pbi", "apps"}  # Add-ons pagos reais
+    addon_skus = {"pbi", "apps", "planner1", "planner3"}  # Add-ons pagos reais
 
     for sku in sku_names:
         sku_upper = sku.upper().replace(" ", "_")
@@ -1504,9 +1757,12 @@ def graph_get_token(cfg):
     return resp.json()["access_token"]
 
 
+_GRAPH_LANG_HEADERS = {"Accept-Language": "pt-BR", "Prefer": 'outlook.language="pt-BR"'}
+
+
 def graph_get_paginated(token, url, params=None):
     """Faz GET paginado no Graph API."""
-    headers = {"Authorization": f"Bearer {token}", "ConsistencyLevel": "eventual"}
+    headers = {"Authorization": f"Bearer {token}", "ConsistencyLevel": "eventual", **_GRAPH_LANG_HEADERS}
     results = []
     while url:
         resp = http_requests.get(url, headers=headers, params=params, timeout=60)
@@ -1520,7 +1776,7 @@ def graph_get_paginated(token, url, params=None):
 
 def graph_get_simple(token, url):
     """GET simples no Graph API (sem paginação, sem ConsistencyLevel)."""
-    headers = {"Authorization": f"Bearer {token}"}
+    headers = {"Authorization": f"Bearer {token}", **_GRAPH_LANG_HEADERS}
     resp = http_requests.get(url, headers=headers, timeout=60)
     if not resp.ok:
         log.error("Graph API erro %s %s: %s", resp.status_code, url, resp.text[:500])
@@ -1532,34 +1788,35 @@ def graph_get_simple(token, url):
 def graph_get_csv_report(token, url):
     """Baixa relatório CSV do Graph API e retorna lista de dicts (um por linha).
 
-    O CSV do Graph começa com header tipo:
-        Report Refresh Date,User Principal Name,Display Name,...
-    seguido de linhas de dados. Usamos csv.DictReader para parsear.
+    Não envia Accept-Language para garantir cabeçalhos em inglês (nomes de colunas
+    são localizados pelo Graph quando Accept-Language é enviado, quebrando o parsing).
     """
     headers = {"Authorization": f"Bearer {token}"}
     resp = http_requests.get(url, headers=headers, timeout=120)
     resp.raise_for_status()
     text = resp.text.lstrip("\ufeff")
-    lines = text.split("\n")
-    # Pular linhas de metadata (sem vírgulas) mas manter o header CSV
+    lines = text.splitlines()
     while lines and "," not in lines[0]:
         lines.pop(0)
-    return list(csv.DictReader(lines))
+    if not lines:
+        return []
+    return list(csv.DictReader(io.StringIO("\n".join(lines))))
 
 
-def do_graph_sync(cfg=None):
+def do_graph_sync(cfg=None, tenant_id="live"):
     """Executa sincronização completa com Graph API."""
     global _sync_status
-    if _sync_status["running"]:
+    status = _sync_status.setdefault(tenant_id, {"running": False, "lastSync": None, "lastError": None, "lastResult": None})
+    if status["running"]:
         return {"error": "Sync já em execução"}
 
-    _sync_status["running"] = True
-    _sync_status["lastError"] = None
+    status["running"] = True
+    status["lastError"] = None
     start = time.time()
 
     try:
         if not cfg:
-            cfg = load_graph_config()
+            cfg = load_graph_config(tenant_id)
         if (
             not cfg.get("tenant_id")
             or not cfg.get("client_id")
@@ -1653,8 +1910,8 @@ def do_graph_sync(cfg=None):
 
         # ── 2b. Auto-atualizar hierarquia com OUs descobertas ──
         if discovered_hierarchy:
-            with _hierarchy_lock:
-                hier_data = load_json_safe(HIERARCHY_FILE, {"hierarchy": {}})
+            with get_tenant_lock(tenant_id, "hierarchy"):
+                hier_data = load_json_safe(tenant_path(tenant_id, "hierarchy.json"), {"hierarchy": {}})
                 hier = hier_data.get("hierarchy", {})
                 updated = False
                 for macro, area_map in discovered_hierarchy.items():
@@ -1703,7 +1960,7 @@ def do_graph_sync(cfg=None):
                             updated = True
                 if updated:
                     hier_data["hierarchy"] = hier
-                    save_json_atomic(HIERARCHY_FILE, hier_data)
+                    save_json_atomic(tenant_path(tenant_id, "hierarchy.json"), hier_data)
                     log.info(
                         "Hierarquia atualizada com %d setores do AD",
                         len(discovered_hierarchy),
@@ -1830,53 +2087,78 @@ def do_graph_sync(cfg=None):
         ]
         label = f"{meses[mes]}/{ano}"
 
-        with _lock:
-            data = load_data()
+        data = load_data(tenant_id)
 
-            # Aplicar overrides
-            with _overrides_lock:
-                ov = load_overrides().get("overrides", {})
-            apply_overrides(records, ov)
+        old_demissao = {}
+        snapshots_sorted = sorted(
+            data.get("snapshots", []),
+            key=lambda s: (s.get("ano", 0), s.get("mes", 0)),
+        )
+        for snap in snapshots_sorted:
+            for r in snap.get("data", []):
+                em = (r.get("email") or "").lower()
+                if em and r.get("demissao") and r.get("status") == "Inativo":
+                    if em not in old_demissao:
+                        old_demissao[em] = r["demissao"]
 
-            # Computar hierarquia APÓS overrides para refletir valores finais
-            with _hierarchy_lock:
-                hier_data = load_json_safe(HIERARCHY_FILE, {"hierarchy": {}})
-                hier = hier_data.get("hierarchy", {})
-            for rec in records:
-                macro, hier_area = _resolve_hierarchy_server(
-                    rec["setor"], rec.get("area"), hier
-                )
-                rec["macro"] = macro
-                rec["hierArea"] = hier_area
+        old_db = data.get("db", []) if isinstance(data, dict) else data
+        for r in (old_db if isinstance(old_db, list) else []):
+            em = (r.get("email") or "").lower()
+            if em and r.get("demissao"):
+                if em not in old_demissao or r["demissao"] < old_demissao[em]:
+                    old_demissao[em] = r["demissao"]
 
-            # Atualizar db
-            data["db"] = records
+        for rec in records:
+            if rec.get("demissao"):
+                em = (rec.get("email") or "").lower()
+                if em in old_demissao:
+                    rec["demissao"] = old_demissao[em]
 
-            # Atualizar/criar snapshot do mês
-            snap_idx = None
-            for i, s in enumerate(data.get("snapshots", [])):
-                if s.get("mes") == mes and s.get("ano") == ano:
-                    snap_idx = i
-                    break
-            snap = {
-                "mes": mes,
-                "ano": ano,
-                "label": label,
-                "data": [dict(r) for r in records],
-            }
-            if snap_idx is not None:
-                data["snapshots"][snap_idx] = snap
-            else:
-                data.setdefault("snapshots", []).append(snap)
-            data["snapshots"].sort(key=lambda s: (s.get("ano", 0), s.get("mes", 0)))
+        with get_tenant_lock(tenant_id, "overrides"):
+            ov = load_overrides(tenant_id).get("overrides", {})
+        apply_overrides(records, ov)
 
-            # Salvar usage
-            data["usage"] = usage
+        with get_tenant_lock(tenant_id, "hierarchy"):
+            hier_data = load_json_safe(tenant_path(tenant_id, "hierarchy.json"), {"hierarchy": {}})
+            hier = hier_data.get("hierarchy", {})
+        area_to_macro, macro_set = _build_area_to_macro(hier)
+        for rec in records:
+            macro, hier_area = _resolve_hierarchy_server(
+                rec["setor"], rec.get("area"), area_to_macro, macro_set
+            )
+            rec["macro"] = macro
+            rec["hierArea"] = hier_area
 
-            # Salvar dados de assinaturas do Azure
-            data["subscriptions"] = subscriptions
+        data["db"] = records
 
-            save_data(data)
+        snap_idx = None
+        for i, s in enumerate(data.get("snapshots", [])):
+            if s.get("mes") == mes and s.get("ano") == ano:
+                snap_idx = i
+                break
+        snap = {
+            "mes": mes,
+            "ano": ano,
+            "label": label,
+            "data": [dict(r) for r in records],
+        }
+        if snap_idx is not None:
+            data["snapshots"][snap_idx] = snap
+        else:
+            data.setdefault("snapshots", []).append(snap)
+        data["snapshots"].sort(key=lambda s: (s.get("ano", 0), s.get("mes", 0)))
+
+        if old_demissao:
+            for s in data.get("snapshots", []):
+                for r in s.get("data", []):
+                    if r.get("status") == "Inativo" and r.get("demissao"):
+                        em = (r.get("email") or "").lower()
+                        if em in old_demissao and old_demissao[em] < r["demissao"]:
+                            r["demissao"] = old_demissao[em]
+
+        data["usage"] = usage
+        data["subscriptions"] = subscriptions
+        save_data(data, tenant_id)
 
         elapsed = round(time.time() - start, 1)
         ou_count = len(discovered_hierarchy)
@@ -1890,28 +2172,28 @@ def do_graph_sync(cfg=None):
             "snapshot": label,
             "elapsed_seconds": elapsed,
         }
-        _sync_status["lastSync"] = now_iso
-        _sync_status["lastResult"] = result
+        status["lastSync"] = now_iso
+        status["lastResult"] = result
         log.info("Sync concluído em %.1fs: %s", elapsed, result)
         return result
 
     except Exception as e:
-        _sync_status["lastError"] = "Falha na sincronização. Verifique os logs."
+        status["lastError"] = "Falha na sincronização. Verifique os logs."
         log.exception("Erro no sync")
         return {"error": "Falha na sincronização"}
     finally:
-        _sync_status["running"] = False
+        status["running"] = False
 
 
-def _auto_sync_loop():
-    """Loop de sync automático rodando em background."""
+def _auto_sync_loop(tenant_id="live"):
     while True:
-        cfg = load_graph_config()
+        cfg = load_graph_config(tenant_id)
         if not cfg.get("auto_sync"):
             time.sleep(60)
             continue
         interval = max(cfg.get("sync_interval_hours", 24), 1) * 3600
-        last = _sync_status.get("lastSync")
+        status = _sync_status.get(tenant_id, {})
+        last = status.get("lastSync")
         if last:
             try:
                 last_dt = datetime.fromisoformat(last.replace("Z", "+00:00"))
@@ -1921,8 +2203,8 @@ def _auto_sync_loop():
                     continue
             except Exception:
                 pass
-        log.info("Auto-sync iniciado")
-        do_graph_sync(cfg)
+        log.info("Auto-sync iniciado para tenant %s", tenant_id)
+        do_graph_sync(cfg, tenant_id)
         time.sleep(300)
 
 
@@ -1931,8 +2213,8 @@ def _auto_sync_loop():
 
 @app.route("/api/graph/config", methods=["GET"])
 def get_graph_config():
-    """Retorna configuração do Graph API com credenciais mascaradas."""
-    cfg = load_graph_config()
+    tid = getattr(request, "tenant_id", "live")
+    cfg = load_graph_config(tid)
 
     def _mask(val):
         if not val:
@@ -1941,32 +2223,30 @@ def get_graph_config():
             return val[:4] + "*" * (len(val) - 8) + val[-4:]
         return "****"
 
-    # Mascarar todas as credenciais
     cfg["client_secret_masked"] = _mask(cfg.get("client_secret", ""))
     cfg["tenant_id_masked"] = _mask(cfg.get("tenant_id", ""))
     cfg["client_id_masked"] = _mask(cfg.get("client_id", ""))
     cfg["ai_api_key_masked"] = _mask(cfg.get("ai_api_key", ""))
 
-    # Nunca enviar valores reais ao frontend
     cfg.pop("client_secret", None)
     cfg.pop("tenant_id", None)
     cfg.pop("client_id", None)
     cfg.pop("ai_api_key", None)
 
-    cfg["status"] = _sync_status
+    cfg["status"] = _sync_status.get(tid, {"running": False, "lastSync": None, "lastError": None, "lastResult": None})
     return jsonify(cfg)
 
 
 @app.route("/api/graph/config", methods=["POST"])
 def post_graph_config():
-    """Atualiza configuração do Graph API e reinicia thread de auto-sync."""
     check = require_role("superadmin")
     if check:
         return check
     payload = request.get_json(force=True, silent=True)
     if not isinstance(payload, dict):
         return jsonify({"error": "payload inválido"}), 400
-    cfg = load_graph_config()
+    tid = getattr(request, "tenant_id", "live")
+    cfg = load_graph_config(tid)
     for key in [
         "tenant_id",
         "client_id",
@@ -1978,23 +2258,19 @@ def post_graph_config():
     ]:
         if key in payload:
             cfg[key] = payload[key]
-    save_graph_config(cfg)
-    # Iniciar thread de auto-sync se ativado
-    _ensure_sync_thread()
+    save_graph_config(cfg, tid)
+    _ensure_sync_thread(tid)
     return jsonify({"ok": True})
 
 
 @app.route("/api/subscriptions", methods=["GET"])
 def get_subscriptions():
-    """Retorna dados de assinaturas Azure (contratadas, consumidas, etc).
-    Se não houver dados salvos, busca do Azure em tempo real."""
-    with _lock:
-        data = load_data()
+    tid = getattr(request, "tenant_id", "live")
+    data = load_data(tid)
     subs = data.get("subscriptions", [])
     if not subs:
-        # Tentar buscar do Azure em tempo real
         try:
-            cfg = load_graph_config()
+            cfg = load_graph_config(tid)
             if (
                 cfg.get("tenant_id")
                 and cfg.get("client_id")
@@ -2005,11 +2281,9 @@ def get_subscriptions():
                     token, "https://graph.microsoft.com/v1.0/subscribedSkus"
                 )
                 subs = _build_subscriptions(skus)
-                # Salvar para cache
-                with _lock:
-                    data = load_data()
-                    data["subscriptions"] = subs
-                    save_data(data)
+                data = load_data(tid)
+                data["subscriptions"] = subs
+                save_data(data, tid)
         except Exception as e:
             log.warning("Falha ao buscar subscriptions do Azure: %s", e)
     return jsonify(subs)
@@ -2017,21 +2291,22 @@ def get_subscriptions():
 
 @app.route("/api/graph/sync", methods=["POST"])
 def trigger_sync():
-    """Dispara sync manual."""
     check = require_role("superadmin")
     if check:
         return check
-    if _sync_status["running"]:
+    tid = getattr(request, "tenant_id", "live")
+    status = _sync_status.get(tid, {})
+    if status.get("running"):
         return jsonify({"error": "Sync já em execução"}), 409
-    t = threading.Thread(target=do_graph_sync, daemon=True)
+    t = threading.Thread(target=do_graph_sync, args=(None, tid), daemon=True)
     t.start()
     return jsonify({"ok": True, "message": "Sync iniciado em background"})
 
 
 @app.route("/api/graph/status", methods=["GET"])
 def get_sync_status():
-    """Retorna status atual da sincronização (running, lastSync, lastError)."""
-    return jsonify(_sync_status)
+    tid = getattr(request, "tenant_id", "live")
+    return jsonify(_sync_status.get(tid, {"running": False, "lastSync": None, "lastError": None, "lastResult": None}))
 
 
 @app.route("/api/graph/remap-setores", methods=["POST"])
@@ -2044,7 +2319,8 @@ def remap_setores():
     check = require_role("superadmin")
     if check:
         return check
-    cfg = load_graph_config()
+    tid = getattr(request, "tenant_id", "live")
+    cfg = load_graph_config(tid)
     if (
         not cfg.get("tenant_id")
         or not cfg.get("client_id")
@@ -2085,57 +2361,51 @@ def remap_setores():
                 if dept_setor and dept_setor != "Sem Setor":
                     dn_map[email] = {"setor": dept_setor, "area": dept_area, "subarea": None, "dn": dn}
 
-        # Carregar overrides para respeitar fixos
-        with _overrides_lock:
-            ov = load_overrides().get("overrides", {})
+        with get_tenant_lock(tid, "overrides"):
+            ov = load_overrides(tid).get("overrides", {})
 
-        # Atualizar data.json
         updated = 0
         skipped_fixo = 0
-        with _lock:
-            data = load_data()
-            for rec in data.get("db", []):
+        data = load_data(tid)
+        for rec in data.get("db", []):
+            email = (rec.get("email") or "").lower().strip()
+            ov_entry = ov.get(email)
+            if ov_entry and ov_entry.get("fixo"):
+                skipped_fixo += 1
+                continue
+            mapping = dn_map.get(email)
+            if mapping:
+                old_setor = rec.get("setor")
+                old_area = rec.get("area")
+                rec["setor"] = mapping["setor"]
+                rec["area"] = mapping["area"]
+                rec["subarea"] = mapping.get("subarea")
+                rec["dn"] = mapping.get("dn", "")
+                if rec["setor"] != old_setor or rec["area"] != old_area:
+                    updated += 1
+        with get_tenant_lock(tid, "hierarchy"):
+            hier_data_remap = load_json_safe(tenant_path(tid, "hierarchy.json"), {"hierarchy": {}})
+            hier_remap = hier_data_remap.get("hierarchy", {})
+        atm_remap, ms_remap = _build_area_to_macro(hier_remap)
+        for rec in data.get("db", []):
+            macro, hier_area = _resolve_hierarchy_server(
+                rec["setor"], rec.get("area"), atm_remap, ms_remap
+            )
+            rec["macro"] = macro
+            rec["hierArea"] = hier_area
+        for snap in data.get("snapshots", []):
+            for rec in snap.get("data", []):
                 email = (rec.get("email") or "").lower().strip()
-                # Respeitar overrides fixos
                 ov_entry = ov.get(email)
                 if ov_entry and ov_entry.get("fixo"):
-                    skipped_fixo += 1
                     continue
                 mapping = dn_map.get(email)
                 if mapping:
-                    old_setor = rec.get("setor")
-                    old_area = rec.get("area")
                     rec["setor"] = mapping["setor"]
                     rec["area"] = mapping["area"]
                     rec["subarea"] = mapping.get("subarea")
-                    rec["dn"] = mapping.get("dn", "")
-                    if rec["setor"] != old_setor or rec["area"] != old_area:
-                        updated += 1
-            # Recomputar macro/hierArea após atualizar setores
-            with _hierarchy_lock:
-                hier_data_remap = load_json_safe(HIERARCHY_FILE, {"hierarchy": {}})
-                hier_remap = hier_data_remap.get("hierarchy", {})
-            for rec in data.get("db", []):
-                macro, hier_area = _resolve_hierarchy_server(
-                    rec["setor"], rec.get("area"), hier_remap
-                )
-                rec["macro"] = macro
-                rec["hierArea"] = hier_area
-            # Atualizar snapshots também
-            for snap in data.get("snapshots", []):
-                for rec in snap.get("data", []):
-                    email = (rec.get("email") or "").lower().strip()
-                    ov_entry = ov.get(email)
-                    if ov_entry and ov_entry.get("fixo"):
-                        continue
-                    mapping = dn_map.get(email)
-                    if mapping:
-                        rec["setor"] = mapping["setor"]
-                        rec["area"] = mapping["area"]
-                        rec["subarea"] = mapping.get("subarea")
-            save_data(data)
+        save_data(data, tid)
 
-        # Auto-descobrir hierarquia (com subareas)
         discovered = {}
         for email, m in dn_map.items():
             macro = m["setor"]
@@ -2149,12 +2419,11 @@ def remap_setores():
                 if subarea:
                     discovered[macro][area].add(subarea)
         if discovered:
-            with _hierarchy_lock:
-                hier_data = load_json_safe(HIERARCHY_FILE, {"hierarchy": {}})
+            with get_tenant_lock(tid, "hierarchy"):
+                hier_data = load_json_safe(tenant_path(tid, "hierarchy.json"), {"hierarchy": {}})
                 hier = hier_data.get("hierarchy", {})
                 for macro, area_map in discovered.items():
                     areas_list = sorted(area_map.keys())
-                    # Construir subareas dict
                     subareas = {}
                     for area_name, subs in area_map.items():
                         if subs:
@@ -2179,7 +2448,7 @@ def remap_setores():
                                 existing_subs[area_name] = sorted(ex | set(subs))
                             hier[macro]["subareas"] = existing_subs
                 hier_data["hierarchy"] = hier
-                save_json_atomic(HIERARCHY_FILE, hier_data)
+                save_json_atomic(tenant_path(tid, "hierarchy.json"), hier_data)
 
         log.info(
             "Remap setores: %d atualizados, %d fixos ignorados, %d DNs do Graph",
@@ -2365,18 +2634,16 @@ def _compare_records(source_map, source_label, db_map):
 
 @app.route("/api/graph/audit", methods=["POST"])
 def graph_audit():
-    """Compara dados atuais do sistema com fonte de verdade (Graph API ou ultimo snapshot/CSV)."""
     try:
-        cfg = load_graph_config()
+        tid = getattr(request, "tenant_id", "live")
+        cfg = load_graph_config(tid)
         has_graph = (
             cfg.get("tenant_id") and cfg.get("client_id") and cfg.get("client_secret")
         )
 
-        # Carregar dados atuais do sistema (com overrides)
-        with _lock:
-            data = load_data()
-        with _overrides_lock:
-            ov = load_overrides().get("overrides", {})
+        data = load_data(tid)
+        with get_tenant_lock(tid, "overrides"):
+            ov = load_overrides(tid).get("overrides", {})
         apply_overrides(data.get("db", []), ov)
         db_list = data.get("db", [])
         db_map = {}
@@ -2484,7 +2751,7 @@ def test_graph_connection():
     check = require_role("superadmin")
     if check:
         return check
-    cfg = load_graph_config()
+    cfg = load_graph_config(getattr(request, "tenant_id", "live"))
     payload = request.get_json(force=True, silent=True) or {}
     # Permitir testar com credenciais do payload (antes de salvar)
     for key in ["tenant_id", "client_id", "client_secret"]:
@@ -2518,12 +2785,814 @@ def test_graph_connection():
         return jsonify({"ok": False, "error": "Falha ao conectar com Azure. Verifique credenciais e logs."}), 400
 
 
-def _ensure_sync_thread():
-    """Garante que a thread de auto-sync está rodando."""
-    global _sync_thread
-    if _sync_thread is None or not _sync_thread.is_alive():
-        _sync_thread = threading.Thread(target=_auto_sync_loop, daemon=True)
-        _sync_thread.start()
+## ── Rotas de Relatórios (Graph API) ──────────────────────────────────────────
+
+
+def _fetch_archive_sizes_batch(token, user_emails):
+    """Busca tamanho do arquivo morto via batch API (requer Mail.ReadBasic.All).
+    Retorna dict {email: {sizeInBytes, totalItemCount}} ou {} se sem permissão.
+    sizeInBytes está disponível apenas na API beta do Graph.
+    """
+    if not user_emails or not http_requests:
+        return {}
+    result = {}
+    batch_size = 20
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+    for i in range(0, len(user_emails), batch_size):
+        batch = user_emails[i:i + batch_size]
+        requests_payload = [
+            {"id": str(j), "method": "GET", "url": f"/users/{email}/mailFolders/archive"}
+            for j, email in enumerate(batch)
+        ]
+        try:
+            resp = http_requests.post(
+                "https://graph.microsoft.com/beta/$batch",
+                headers=headers,
+                json={"requests": requests_payload},
+                timeout=30,
+            )
+            if not resp.ok:
+                log.warning("Archive batch falhou: %s %s", resp.status_code, resp.text[:200])
+                break
+            for item in resp.json().get("responses", []):
+                if item.get("status") == 200:
+                    idx = int(item["id"])
+                    body = item.get("body", {})
+                    result[batch[idx].lower()] = {
+                        "sizeInBytes": body.get("sizeInBytes", 0) or 0,
+                        "totalItemCount": body.get("totalItemCount", 0) or 0,
+                    }
+        except Exception:
+            log.exception("Erro ao buscar archive sizes batch")
+            break
+    return result
+
+
+def _extract_archive_fields(row):
+    has_archive = False
+    archive_b = "0"
+    archive_items = "0"
+    for key in row.keys():
+        kl = key.lower().strip()
+        val = (row.get(key) or "").strip()
+        if not val or ("archive" not in kl and "arquivo" not in kl):
+            continue
+        is_storage = "storage" in kl or ("used" in kl and "byte" in kl) or "armazenamento" in kl
+        is_item = ("item" in kl or "iten" in kl) and ("count" in kl or "contagem" in kl)
+        is_has = kl.startswith("has") or kl.startswith("tem") or kl.startswith("possui")
+        if is_storage:
+            archive_b = val
+        elif is_item:
+            archive_items = val
+        elif is_has:
+            has_archive = val.lower() in ("yes", "true", "1", "sim")
+    if not has_archive and archive_b not in ("0", ""):
+        try:
+            has_archive = int(archive_b) > 0
+        except (ValueError, TypeError):
+            pass
+    return has_archive, archive_b, archive_items
+
+
+@app.route("/api/debug/exchange-columns", methods=["GET"])
+def debug_exchange_columns():
+    check = require_role("admin", "superadmin")
+    if check:
+        return check
+    cfg = load_graph_config(getattr(request, "tenant_id", "live"))
+    if not cfg.get("tenant_id") or not cfg.get("client_id") or not cfg.get("client_secret"):
+        return jsonify({"error": "Graph API não configurada"}), 400
+    try:
+        token = graph_get_token(cfg)
+        rows = graph_get_csv_report(token, "https://graph.microsoft.com/v1.0/reports/getMailboxUsageDetail(period='D7')")
+        if not rows:
+            return jsonify({"columns": [], "sample": None, "total_rows": 0})
+        sample = dict(rows[0])
+        archive_cols = {k: v for k, v in sample.items() if "archive" in k.lower() or "arquivo" in k.lower()}
+        return jsonify({
+            "total_rows": len(rows),
+            "columns": list(rows[0].keys()),
+            "archive_columns": archive_cols,
+            "sample_user": {
+                "displayName": sample.get("Display Name", ""),
+                "hasArchive": sample.get("Has Archive", ""),
+                "archiveStorage": sample.get("Archive Mailbox Storage Used (Byte)", "N/A"),
+                "archiveItems": sample.get("Archive Mailbox Item Count", "N/A"),
+            }
+        })
+    except Exception as e:
+        log.exception("Erro ao diagnosticar colunas Exchange")
+        return jsonify({"error": str(e)}), 500
+
+
+@app.route("/api/reports/exchange", methods=["GET"])
+def report_exchange():
+    check = require_role("viewer", "admin", "superadmin")
+    if check:
+        return check
+    cfg = load_graph_config(getattr(request, "tenant_id", "live"))
+    if not cfg.get("tenant_id") or not cfg.get("client_id") or not cfg.get("client_secret"):
+        return jsonify({"error": "Graph API não configurada. Acesse Config para definir as credenciais."}), 400
+    try:
+        token = graph_get_token(cfg)
+        rows = graph_get_csv_report(token, "https://graph.microsoft.com/v1.0/reports/getMailboxUsageDetail(period='D7')")
+        data = []
+        for row in rows:
+            email = _get_csv_field(row, "User Principal Name", "user principal name") or ""
+            display = _get_csv_field(row, "Display Name", "display name") or email.split("@")[0]
+            storage_b = _get_csv_field(row, "Storage Used (Byte)", "storage used (byte)") or "0"
+            items = _get_csv_field(row, "Item Count", "item count") or "0"
+            last_act = _get_csv_field(row, "Last Activity Date", "last activity date") or ""
+            warn_q = _get_csv_field(row, "Issue Warning Quota (Byte)", "issue warning quota (byte)") or "0"
+            send_q = _get_csv_field(row, "Prohibit Send Quota (Byte)", "prohibit send quota (byte)") or "0"
+            try:
+                storage_mb = round(int(storage_b) / 1048576, 1)
+            except (ValueError, TypeError):
+                storage_mb = 0
+            try:
+                quota_bytes = int(send_q) if int(send_q) > 0 else int(warn_q)
+            except (ValueError, TypeError):
+                quota_bytes = 0
+            quota_pct = round(int(storage_b) / quota_bytes * 100, 1) if quota_bytes > 0 else 0
+            quota_status = "Normal" if quota_pct < 80 else ("Warning" if quota_pct < 95 else "Crítico")
+            if last_act and last_act.lower() in ("", "never"):
+                last_act = ""
+            has_archive, archive_b, archive_items_raw = _extract_archive_fields(row)
+            try:
+                archive_mb = round(int(archive_b) / 1048576, 1)
+            except (ValueError, TypeError):
+                archive_mb = 0
+            try:
+                archive_item_count = int(archive_items_raw)
+            except (ValueError, TypeError):
+                archive_item_count = 0
+            data.append({
+                "email": email.strip(),
+                "displayName": display.strip(),
+                "storageMB": storage_mb,
+                "itemCount": int(items) if items.isdigit() else 0,
+                "lastActivity": last_act.strip(),
+                "quotaPct": quota_pct,
+                "quotaStatus": quota_status,
+                "hasArchive": has_archive,
+                "archiveMB": archive_mb,
+                "archiveItemCount": archive_item_count,
+            })
+        archive_emails = [r["email"] for r in data if r["hasArchive"] and r["email"]]
+        archive_sizes = _fetch_archive_sizes_batch(token, archive_emails)
+        if archive_sizes:
+            for r in data:
+                info = archive_sizes.get(r["email"].lower())
+                if info:
+                    r["archiveMB"] = round(info["sizeInBytes"] / 1048576, 1)
+                    r["archiveItemCount"] = info["totalItemCount"]
+        return jsonify({"data": data})
+    except Exception as e:
+        log.exception("Erro ao obter relatório Exchange D-7")
+        return jsonify({"error": f"Falha ao obter dados: {e}"}), 500
+
+
+@app.route("/api/reports/onedrive", methods=["GET"])
+def report_onedrive():
+    check = require_role("viewer", "admin", "superadmin")
+    if check:
+        return check
+    cfg = load_graph_config(getattr(request, "tenant_id", "live"))
+    if not cfg.get("tenant_id") or not cfg.get("client_id") or not cfg.get("client_secret"):
+        return jsonify({"error": "Graph API não configurada. Acesse Config para definir as credenciais."}), 400
+    try:
+        token = graph_get_token(cfg)
+        rows = graph_get_csv_report(token, "https://graph.microsoft.com/v1.0/reports/getOneDriveUsageAccountDetail(period='D7')")
+        data = []
+        for row in rows:
+            email = _get_csv_field(row, "Owner Principal Name", "owner principal name") or ""
+            display = _get_csv_field(row, "Owner Display Name", "owner display name") or email.split("@")[0]
+            storage_b = _get_csv_field(row, "Storage Used (Byte)", "storage used (byte)") or "0"
+            files = _get_csv_field(row, "File Count", "file count") or "0"
+            active_files = _get_csv_field(row, "Active File Count", "active file count") or "0"
+            last_act = _get_csv_field(row, "Last Activity Date", "last activity date") or ""
+            site_url = _get_csv_field(row, "Site URL", "site url") or ""
+            try:
+                storage_mb = round(int(storage_b) / 1048576, 1)
+            except (ValueError, TypeError):
+                storage_mb = 0
+            if last_act and last_act.lower() in ("", "never"):
+                last_act = ""
+            data.append({
+                "email": email.strip(),
+                "displayName": display.strip(),
+                "storageMB": storage_mb,
+                "fileCount": int(files) if files.isdigit() else 0,
+                "activeFileCount": int(active_files) if active_files.isdigit() else 0,
+                "lastActivity": last_act.strip(),
+                "siteUrl": site_url.strip(),
+            })
+        return jsonify({"data": data})
+    except Exception as e:
+        log.exception("Erro ao obter relatório OneDrive D-7")
+        return jsonify({"error": f"Falha ao obter dados: {e}"}), 500
+
+
+@app.route("/api/reports/domains", methods=["GET"])
+def report_domains():
+    check = require_role("viewer", "admin", "superadmin")
+    if check:
+        return check
+    cfg = load_graph_config(getattr(request, "tenant_id", "live"))
+    if not cfg.get("tenant_id") or not cfg.get("client_id") or not cfg.get("client_secret"):
+        return jsonify({"error": "Graph API não configurada."}), 400
+    try:
+        token = graph_get_token(cfg)
+        domains = graph_get_simple(token, "https://graph.microsoft.com/v1.0/domains")
+        data = []
+        for d in domains:
+            data.append({
+                "id": d.get("id", ""),
+                "authType": d.get("authenticationType", "Managed"),
+                "isDefault": d.get("isDefault", False),
+                "isVerified": d.get("isVerified", False),
+                "services": d.get("supportedServices", []),
+            })
+        return jsonify({"data": data})
+    except Exception as e:
+        log.exception("Erro ao obter domínios")
+        return jsonify({"error": f"Falha ao obter dados: {e}"}), 500
+
+
+@app.route("/api/reports/groups", methods=["GET"])
+def report_groups():
+    check = require_role("viewer", "admin", "superadmin")
+    if check:
+        return check
+    cfg = load_graph_config(getattr(request, "tenant_id", "live"))
+    if not cfg.get("tenant_id") or not cfg.get("client_id") or not cfg.get("client_secret"):
+        return jsonify({"error": "Graph API não configurada."}), 400
+    try:
+        token = graph_get_token(cfg)
+        groups = graph_get_paginated(
+            token,
+            "https://graph.microsoft.com/v1.0/groups",
+            {
+                "$select": "id,displayName,description,groupTypes,mailEnabled,securityEnabled,createdDateTime",
+                "$top": "999",
+            },
+        )
+
+        def _fetch_member_count(group_id):
+            try:
+                headers = {
+                    "Authorization": f"Bearer {token}",
+                    "ConsistencyLevel": "eventual",
+                }
+                resp = http_requests.get(
+                    f"https://graph.microsoft.com/v1.0/groups/{group_id}/members/$count",
+                    headers=headers,
+                    params={"$count": "true"},
+                    timeout=10,
+                )
+                if resp.ok:
+                    return int(resp.text.strip())
+                log.warning("memberCount falhou para %s: HTTP %s — %s", group_id, resp.status_code, resp.text[:200])
+            except Exception as exc:
+                log.warning("memberCount exception para %s: %s", group_id, exc)
+            return None
+
+        import concurrent.futures
+        group_ids = [g.get("id", "") for g in groups]
+        counts = {}
+        with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+            future_map = {executor.submit(_fetch_member_count, gid): gid for gid in group_ids}
+            for future in concurrent.futures.as_completed(future_map):
+                counts[future_map[future]] = future.result()
+
+        data = []
+        for g in groups:
+            data.append({
+                "id": g.get("id", ""),
+                "displayName": g.get("displayName", ""),
+                "description": g.get("description", ""),
+                "groupTypes": g.get("groupTypes", []),
+                "mailEnabled": g.get("mailEnabled", False),
+                "securityEnabled": g.get("securityEnabled", False),
+                "createdDateTime": g.get("createdDateTime", ""),
+                "memberCount": counts.get(g.get("id", "")),
+            })
+        return jsonify({"data": data})
+    except Exception as e:
+        log.exception("Erro ao obter grupos")
+        return jsonify({"error": f"Falha ao obter dados: {e}"}), 500
+
+
+@app.route("/api/reports/groups/<group_id>/members", methods=["GET"])
+def report_group_members(group_id):
+    check = require_role("viewer", "admin", "superadmin")
+    if check:
+        return check
+    cfg = load_graph_config(getattr(request, "tenant_id", "live"))
+    if not cfg.get("tenant_id") or not cfg.get("client_id") or not cfg.get("client_secret"):
+        return jsonify({"error": "Graph API não configurada."}), 400
+    try:
+        token = graph_get_token(cfg)
+        members = graph_get_paginated(
+            token,
+            f"https://graph.microsoft.com/v1.0/groups/{group_id}/members",
+            {"$select": "id,displayName,userPrincipalName", "$top": "999"},
+        )
+        data = []
+        for m in members:
+            data.append({
+                "id": m.get("id", ""),
+                "displayName": m.get("displayName", ""),
+                "email": m.get("userPrincipalName", ""),
+            })
+        return jsonify({"data": data})
+    except Exception as e:
+        log.exception("Erro ao obter membros do grupo")
+        return jsonify({"error": f"Falha ao obter dados: {e}"}), 500
+
+
+@app.route("/api/reports/applications", methods=["GET"])
+def report_applications():
+    check = require_role("viewer", "admin", "superadmin")
+    if check:
+        return check
+    cfg = load_graph_config(getattr(request, "tenant_id", "live"))
+    if not cfg.get("tenant_id") or not cfg.get("client_id") or not cfg.get("client_secret"):
+        return jsonify({"error": "Graph API não configurada."}), 400
+    try:
+        token = graph_get_token(cfg)
+        apps = graph_get_paginated(
+            token,
+            "https://graph.microsoft.com/v1.0/applications",
+            {
+                "$select": "id,displayName,appId,createdDateTime,signInAudience",
+                "$top": "999",
+            },
+        )
+        data = []
+        for a in apps:
+            data.append({
+                "id": a.get("id", ""),
+                "displayName": a.get("displayName", ""),
+                "appId": a.get("appId", ""),
+                "createdDateTime": a.get("createdDateTime", ""),
+                "signInAudience": a.get("signInAudience", ""),
+            })
+        return jsonify({"data": data})
+    except Exception as e:
+        log.exception("Erro ao obter applications")
+        return jsonify({"error": f"Falha ao obter dados: {e}"}), 500
+
+
+@app.route("/api/reports/service-principals", methods=["GET"])
+def report_service_principals():
+    check = require_role("viewer", "admin", "superadmin")
+    if check:
+        return check
+    cfg = load_graph_config(getattr(request, "tenant_id", "live"))
+    if not cfg.get("tenant_id") or not cfg.get("client_id") or not cfg.get("client_secret"):
+        return jsonify({"error": "Graph API não configurada."}), 400
+    try:
+        token = graph_get_token(cfg)
+        sps = graph_get_paginated(
+            token,
+            "https://graph.microsoft.com/v1.0/servicePrincipals",
+            {
+                "$select": "id,displayName,appId,servicePrincipalType,accountEnabled,createdDateTime,appOwnerOrganizationId",
+                "$top": "999",
+            },
+        )
+        data = []
+        for sp in sps:
+            data.append({
+                "id": sp.get("id", ""),
+                "displayName": sp.get("displayName", ""),
+                "appId": sp.get("appId", ""),
+                "spType": sp.get("servicePrincipalType", "Application"),
+                "accountEnabled": sp.get("accountEnabled", True),
+                "createdDateTime": sp.get("createdDateTime", ""),
+                "appOwnerOrgId": sp.get("appOwnerOrganizationId", ""),
+            })
+        return jsonify({"data": data})
+    except Exception as e:
+        log.exception("Erro ao obter service principals")
+        return jsonify({"error": f"Falha ao obter dados: {e}"}), 500
+
+
+@app.route("/api/reports/privileged-users", methods=["GET"])
+def report_privileged_users():
+    check = require_role("viewer", "admin", "superadmin")
+    if check:
+        return check
+    cfg = load_graph_config(getattr(request, "tenant_id", "live"))
+    if not cfg.get("tenant_id") or not cfg.get("client_id") or not cfg.get("client_secret"):
+        return jsonify({"error": "Graph API não configurada."}), 400
+    try:
+        token = graph_get_token(cfg)
+        dir_roles = graph_get_simple(
+            token, "https://graph.microsoft.com/v1.0/directoryRoles?$select=id,displayName,description"
+        )
+        roles_data = []
+        for role in dir_roles:
+            try:
+                members = graph_get_paginated(
+                    token,
+                    f"https://graph.microsoft.com/v1.0/directoryRoles/{role['id']}/members",
+                    {"$top": "999"},
+                )
+            except Exception as member_err:
+                status_code = getattr(getattr(member_err, "response", None), "status_code", None)
+                if status_code in (400, 404):
+                    members = []
+                else:
+                    raise
+            member_list = []
+            for m in members:
+                member_list.append({
+                    "id": m.get("id", ""),
+                    "displayName": m.get("displayName", ""),
+                    "email": m.get("userPrincipalName") or m.get("mail") or "",
+                })
+            roles_data.append({
+                "id": role.get("id", ""),
+                "displayName": role.get("displayName", ""),
+                "description": role.get("description", ""),
+                "members": member_list,
+            })
+        return jsonify({"data": {"roles": roles_data}})
+    except Exception as e:
+        status_code = getattr(getattr(e, "response", None), "status_code", None)
+        log.exception("Erro ao obter usuários privilegiados")
+        if status_code == 400:
+            return jsonify({"error": "Não foi possível carregar membros de uma função administrativa. Verifique as permissões da aplicação no Azure AD."}), 400
+        return jsonify({"error": "Erro ao carregar dados de privilégios. Tente atualizar a página."}), 500
+
+
+@app.route("/api/reports/policies", methods=["GET"])
+def report_policies():
+    check = require_role("viewer", "admin", "superadmin")
+    if check:
+        return check
+    cfg = load_graph_config(getattr(request, "tenant_id", "live"))
+    if not cfg.get("tenant_id") or not cfg.get("client_id") or not cfg.get("client_secret"):
+        return jsonify({"error": "Graph API não configurada."}), 400
+    try:
+        token = graph_get_token(cfg)
+        policies = graph_get_paginated(
+            token,
+            "https://graph.microsoft.com/v1.0/identity/conditionalAccess/policies",
+            {"$top": "999"},
+        )
+        data = []
+        for p in policies:
+            conditions = p.get("conditions") or {}
+            grant = p.get("grantControls") or {}
+
+            user_scope = "Todos"
+            users_obj = conditions.get("users") or {}
+            users_inc = users_obj.get("includeUsers") or []
+            users_grp = users_obj.get("includeGroups") or []
+            if users_inc and users_inc != ["All"]:
+                user_scope = f"{len(users_inc)} usuário(s)"
+            elif users_grp:
+                user_scope = f"{len(users_grp)} grupo(s)"
+
+            app_scope = "Todos"
+            apps_obj = conditions.get("applications") or {}
+            apps_inc = apps_obj.get("includeApplications") or []
+            if apps_inc and apps_inc != ["All"]:
+                app_scope = f"{len(apps_inc)} app(s)"
+
+            grant_controls = grant.get("builtInControls") or [] if grant else []
+
+            cond_list = []
+            loc_obj = conditions.get("locations") or {}
+            if loc_obj.get("includeLocations"):
+                cond_list.append("Localização")
+            plat_obj = conditions.get("platforms") or {}
+            if plat_obj.get("includePlatforms"):
+                cond_list.append("Plataforma")
+            if conditions.get("signInRiskLevels"):
+                cond_list.append("Risco de Login")
+            if conditions.get("userRiskLevels"):
+                cond_list.append("Risco Usuário")
+            if conditions.get("clientAppTypes") and conditions["clientAppTypes"] != ["all"]:
+                cond_list.append("Tipo de Aplicativo")
+
+            data.append({
+                "id": p.get("id", ""),
+                "displayName": p.get("displayName", ""),
+                "state": p.get("state", "disabled"),
+                "userScope": user_scope,
+                "appScope": app_scope,
+                "grantControls": grant_controls,
+                "conditions": cond_list,
+            })
+        return jsonify({"data": data})
+    except Exception as e:
+        log.exception("Erro ao obter políticas de acesso")
+        return jsonify({"error": f"Falha ao obter dados: {e}"}), 500
+
+
+@app.route("/api/security/alerts", methods=["GET"])
+def security_alerts():
+    check = require_role("viewer", "admin", "superadmin")
+    if check:
+        return check
+    cfg = load_graph_config(getattr(request, "tenant_id", "live"))
+    if not cfg.get("tenant_id") or not cfg.get("client_id") or not cfg.get("client_secret"):
+        return jsonify({"error": "Graph API não configurada."}), 400
+    try:
+        token = graph_get_token(cfg)
+        data = []
+        try:
+            alerts = graph_get_paginated(
+                token,
+                "https://graph.microsoft.com/v1.0/security/alerts",
+                {"$top": "100", "$orderby": "createdDateTime desc"},
+            )
+            for a in alerts:
+                data.append({
+                    "id": a.get("id", ""),
+                    "title": a.get("title", a.get("alertDetections", [{}])[0].get("title", "") if a.get("alertDetections") else ""),
+                    "description": a.get("description", ""),
+                    "severity": a.get("severity", "informational"),
+                    "status": a.get("status", "unknown"),
+                    "createdDateTime": a.get("createdDateTime", ""),
+                    "category": a.get("category", ""),
+                })
+        except Exception as e:
+            if "403" in str(e) or "Forbidden" in str(e):
+                return jsonify({"error": "Permissão SecurityEvents.Read.All não concedida no Azure AD. Adicione a permissão (Application) e conceda Admin Consent."})
+            raise
+        return jsonify({"data": data})
+    except Exception as e:
+        log.exception("Erro ao obter alertas de segurança")
+        return jsonify({"error": f"Falha ao obter alertas: {e}"}), 500
+
+
+@app.route("/api/security/analysis", methods=["GET"])
+def security_analysis():
+    check = require_role("viewer", "admin", "superadmin")
+    if check:
+        return check
+
+    result = {
+        "noMfa": [],
+        "staleAccounts": [],
+        "adminsNoMfa": [],
+        "failedSignIns": [],
+        "blockedWithLicense": [],
+    }
+
+    tid = getattr(request, "tenant_id", "live")
+    raw = load_data(tid)
+    db_local = raw.get("db", []) if isinstance(raw, dict) else raw
+    usage_local = raw.get("usage", {}) if isinstance(raw, dict) else {}
+
+    db_by_email = {r.get("email", "").lower(): r for r in db_local}
+
+    for r in db_local:
+        lic_id = r.get("licId", "none")
+        if r.get("status") == "Inativo" and lic_id != "none":
+            result["blockedWithLicense"].append({
+                "displayName": r.get("nome", ""),
+                "email": r.get("email", ""),
+                "licId": lic_id,
+                "custo": _compute_cost(lic_id, r.get("addons")),
+                "setor": r.get("setor", ""),
+                "cargo": r.get("cargo", ""),
+            })
+
+    for r in db_local:
+        if r.get("status") == "Ativo":
+            email = r.get("email", "").lower()
+            u = usage_local.get(email, {})
+            last = u.get("lastActivity", "")
+            if last:
+                try:
+                    from datetime import datetime, timedelta
+                    d = datetime.strptime(last, "%Y-%m-%d")
+                    dias = (datetime.now() - d).days
+                    if dias > 90:
+                        lic_id = r.get("licId", "none")
+                        result["staleAccounts"].append({
+                            "displayName": r.get("nome", ""),
+                            "email": email,
+                            "lastActivity": last,
+                            "diasInativo": dias,
+                            "setor": r.get("setor", ""),
+                            "cargo": r.get("cargo", ""),
+                            "licId": lic_id,
+                            "custo": _compute_cost(lic_id, r.get("addons")),
+                        })
+                except Exception:
+                    pass
+
+    cfg = load_graph_config(getattr(request, "tenant_id", "live"))
+    if cfg.get("tenant_id") and cfg.get("client_id") and cfg.get("client_secret"):
+        try:
+            token = graph_get_token(cfg)
+        except Exception as e:
+            log.warning("Falha ao obter token para análise: %s", e)
+            return jsonify({"data": result})
+
+        headers = {"Authorization": f"Bearer {token}", "ConsistencyLevel": "eventual", **_GRAPH_LANG_HEADERS}
+
+        try:
+            resp = http_requests.get(
+                "https://graph.microsoft.com/beta/reports/credentialUserRegistrationDetails",
+                headers=headers, params={"$top": "999"}, timeout=15,
+            )
+            if resp.ok:
+                for cr in resp.json().get("value", []):
+                    if not cr.get("isMfaRegistered", True):
+                        email = cr.get("userPrincipalName", "").lower()
+                        db_user = db_by_email.get(email, {})
+                        result["noMfa"].append({
+                            "displayName": cr.get("userDisplayName", "") or db_user.get("nome", ""),
+                            "email": email,
+                            "setor": db_user.get("setor", ""),
+                            "cargo": db_user.get("cargo", ""),
+                        })
+        except Exception as e:
+            log.warning("MFA check pulado: %s", e)
+
+        try:
+            resp = http_requests.get(
+                "https://graph.microsoft.com/v1.0/auditLogs/signIns",
+                headers=headers,
+                params={"$filter": "status/errorCode ne 0", "$top": "50", "$orderby": "createdDateTime desc"},
+                timeout=15,
+            )
+            if resp.ok:
+                seen = set()
+                for si in resp.json().get("value", []):
+                    email = si.get("userPrincipalName", "")
+                    if email and email not in seen:
+                        seen.add(email)
+                        status = si.get("status", {})
+                        created = si.get("createdDateTime", "")
+                        result["failedSignIns"].append({
+                            "displayName": si.get("userDisplayName", ""),
+                            "email": email,
+                            "motivo": status.get("failureReason", "") or status.get("additionalDetails", ""),
+                            "errorCode": status.get("errorCode", ""),
+                            "data": created.split("T")[0] if created else "",
+                        })
+        except Exception as e:
+            log.warning("Sign-ins check pulado: %s", e)
+
+    return jsonify({"data": result})
+
+
+@app.route("/api/security/secure-score", methods=["GET"])
+def secure_score():
+    check = require_role("viewer", "admin", "superadmin")
+    if check:
+        return check
+    cfg = load_graph_config(getattr(request, "tenant_id", "live"))
+    if not cfg.get("tenant_id") or not cfg.get("client_id") or not cfg.get("client_secret"):
+        return jsonify({"error": "Graph API não configurada."}), 400
+    try:
+        token = graph_get_token(cfg)
+        scores = graph_get_simple(
+            token, "https://graph.microsoft.com/v1.0/security/secureScores?$top=1"
+        )
+        if not scores:
+            return jsonify({"data": {"currentScore": 0, "maxScore": 100, "controlScores": [], "averageComparativeScores": []}})
+        s = scores[0] if isinstance(scores, list) else scores
+        return jsonify({"data": {
+            "currentScore": s.get("currentScore", 0),
+            "maxScore": s.get("maxScore", 100),
+            "controlScores": s.get("controlScores", []),
+            "averageComparativeScores": s.get("averageComparativeScores", []),
+        }})
+    except Exception as e:
+        log.exception("Erro ao obter Secure Score")
+        return jsonify({"error": f"Falha ao obter dados: {e}"}), 500
+
+
+@app.route("/api/security/score-profiles", methods=["GET"])
+def secure_score_profiles():
+    check = require_role("viewer", "admin", "superadmin")
+    if check:
+        return check
+    cfg = load_graph_config(getattr(request, "tenant_id", "live"))
+    if not cfg.get("tenant_id") or not cfg.get("client_id") or not cfg.get("client_secret"):
+        return jsonify({"error": "Graph API não configurada."}), 400
+    try:
+        token = graph_get_token(cfg)
+        profiles = graph_get_paginated(
+            token,
+            "https://graph.microsoft.com/v1.0/security/secureScoreControlProfiles",
+            {"$top": "999"},
+        )
+        data = []
+        for p in profiles:
+            data.append({
+                "controlName": p.get("id", ""),
+                "title": p.get("title", ""),
+                "description": p.get("implementationCost", ""),
+                "controlCategory": p.get("controlCategory", ""),
+                "maxScore": p.get("maxScore", 0),
+                "rank": p.get("rank", 999),
+                "deprecated": p.get("deprecated", False),
+                "remediation": p.get("remediation", ""),
+            })
+        return jsonify({"data": data})
+    except Exception as e:
+        log.exception("Erro ao obter Secure Score profiles")
+        return jsonify({"error": f"Falha ao obter dados: {e}"}), 500
+
+
+def _get_session():
+    user = getattr(request, "auth_user", None)
+    if not user:
+        return None
+    return {
+        "name": user.get("name", ""),
+        "email": user.get("email", ""),
+        "username": user.get("username", ""),
+    }
+
+
+def _read_tickets(tenant_id="live"):
+    path = tenant_path(tenant_id, "tickets.json")
+    if not os.path.exists(path):
+        return []
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+
+def _write_tickets(tickets, tenant_id="live"):
+    path = tenant_path(tenant_id, "tickets.json")
+    tmp = path + ".tmp"
+    with open(tmp, "w", encoding="utf-8") as f:
+        json.dump(tickets, f, ensure_ascii=False, indent=2)
+    os.replace(tmp, path)
+
+
+@app.route("/api/support/ticket", methods=["POST"])
+def create_ticket():
+    check = require_role("viewer", "admin", "superadmin")
+    if check:
+        return check
+    body = request.get_json(silent=True) or {}
+    subject = body.get("subject", "").strip()
+    message = body.get("message", "").strip()
+    category = body.get("category", "Outro").strip()
+    if not subject or not message:
+        return jsonify({"error": "Assunto e descrição são obrigatórios."}), 400
+
+    session = _get_session()
+    user_name = session.get("name", "Anônimo") if session else "Anônimo"
+
+    tid = getattr(request, "tenant_id", "live")
+    tickets = _read_tickets(tid)
+    new_id = max((t.get("id", 0) for t in tickets), default=0) + 1
+    ticket = {
+        "id": new_id,
+        "user": user_name,
+        "subject": subject,
+        "message": message,
+        "category": category,
+        "status": "aberto",
+        "created": datetime.now(timezone.utc).isoformat(),
+        "replies": [],
+    }
+    tickets.append(ticket)
+    _write_tickets(tickets, tid)
+    return jsonify({"ok": True, "id": new_id})
+
+
+@app.route("/api/support/tickets", methods=["GET"])
+def list_tickets():
+    check = require_role("viewer", "admin", "superadmin")
+    if check:
+        return check
+    tid = getattr(request, "tenant_id", "live")
+    tickets = _read_tickets(tid)
+    session = _get_session()
+    user_name = session.get("name", "") if session else ""
+    user_tickets = [t for t in tickets if t.get("user") == user_name] if user_name else tickets
+    user_tickets.sort(key=lambda t: t.get("created", ""), reverse=True)
+    return jsonify({"data": user_tickets})
+
+
+def _ensure_sync_thread(tenant_id="live"):
+    t = _sync_threads.get(tenant_id)
+    if t is None or not t.is_alive():
+        _sync_threads[tenant_id] = threading.Thread(
+            target=_auto_sync_loop, args=(tenant_id,), daemon=True
+        )
+        _sync_threads[tenant_id].start()
 
 
 # ── Sem cache para JS e HTML ───────────────────────────────────────────────────
@@ -2538,20 +3607,21 @@ def add_security_headers(response):
     response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=()"
     response.headers["Content-Security-Policy"] = (
         "default-src 'self'; "
-        "script-src 'self' 'unsafe-inline'; "
+        "script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; "
         "style-src 'self' 'unsafe-inline' fonts.googleapis.com; "
         "font-src 'self' fonts.gstatic.com; "
-        "connect-src 'self' https://sso.liveoficial.ind.br; "
+        "connect-src 'self' https://sso.liveoficial.ind.br https://cdn.jsdelivr.net; "
         "img-src 'self' data:; "
         "frame-ancestors 'none'"
     )
-    # Cache control para JS/HTML
-    if request.path.endswith((".js", ".html")):
-        response.headers[
-            "Cache-Control"
-        ] = "no-store, no-cache, must-revalidate, max-age=0"
+    if request.path.startswith("/api/") or request.path.endswith(".html"):
+        response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
         response.headers["Pragma"] = "no-cache"
         response.headers["Expires"] = "0"
+    elif request.path.endswith((".js", ".css")):
+        response.headers["Cache-Control"] = "no-cache"
+        response.headers.pop("Pragma", None)
+        response.headers.pop("Expires", None)
     return response
 
 
@@ -2588,6 +3658,16 @@ _PAGES = {
     'auditoria': 'auditoria.html',
     'sugestoes': 'sugestoes.html',
     'config': 'config.html',
+    'exchange': 'exchange.html',
+    'onedrive': 'onedrive.html',
+    'dominios': 'dominios.html',
+    'grupos': 'grupos.html',
+    'aplicativos': 'aplicativos.html',
+    'privilegios': 'privilegios.html',
+    'politicas': 'politicas.html',
+    'alertas': 'alertas.html',
+    'assessment': 'assessment.html',
+    'suporte': 'suporte.html',
 }
 
 @app.route("/")
@@ -2668,9 +3748,8 @@ Preços das licenças (R$/mês por usuário):
 - Power BI Pro: R$87,55 (add-on)"""
 
 
-def _build_ai_data_summary():
-    """Gera resumo compacto dos dados M365 para contexto da IA."""
-    data = load_data()
+def _build_ai_data_summary(tenant_id="live"):
+    data = load_data(tenant_id)
     db = data.get("db", [])
     if not db:
         return "Nenhum dado disponível. O sistema ainda não foi sincronizado."
@@ -2785,7 +3864,7 @@ def ai_chat():
     if not http_requests:
         return jsonify({"error": "Módulo requests não instalado"}), 500
 
-    cfg = load_graph_config()
+    cfg = load_graph_config(getattr(request, "tenant_id", "live"))
     api_key = cfg.get("ai_api_key", "")
     if not api_key:
         return jsonify({"error": "API key da IA não configurada. Acesse Config para configurar."}), 400
@@ -2811,10 +3890,12 @@ def ai_chat():
     messages = sanitized
 
     # Montar contexto com dados reais
-    data_summary = _build_ai_data_summary()
+    tid = getattr(request, "tenant_id", "live")
+    data_summary = _build_ai_data_summary(tid)
     system_prompt = _AI_SYSTEM_PROMPT + "\n\n" + data_summary
 
     def generate():
+        resp = None
         try:
             resp = http_requests.post(
                 "https://api.anthropic.com/v1/messages",
@@ -2854,10 +3935,12 @@ def ai_chat():
                                 yield f"data: {json.dumps({'text': text})}\n\n"
                     except json.JSONDecodeError:
                         log.warning("AI chat: malformed SSE chunk: %s", payload[:200])
-                        pass  # skip malformed SSE chunks
             yield "data: [DONE]\n\n"
         except Exception as e:
             log.exception("Erro no AI chat")
+        finally:
+            if resp is not None:
+                resp.close()
             yield f"data: {json.dumps({'error': 'Erro interno ao processar chat. Verifique os logs.'})}\n\n"
 
     return Response(generate(), content_type="text/event-stream")
@@ -2873,7 +3956,7 @@ def ai_test():
         return jsonify({"error": "Módulo requests não instalado"}), 500
 
     body = request.get_json(silent=True) or {}
-    cfg = load_graph_config()
+    cfg = load_graph_config(getattr(request, "tenant_id", "live"))
     api_key = body.get("ai_api_key") or cfg.get("ai_api_key", "")
     if not api_key:
         return jsonify({"ok": False, "error": "Nenhuma API key configurada"}), 400
@@ -2902,8 +3985,111 @@ def ai_test():
         return jsonify({"ok": False, "error": "Erro ao conectar com a API. Verifique os logs."})
 
 
+# ── API: tenants ──────────────────────────────────────────────────────────────
+@app.route("/api/tenants", methods=["GET"])
+def list_tenants():
+    user = getattr(request, "auth_user", {})
+    uname = user.get("username") or user.get("email") or user.get("name", "")
+    tid = getattr(request, "tenant_id", "live")
+    cfg = _load_tenants_config()
+    tenants = cfg.get("tenants", {})
+    clean_uname = uname.split("@")[0].lower().strip() if uname else ""
+    if _is_global_admin(uname):
+        result = [
+            {"slug": slug, "name": t.get("name", slug), "active": t.get("active", False)}
+            for slug, t in tenants.items()
+            if t.get("active")
+        ]
+    else:
+        result = []
+        for slug, t in tenants.items():
+            if not t.get("active"):
+                continue
+            roles = load_json_safe(tenant_path(slug, "roles.json"), {})
+            if clean_uname in [k.lower() for k in roles]:
+                result.append({"slug": slug, "name": t.get("name", slug), "active": True})
+    current = tenants.get(tid, {})
+    return jsonify({"tenants": result, "current": tid, "current_name": current.get("name", tid)})
+
+
+@app.route("/api/tenant/switch", methods=["POST"])
+def switch_tenant():
+    user = getattr(request, "auth_user", {})
+    uname = user.get("username") or user.get("email") or user.get("name", "")
+    body = request.get_json(silent=True) or {}
+    new_tid = (body.get("tenant") or "").strip()
+    if not new_tid or not _is_valid_tenant(new_tid):
+        return jsonify({"error": "Tenant inválido"}), 400
+    if not _is_global_admin(uname):
+        clean_uname = uname.split("@")[0].lower().strip() if uname else ""
+        roles = load_json_safe(tenant_path(new_tid, "roles.json"), {})
+        if clean_uname not in [k.lower() for k in roles]:
+            return jsonify({"error": "Sem permissão"}), 403
+    cfg = _load_tenants_config()
+    cfg["default_tenant"] = new_tid
+    save_json_atomic(TENANTS_CONFIG_FILE, cfg)
+    resp = jsonify({"ok": True, "tenant": new_tid})
+    resp.set_cookie("active_tenant", new_tid, httponly=True, samesite="Lax")
+    return resp
+
+
+@app.route("/api/admin/tenants", methods=["POST"])
+def create_tenant():
+    user = getattr(request, "auth_user", {})
+    uname = user.get("username") or user.get("email") or user.get("name", "")
+    if not _is_global_admin(uname):
+        return jsonify({"error": "Sem permissão"}), 403
+    body = request.get_json(silent=True) or {}
+    slug = re.sub(r"[^a-z0-9-]", "", (body.get("slug") or "").lower().strip())
+    name = (body.get("name") or "").strip()
+    if not slug or not name:
+        return jsonify({"error": "slug e name são obrigatórios"}), 400
+    cfg = _load_tenants_config()
+    if slug in cfg.get("tenants", {}):
+        return jsonify({"error": "Tenant já existe"}), 409
+    new_dir = os.path.join(TENANTS_DIR, slug)
+    os.makedirs(new_dir, exist_ok=True)
+    save_json_atomic(os.path.join(new_dir, "data.json"), DEFAULT_DATA)
+    save_json_atomic(os.path.join(new_dir, "roles.json"), {})
+    save_json_atomic(os.path.join(new_dir, "hierarchy.json"), {"hierarchy": {}})
+    save_json_atomic(os.path.join(new_dir, "overrides.json"), {"overrides": {}})
+    save_json_atomic(os.path.join(new_dir, "annotations.json"), [])
+    save_json_atomic(os.path.join(new_dir, "changelog.json"), [])
+    initial_graph_cfg = {
+        "tenant_id": "", "client_id": "", "client_secret": "",
+        "domain": "", "ou_root": "Setores", "auto_sync": False, "sync_interval_hours": 24,
+    }
+    provided_config = body.get("config") or {}
+    for key in ("tenant_id", "client_id", "client_secret", "domain", "ou_root"):
+        if provided_config.get(key):
+            initial_graph_cfg[key] = provided_config[key]
+    save_graph_config(initial_graph_cfg, slug)
+    cfg.setdefault("tenants", {})[slug] = {
+        "name": name, "slug": slug, "subdomains": [slug], "active": True
+    }
+    save_json_atomic(TENANTS_CONFIG_FILE, cfg)
+    return jsonify({"ok": True, "slug": slug})
+
+
+@app.route("/health")
+def health_check():
+    import resource
+    rusage = resource.getrusage(resource.RUSAGE_SELF)
+    return jsonify({
+        "status": "ok",
+        "uptime_seconds": round(time.time() - _server_start_time, 1),
+        "memory_mb": round(rusage.ru_maxrss / 1024, 1),
+        "token_cache_size": len(_token_cache),
+        "sync_threads": {k: v.is_alive() for k, v in _sync_threads.items()},
+        "sync_status": {k: {"running": v.get("running"), "lastSync": v.get("lastSync")} for k, v in _sync_status.items()},
+    })
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 if __name__ == "__main__":
-    _ensure_sync_thread()
+    tenants_cfg = _load_tenants_config()
+    for tid, t in tenants_cfg.get("tenants", {}).items():
+        if t.get("active"):
+            _ensure_sync_thread(tid)
     print(f"LIVE! M365 rodando em http://0.0.0.0:{PORT}")
     app.run(host="0.0.0.0", port=PORT, debug=False, threaded=True)

@@ -2,11 +2,11 @@
 
 /** Renderiza grid de seleção de licença no modal */
 function buildLicGrid(){
-  document.getElementById('licGrid').innerHTML=LICENSES.filter(l=>!l.addon||l.id==='pbi').map(l=>
+  document.getElementById('licGrid').innerHTML=LICENSES.filter(l=>!l.addon||l.price>0).map(l=>
     `<div class="lic-opt${l.id===selLicId?' sel':''}" data-id="${l.id}" onclick="pickLic('${l.id}')">
       <div class="lic-opt-ico">${l.ico}</div>
       <div class="lic-opt-name">${l.short}</div>
-      <div class="lic-opt-price">${l.price>0?fmtBRL(l.price)+'/mês':'Gratuito'}</div>
+      <div class="lic-opt-price">${l.price>0?fmtBRL(l.price)+(typeof t==='function'?t('common.mes'):'/mês'):(typeof t==='function'?t('lic.gratuito'):'Gratuito')}</div>
       <div class="lic-opt-tier">${l.tier}</div>
     </div>`).join('');
 }
@@ -39,20 +39,22 @@ function openModal(id=null){
   editingId=id;buildLicGrid();
   if(id){
     const r=db.find(x=>x.id===id);
-    document.getElementById('modalTitleText').textContent='Editar Colaborador';
+    document.getElementById('modalTitleText').textContent=typeof t==='function'?t('modal.editar_colab'):'Editar Colaborador';
     document.getElementById('fNome').value=r.nome;document.getElementById('fEmail').value=r.email;
     document.getElementById('fSetor').value=r.setor;document.getElementById('fCargo').value=r.cargo;
     document.getElementById('fData').value=r.dataISO;document.getElementById('fStatus').value=r.status;
     document.getElementById('fResponsavel').value=r.responsavel||'';
-    selLicId=r.licId;document.getElementById('saveBtn').textContent='Salvar Alterações';
+    selLicId=r.licId;document.getElementById('saveBtn').textContent=typeof t==='function'?t('btn.salvar_alt'):'Salvar Alterações';
   }else{
-    document.getElementById('modalTitleText').textContent='Novo Colaborador';
+    document.getElementById('modalTitleText').textContent=typeof t==='function'?t('modal.novo_colab'):'Novo Colaborador';
     ['fNome','fEmail','fSetor','fCargo','fResponsavel'].forEach(i=>document.getElementById(i).value='');
     document.getElementById('fData').valueAsDate=new Date();document.getElementById('fStatus').value='Ativo';
-    selLicId='bbasic';document.getElementById('saveBtn').textContent='Salvar Colaborador';
+    selLicId='bbasic';document.getElementById('saveBtn').textContent=typeof t==='function'?t('btn.salvar_colab'):'Salvar Colaborador';
   }
   updateResponsavelSuggestions();
-  document.getElementById('fSetor').addEventListener('input',updateResponsavelSuggestions);
+  var fSetor=document.getElementById('fSetor');
+  fSetor.removeEventListener('input',updateResponsavelSuggestions);
+  fSetor.addEventListener('input',updateResponsavelSuggestions);
   buildLicGrid();pickLic(selLicId);
   document.getElementById('modalOverlay').classList.add('open');
 }

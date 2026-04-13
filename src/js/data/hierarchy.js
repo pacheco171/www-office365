@@ -67,7 +67,6 @@ function groupByHierarchy(records) {
   var macroMap = {};
 
   records.forEach(function(r) {
-    if (r.status === 'Inativo') return;
     var h = resolveHierarchy(r);
     if (!macroMap[h.macro]) {
       var hConf = HIERARCHY[h.macro];
@@ -192,11 +191,9 @@ function removeMacroSetor(name) {
     @returns {string} HTML */
 function renderSetorSubAreas(s, prefix) {
   var chevronSvg = '<svg class="setor-sub-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"/></svg>';
-  var ativos = s.members.filter(function(r) { return r.status === 'Ativo'; });
-
-  // Agrupar membros por area (usando hierarquia)
+  // Agrupar TODOS os membros por area (usando hierarquia) — inclui inativos
   var areaMap = {};
-  ativos.forEach(function(r) {
+  s.members.forEach(function(r) {
     var h = resolveHierarchy(r);
     var areaName = h.area || 'Geral';
     if (!areaMap[areaName]) areaMap[areaName] = { members: [], subareaMap: {} };
@@ -241,8 +238,8 @@ function renderSetorSubAreas(s, prefix) {
   var hasConfiguredAreas = hConf && hConf.areas && hConf.areas.length > 0;
   var onlyGeral = areaKeys.length <= 1 && areaKeys[0] === 'Geral';
   if (!hasConfiguredAreas && onlyGeral) {
-    if (!ativos.length) return '';
-    return renderAreaUsersTable(ativos);
+    if (!s.members.length) return '';
+    return renderAreaUsersTable(s.members);
   }
 
   var subIdx = 0;
@@ -315,7 +312,7 @@ function renderSetorSubAreas(s, prefix) {
     '</div>';
   }).join('');
 
-  var totalCusto = ativos.reduce(function(sum, r) { return sum + userCost(r); }, 0);
+  var totalCusto = s.members.reduce(function(sum, r) { return sum + userCost(r); }, 0);
   return subHtml +
     '<div class="setor-sub-footer">' +
       '<span class="setor-sub-footer-label">Total ' + esc(s.name) + ' (' + areaKeys.length + ' areas)</span>' +

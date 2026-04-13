@@ -5,7 +5,7 @@
    Nivel 4: Licenca + custo da pessoa                          */
 
 // Estado da navegacao drill-down
-var licDrillLevel = 'macro'; // 'macro' | 'areas' | 'pessoas'
+var licDrillLevel = 'macro'; // 'macro' | 'all-users' | 'areas' | 'pessoas'
 var licDrillMacro = null;    // setor macro selecionado
 var licDrillArea = null;     // area selecionada
 var licDrillSubarea = null;  // subarea selecionada
@@ -22,7 +22,7 @@ function renderLicView() {
   });
   var total = db.length;
   document.getElementById('licOverview').innerHTML = LICENSES.filter(function(l) {
-    return l.id !== 'none' && (counts[l.id] > 0 || !l.addon);
+    return l.id !== 'none' && l.id !== 'other' && (counts[l.id] > 0 || !l.addon);
   }).map(function(l) {
     return '<div class="lic-card' + (filterLicId === l.id ? ' selected-lic' : '') + '" onclick="setLicFilter(\'' + l.id + '\')">' +
       '<div class="lic-card-top">' +
@@ -53,6 +53,11 @@ function clearLicFilter() { filterLicId = null; licDrillLevel = 'macro'; licDril
 /* ── Breadcrumb ── */
 function renderLicBreadcrumb() {
   var parts = ['<span class="lic-bread-item lic-bread-link" onclick="licGoToLevel(\'macro\')">Setores</span>'];
+  if (licDrillLevel === 'all-users') {
+    parts.push('<span class="lic-bread-sep">/</span>');
+    parts.push('<span class="lic-bread-item">Todos os usuarios</span>');
+    return '<div class="lic-breadcrumb">' + parts.join('') + '</div>';
+  }
   if (licDrillMacro) {
     parts.push('<span class="lic-bread-sep">/</span>');
     parts.push('<span class="lic-bread-item' + (licDrillLevel === 'areas' ? '' : ' lic-bread-link') + '" onclick="licGoToLevel(\'areas\')">' + licDrillMacro + '</span>');
@@ -79,6 +84,9 @@ function renderLicDrill() {
   if (licDrillLevel === 'macro') {
     breadEl.innerHTML = renderLicBreadcrumb();
     container.innerHTML = renderMacroLevel();
+  } else if (licDrillLevel === 'all-users') {
+    breadEl.innerHTML = renderLicBreadcrumb();
+    container.innerHTML = renderAllUsersLevel();
   } else if (licDrillLevel === 'areas') {
     breadEl.innerHTML = renderLicBreadcrumb();
     container.innerHTML = renderAreasLevel();
@@ -98,7 +106,7 @@ function renderMacroLevel() {
 
   var summaryHtml = '<div class="lic-macro-summary">' +
     '<div class="lic-summary-card"><div class="lic-summary-label">Setores</div><div class="lic-summary-val">' + licHierData.length + '</div></div>' +
-    '<div class="lic-summary-card"><div class="lic-summary-label">Usuarios ativos</div><div class="lic-summary-val">' + grandUsers + '</div></div>' +
+    '<div class="lic-summary-card lic-summary-clickable" onclick="licShowAllUsers()" title="Ver todos os usuarios"><div class="lic-summary-label">Usuarios ativos</div><div class="lic-summary-val">' + grandUsers + '</div></div>' +
     '<div class="lic-summary-card"><div class="lic-summary-label">Custo mensal total</div><div class="lic-summary-val lic-summary-cost">' + fmtBRL(grandTotal) + '</div></div>' +
   '</div>';
 
@@ -120,6 +128,41 @@ function renderMacroLevel() {
   }).join('') + '</div>';
 
   return summaryHtml + cardsHtml;
+}
+
+/* ── Todos os usuarios (lista flat) ── */
+function licShowAllUsers() {
+  licDrillLevel = 'all-users';
+  licDrillMacro = null;
+  licDrillArea = null;
+  licDrillSubarea = null;
+  renderLicDrill();
+}
+
+function renderAllUsersLevel() {
+  var source = filterLicId ? db.filter(function(r) {
+    return r.licId === filterLicId || (r.addons || []).includes(filterLicId);
+  }) : db;
+
+  var allMembers = source.slice().sort(function(a, b) {
+    return (a.nome || '').localeCompare(b.nome || '');
+  });
+
+  var totalCusto = allMembers.reduce(function(s, r) { return s + userCost(r); }, 0);
+
+  var headerHtml = '<div class="lic-area-header">' +
+    '<div class="lic-area-header-info">' +
+      '<div class="lic-area-header-name">Todos os usuarios' + (filterLicId ? ' — ' + esc(getLic(filterLicId).name) : '') + '</div>' +
+      '<div class="lic-area-header-sub">' + allMembers.length + ' usuario' + (allMembers.length !== 1 ? 's' : '') + ' / ' + fmtBRL(totalCusto) + '/mes</div>' +
+    '</div>' +
+  '</div>';
+
+  var footerHtml = '<div class="lic-area-footer">' +
+    '<span class="lic-area-footer-label">Total (' + allMembers.length + ' usuarios)</span>' +
+    '<span class="lic-area-footer-val">' + fmtBRL(totalCusto) + '/mes</span>' +
+  '</div>';
+
+  return headerHtml + _renderLicPessoasTable(allMembers) + footerHtml;
 }
 
 function licDrillIntoMacro(macro) {
@@ -248,7 +291,7 @@ function _buildLicTable(tid, members, page, per) {
       '<td><div class="person-cell"><div class="avatar">' + ini(r.nome) + '</div>' +
         '<div><div class="person-name">' + esc(r.nome) + '</div></div></div></td>' +
       '<td><span class="lic-pessoa-email">' + esc(r.email) + '</span></td>' +
-      '<td>' + licBadge(r.licId) + '</td>' +
+      '<td>' + licBadge(r.licId) + ((r.addons && r.addons.length) ? ' ' + r.addons.map(function(a){ return licBadge(a); }).join(' ') : '') + '</td>' +
       '<td><span class="cost-val">' + (c > 0 ? fmtBRL(c) : '—') + '</span>' + (c > 0 ? '<span class="cost-per">/mes</span>' : '') + '</td>' +
       '<td>' + statusBadge(r.status) + '</td>' +
       '<td><button class="act-btn" onclick="event.stopPropagation();openDetail(' + r.id + ')">Ver</button></td>' +
@@ -390,18 +433,15 @@ function licDrillIntoSubarea(subarea) {
 /* ── Historico (mantido) ── */
 function renderLicHist() {
   var tbody = document.getElementById('licHistBody');
-  if (!snapshots.length) { tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:32px;color:var(--muted)">Nenhum historico ainda. Importe CSVs de meses anteriores.</td></tr>'; return; }
+  if (!snapshots.length) { tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;padding:32px;color:var(--muted)">Nenhum historico ainda. Importe CSVs de meses anteriores.</td></tr>'; return; }
   tbody.innerHTML = snapshots.map(function(snap, i) {
     var prev = i > 0 ? snapshots[i - 1] : null;
     var c = snapshotCost(snap), pc = prev ? snapshotCost(prev) : null;
-    var comLic = snap.data.filter(function(r) { return r.licId !== 'none'; }).length;
-    var semLic = snap.data.filter(function(r) { return r.licId === 'none'; }).length;
+    var total = snap.data.filter(function(r) { return r.licId !== 'none' && r.licId !== 'other'; }).length;
     var dc = pc != null ? c - pc : null;
     return '<tr>' +
       '<td><strong>' + snap.label + '</strong></td>' +
-      '<td>' + snap.data.length + '</td>' +
-      '<td>' + comLic + '</td>' +
-      '<td>' + semLic + '</td>' +
+      '<td>' + total + '</td>' +
       '<td><strong style="color:var(--brown)">' + fmtBRL(c) + '</strong></td>' +
       '<td>' + (dc != null ? deltaBRLBadge(dc) : '<span class="chip chip-neutral">—</span>') + '</td>' +
     '</tr>';

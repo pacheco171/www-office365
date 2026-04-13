@@ -1,0 +1,6 @@
+#view-grupos .metrics{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px;}
+#view-grupos .toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;gap:12px;flex-wrap:wrap;}
+#view-grupos .search-box{display:flex;align-items:center;gap:8px;padding:8px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;flex:1;max-width:360px;}
+#view-grupos .search-box svg{width:16px;height:16px;color:var(--muted);flex-shrink:0;}
+#view-grupos .search-input{border:none;outline:none;background:none;font-size:13px;font-family:'Lexend',sans-serif;color:var(--text);width:100%;}
+@media(max-width:768px){#view-grupos .metrics{grid-template-columns:repeat(2,1fr);}}

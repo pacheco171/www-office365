@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Usuários Privilegiados{% endblock %}
+{% block content %}
+<div class="view active" id="view-privilegios">
+  <div class="topbar">
+    <div><div class="page-heading" data-i18n="priv.titulo">Usuários Privilegiados</div><div class="page-sub" data-i18n="priv.sub">Usuários com funções administrativas no Azure AD</div></div>
+    <div class="topbar-actions">
+      <div class="topbar-refresh">
+        <span class="last-updated" id="privilegiosLastUpdated">—</span>
+        <button class="btn btn-outline" onclick="refreshPrivilegios()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span data-i18n="btn.atualizar">Atualizar</span>
+        </button>
+      </div>
+    </div>
+  </div>
+  <div class="tab-strip">
+    <button class="tab-btn active" onclick="switchTab('privilegios','usuarios',this)" data-i18n="priv.tab_usuario">Por Usuário</button>
+    <button class="tab-btn" onclick="switchTab('privilegios','roles',this)" data-i18n="priv.tab_funcao">Por Função</button>
+  </div>
+  <div class="tab-panel active" id="privilegios-usuarios">
+    <div id="privUserKpis"></div>
+    <div id="privUserTable"></div>
+  </div>
+  <div class="tab-panel" id="privilegios-roles">
+    <div id="privRolesTable"></div>
+  </div>
+</div>
+{% endblock %}

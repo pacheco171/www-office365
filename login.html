@@ -169,44 +169,6 @@ body{display:flex;min-height:100vh;padding:0;background:var(--black);}
   animation:spin .6s linear infinite;flex-shrink:0;
 }
 
-/* ─── OVERLAY DE TRANSIÇÃO ─── */
-.login-transition{
-  position:fixed;inset:0;
-  background:var(--black);
-  display:flex;flex-direction:column;
-  align-items:center;justify-content:center;
-  z-index:9999;
-  opacity:0;pointer-events:none;
-  transition:opacity .35s ease;
-}
-.login-transition.active{opacity:1;pointer-events:all;}
-
-.lt-logo{
-  font-family:'Outfit',sans-serif;font-weight:800;
-  font-size:56px;color:#fff;letter-spacing:3px;line-height:1;
-  margin-bottom:4px;
-}
-.lt-logo em{color:var(--tan);font-style:normal;}
-.lt-sub{
-  font-size:9px;color:rgba(255,255,255,.2);
-  letter-spacing:3px;text-transform:uppercase;margin-bottom:52px;
-}
-
-.lt-bar-track{
-  width:180px;height:2px;
-  background:rgba(255,255,255,.08);border-radius:2px;overflow:hidden;
-}
-.lt-bar-fill{
-  height:100%;background:var(--tan);border-radius:2px;
-  width:0%;transition:width .08s linear;
-}
-.lt-msg{
-  font-size:10.5px;color:rgba(255,255,255,.22);
-  letter-spacing:2px;text-transform:uppercase;margin-top:18px;
-  min-width:200px;text-align:center;
-  transition:opacity .3s;
-}
-
 /* ─── RESPONSIVE ─── */
 @media(max-width:680px){
   .login-brand,.login-divider{display:none;}
@@ -215,16 +177,6 @@ body{display:flex;min-height:100vh;padding:0;background:var(--black);}
 </style>
 </head>
 <body>
-
-<!-- Overlay de transição (aparece após login bem-sucedido) -->
-<div class="login-transition" id="loginTransition">
-  <div class="lt-logo">LIVE<em>!</em></div>
-  <div class="lt-sub">Microsoft 365</div>
-  <div class="lt-bar-track">
-    <div class="lt-bar-fill" id="ltBar"></div>
-  </div>
-  <div class="lt-msg" id="ltMsg">Autenticando...</div>
-</div>
 
 <div class="login-layout">
 
@@ -347,37 +299,12 @@ loginForm.addEventListener('submit', function(e) {
   setLoading(true);
 
   authLogin(fUser.value.trim(), fPass.value)
-    .then(function() { startTransition(); })
+    .then(function() { sessionStorage.setItem('boot_pending','1'); window.location.replace('/'); })
     .catch(function(err) {
       setLoading(false);
       showAlert(err.message || 'Usuário ou senha inválidos.');
     });
 });
-
-/* ── Transição animada ── */
-function startTransition() {
-  var overlay  = document.getElementById('loginTransition');
-  var bar      = document.getElementById('ltBar');
-  var msgEl    = document.getElementById('ltMsg');
-  var msgs     = ['Autenticando...', 'Carregando dados...', 'Preparando ambiente...'];
-  var progress = 0;
-
-  overlay.classList.add('active');
-
-  var tick = setInterval(function() {
-    progress += Math.random() * 10 + 5;
-    if (progress > 92) progress = 92;
-    bar.style.width = progress + '%';
-    msgEl.textContent = progress < 38 ? msgs[0] : progress < 72 ? msgs[1] : msgs[2];
-  }, 130);
-
-  setTimeout(function() {
-    clearInterval(tick);
-    bar.style.transition = 'width .45s ease';
-    bar.style.width = '100%';
-    setTimeout(function() { window.location.replace('/'); }, 480);
-  }, 1700);
-}
 
 function validate() {
   clearErrors();

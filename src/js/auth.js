@@ -9,6 +9,7 @@
 
 // ── Role do usuário logado (carregado de /api/me) ──
 var userRole = 'viewer'; // default até carregar
+var globalAdmin = false;
 
 // ── Store de autenticação (apenas dados do usuário, SEM tokens) ───
 var authStore = createStore('auth', {
@@ -70,6 +71,8 @@ function authGetSession() {
 function authLogout() {
   fetch('/api/auth/logout', { method: 'POST' }).catch(function() {});
   authStore.destroy();
+  sessionStorage.removeItem('boot_cache');
+  sessionStorage.removeItem('boot_pending');
   window.location.replace('login.html');
 }
 
@@ -78,9 +81,15 @@ function authLogout() {
  * @returns {Promise<void>}
  */
 function authRefresh() {
-  return fetch('/api/auth/refresh', { method: 'POST' })
+  var ctrl = new AbortController();
+  var timer = setTimeout(function(){ ctrl.abort(); }, 8000);
+  return _originalFetch.call(window, '/api/auth/refresh', { method: 'POST', signal: ctrl.signal })
     .then(function(res) {
+      clearTimeout(timer);
       if (!res.ok) throw new Error('Sessão expirada.');
+    }).catch(function(err) {
+      clearTimeout(timer);
+      throw err;
     });
 }
 
@@ -97,18 +106,27 @@ function authRequire() {
   return true;
 }
 
-// Checagem periódica do token a cada 4 minutos
+var _originalFetch = window.fetch;
+var _refreshPromise = null;
+
 setInterval(function() {
   var session = authGetSession();
   if (!session) return;
   authRefresh().catch(function() { authLogout(); });
 }, 4 * 60 * 1000);
 
+function _singleRefresh() {
+  if (!_refreshPromise) {
+    _refreshPromise = authRefresh().then(function() {
+      _refreshPromise = null;
+    }).catch(function(err) {
+      _refreshPromise = null;
+      throw err;
+    });
+  }
+  return _refreshPromise;
+}
 
-// ── Fetch wrapper — NÃO injeta mais Authorization header ──
-// Os cookies HTTP-only são enviados automaticamente pelo browser.
-// Apenas intercepta 401/403 para tentar refresh ou redirecionar.
-var _originalFetch = window.fetch;
 window.fetch = function(url, opts) {
   if (typeof url === 'string' && url.startsWith('/api/') && !url.startsWith('/api/auth/')) {
     var session = authGetSession();
@@ -118,7 +136,7 @@ window.fetch = function(url, opts) {
     }
     return _originalFetch.call(window, url, opts).then(function(response) {
       if (response.status === 401 || response.status === 403) {
-        return authRefresh().then(function() {
+        return _singleRefresh().then(function() {
           return _originalFetch.call(window, url, opts);
         }).catch(function() {
           authLogout();

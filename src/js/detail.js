@@ -26,7 +26,7 @@ function openDetail(id){
       ${r.area?`<div class="dp-row"><span class="dp-key">Área</span><span class="dp-val">${r.area}</span></div>`:''}
       ${r.subarea?`<div class="dp-row"><span class="dp-key">Sub-área</span><span class="dp-val">${r.subarea}</span></div>`:''}
       ${r.responsavel?`<div class="dp-row"><span class="dp-key">Responsável</span><span class="dp-val">${r.responsavel}</span></div>`:''}
-      <div class="dp-row"><span class="dp-key">Cargo</span><span class="dp-val">${r.cargo} ${cargoOrigemBadge(r)}</span></div>
+      <div class="dp-row"><span class="dp-key">Cargo</span><span class="dp-val" style="display:inline-flex;align-items:center;gap:8px"><span>${r.cargo}</span>${cargoOrigemBadge(r)}</span></div>
       <div class="dp-row"><span class="dp-key">Criado em</span><span class="dp-val">${fmtDate(r.dataISO)}</span></div>
       <div class="dp-row"><span class="dp-key">Status</span><span class="dp-val">${statusBadge(r.status)}</span></div>
       ${r.demissao?`<div class="dp-row"><span class="dp-key">Bloqueado em</span><span class="dp-val" style="color:var(--red)">${fmtDate(r.demissao)}</span></div>`:''}

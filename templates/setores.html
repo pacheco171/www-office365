@@ -2,17 +2,17 @@
 {% block title %}Por Setor{% endblock %}
 {% block content %}
 <div class="view active" id="view-setores">
-  <div class="topbar"><div><div class="page-heading">Por Setor</div><div class="page-sub">Distribuição de licenças e custos por departamento</div></div></div>
+  <div class="topbar"><div><div class="page-heading" data-i18n="set.titulo">Por Setor</div><div class="page-sub" data-i18n="set.sub">Distribuição de licenças e custos por departamento</div></div></div>
   <div class="tab-strip">
-    <button class="tab-btn active" onclick="switchTab('setores','atual',this)">Mês atual</button>
-    <button class="tab-btn" onclick="switchTab('setores','hist',this)">Histórico mensal</button>
+    <button class="tab-btn active" onclick="switchTab('setores','atual',this)" data-i18n="set.mes_atual">Mês atual</button>
+    <button class="tab-btn" onclick="switchTab('setores','hist',this)" data-i18n="set.historico">Histórico mensal</button>
   </div>
   <div class="tab-panel active" id="setores-atual">
     <div id="setorConsolidated" class="setor-consol-row"></div>
     <div class="sub-tab-strip">
-      <button class="sub-tab-btn active" onclick="switchSetorTier('high',this)">Acima de R$ 1.000</button>
-      <button class="sub-tab-btn" onclick="switchSetorTier('mid',this)">R$ 500 – R$ 999</button>
-      <button class="sub-tab-btn" onclick="switchSetorTier('low',this)">Abaixo de R$ 500</button>
+      <button class="sub-tab-btn active" onclick="switchSetorTier('high',this)" data-i18n="set.acima_1000">Acima de R$ 1.000</button>
+      <button class="sub-tab-btn" onclick="switchSetorTier('mid',this)" data-i18n="set.entre_500_999">R$ 500 – R$ 999</button>
+      <button class="sub-tab-btn" onclick="switchSetorTier('low',this)" data-i18n="set.abaixo_500">Abaixo de R$ 500</button>
     </div>
     <div class="sub-tab-panel active" id="setorTier-high"></div>
     <div class="sub-tab-panel" id="setorTier-mid"></div>
@@ -20,7 +20,7 @@
   </div>
   <div class="tab-panel" id="setores-hist">
     <div class="hist-table-wrap">
-      <table><thead><tr><th>Mês</th><th>Setor</th><th>Usuários</th><th>Custo Total</th><th>Licença Dominante</th><th>Δ vs anterior</th></tr></thead>
+      <table><thead><tr><th data-i18n="hist.mes">Mês</th><th data-i18n="set.setor">Setor</th><th data-i18n="set.usuarios">Usuários</th><th data-i18n="set.custo_total">Custo Total</th><th data-i18n="set.licenca_dom">Licença Dominante</th><th data-i18n="set.delta_ant">Δ vs anterior</th></tr></thead>
       <tbody id="setorHistBody"></tbody></table>
     </div>
   </div>

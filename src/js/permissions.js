@@ -8,6 +8,7 @@ function loadUserRole(){
     .then(function(r){return r.json();})
     .then(function(data){
       userRole=data.role||'viewer';
+      globalAdmin=data.global_admin||false;
       applyRoleRestrictions();
       if(userRole==='superadmin')loadAnnotations();
       return userRole;
@@ -20,13 +21,15 @@ function loadUserRole(){
 
 /** Aplica restrições visuais baseadas na role */
 function applyRoleRestrictions(){
-  // Nav item de config — admin e superadmin vêem
+  var isSuperAdmin = userRole==='superadmin' || globalAdmin;
+
+  // Nav item de config — admin, superadmin e global admin vêem
   var configNav=document.querySelector('a.nav-item[href="/config"]');
-  if(configNav) configNav.style.display=(userRole==='superadmin'||userRole==='admin')?'':'none';
+  if(configNav) configNav.style.display=(isSuperAdmin||userRole==='admin')?'':'none';
 
   // Nav item de sugestões/anotações — admin e superadmin
   var sugNav=document.getElementById('navSugestoes');
-  if(sugNav) sugNav.style.display=(userRole==='admin'||userRole==='superadmin')?'':'none';
+  if(sugNav) sugNav.style.display=(userRole==='admin'||isSuperAdmin)?'':'none';
 
   // Badge de role na sidebar
   var badge=document.getElementById('sbRoleBadge');
@@ -39,14 +42,14 @@ function applyRoleRestrictions(){
   }
 
   // Botões de edição — só superadmin pode editar
-  if(userRole!=='superadmin'){
+  if(!isSuperAdmin){
     document.querySelectorAll('[data-perm="edit"]').forEach(function(el){
       el.style.display='none';
     });
   }
 
   // Config read-only para admins (inputs desabilitados)
-  if(userRole==='admin'){
+  if(userRole==='admin'&&!isSuperAdmin){
     document.querySelectorAll('#view-config input, #view-config select').forEach(function(el){
       el.disabled=true;
       el.style.opacity='0.6';
@@ -54,7 +57,7 @@ function applyRoleRestrictions(){
   }
 
   // Ativar menu de contexto para admin e superadmin
-  if(userRole==='admin'||userRole==='superadmin'){
+  if(userRole==='admin'||isSuperAdmin){
     _enableContextMenu();
   }
 }
@@ -86,7 +89,18 @@ function _enableContextMenu(){
     if(realEl){
       if(realEl.id)elSelector='#'+realEl.id;
       else if(realEl.className&&typeof realEl.className==='string')elSelector='.'+realEl.className.split(' ')[0];
-      elText=(realEl.textContent||'').trim().substring(0,80);
+      var topbar=realEl.closest?realEl.closest('.topbar'):null;
+      if(topbar){
+        var hEl=topbar.querySelector('.page-heading');
+        var sEl=topbar.querySelector('.page-sub');
+        var hTxt=hEl?(hEl.innerText||hEl.textContent||'').trim():'';
+        var sTxt=sEl?(sEl.innerText||sEl.textContent||'').trim():'';
+        var combined=hTxt&&sTxt?hTxt+' \u2014 '+sTxt:hTxt||sTxt;
+        elText=combined.length>65?combined.substring(0,64)+'\u2026':combined;
+      }else{
+        var rawText=(realEl.innerText||realEl.textContent||'').replace(/\s+/g,' ').trim();
+        elText=rawText.length>65?rawText.substring(0,64)+'\u2026':rawText;
+      }
     }
 
     // Posição relativa ao main
@@ -267,7 +281,7 @@ function renderAnnotationPins(){
     pin.title=a.author+': '+a.text;
     pin.textContent=i+1;
     pin.style.left=a.xPct+'%';
-    pin.style.top=a.yPx+'px';
+    pin.style.top=(a.yPx-14)+'px';
     pin.onclick=function(e){
       e.stopPropagation();
       showPinDetail(a,pin);
@@ -301,11 +315,20 @@ function showPinDetail(a,pinEl){
   d.style.top=Math.max(rect.top-10,8)+'px';
   document.body.appendChild(d);
 
+  function _pinEscHandler(e){
+    if(e.key==='Escape'){
+      d.remove();
+      document.removeEventListener('keydown',_pinEscHandler);
+    }
+  }
+  document.addEventListener('keydown',_pinEscHandler);
+
   setTimeout(function(){
     document.addEventListener('click',function closePinDetail(ev){
       if(!d.contains(ev.target)&&ev.target!==pinEl){
         d.remove();
         document.removeEventListener('click',closePinDetail);
+        document.removeEventListener('keydown',_pinEscHandler);
       }
     });
   },100);

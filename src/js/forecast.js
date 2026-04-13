@@ -94,13 +94,13 @@ function renderForecast(){
   html+='</div>';
 
   html+='<div class="fc-card fc-card--base">';
-  html+='<div class="fc-label">Projecao realista ('+horizonte+'m)</div>';
+  html+='<div class="fc-label">Projeção realista ('+horizonte+'m)</div>';
   html+='<div class="fc-value" style="color:var(--brown)">'+fmtBRL(lastProj.base)+'</div>';
   html+='<div class="fc-sub">Custo mensal estimado</div>';
   html+='</div>';
 
   html+='<div class="fc-card fc-card--intervalo">';
-  html+='<div class="fc-label">Intervalo de confianca</div>';
+  html+='<div class="fc-label">Intervalo de confiança</div>';
   html+='<div class="fc-value" style="font-size:20px;color:var(--muted)">'+intervaloMin+' ~ '+intervaloMax+'</div>';
   html+='<div class="fc-sub">Otimista a pessimista</div>';
   html+='</div>';
@@ -182,10 +182,10 @@ function drawForecastChart(fc){
   var topPad=10;
 
   var html='<div class="fc-chart-wrap">';
-  html+='<div class="fc-chart-title">Evolucao de custo mensal</div>';
+  html+='<div class="fc-chart-title">Evolução de custo mensal</div>';
   html+='<div class="fc-chart-legend">';
-  html+='<div class="fc-legend-item"><div class="fc-legend-dot" style="background:var(--brown)"></div>Historico</div>';
-  html+='<div class="fc-legend-item"><div class="fc-legend-dot" style="background:var(--tan);border:1.5px dashed var(--brown)"></div>Projecao (realista)</div>';
+  html+='<div class="fc-legend-item"><div class="fc-legend-dot" style="background:var(--brown)"></div>Histórico</div>';
+  html+='<div class="fc-legend-item"><div class="fc-legend-dot" style="background:var(--tan);border:1.5px dashed var(--brown)"></div>Projeção (realista)</div>';
   html+='</div>';
 
   html+='<svg width="'+chartW+'" height="'+(chartH+bottomPad+topPad)+'" viewBox="0 0 '+chartW+' '+(chartH+bottomPad+topPad)+'" style="display:block;width:100%;max-width:'+chartW+'px">';
@@ -243,6 +243,10 @@ function toggleForecast(){
   var btn=document.getElementById('forecastToggleBtn');
   if(!panel)return;
   if(panel.style.display==='none'){
+    var comparePanel=document.getElementById('comparePanel');
+    if(comparePanel)comparePanel.style.display='none';
+    var compareBtn=document.getElementById('compareToggleBtn');
+    if(compareBtn)compareBtn.classList.remove('active');
     panel.style.display='block';
     if(btn)btn.classList.add('active');
     renderForecast();

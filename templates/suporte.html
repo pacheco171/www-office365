@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Suporte{% endblock %}
+{% block content %}
+<div class="view active" id="view-suporte">
+  <div class="topbar">
+    <div><div class="page-heading" data-i18n="nav.suporte">Suporte</div><div class="page-sub" data-i18n="sup.sub">Central de atendimento — Chat IA e sistema de chamados</div></div>
+  </div>
+  <div class="tab-strip">
+    <button class="tab-btn active" onclick="switchTab('suporte','chat',this)" data-i18n="sup.tab_chat">Chat IA</button>
+    <button class="tab-btn" onclick="switchTab('suporte','novo',this)" data-i18n="sup.tab_abrir">Abrir Chamado</button>
+    <button class="tab-btn" onclick="switchTab('suporte','chamados',this)" data-i18n="sup.tab_chamados">Meus Chamados</button>
+  </div>
+  <div class="tab-panel active" id="suporte-chat">
+    <div id="suporteChatContent"></div>
+  </div>
+  <div class="tab-panel" id="suporte-novo">
+    <div id="suporteFormContent"></div>
+  </div>
+  <div class="tab-panel" id="suporte-chamados">
+    <div id="suporteChamadosContent"></div>
+  </div>
+</div>
+{% endblock %}
