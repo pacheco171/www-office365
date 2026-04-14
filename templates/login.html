@@ -4,12 +4,17 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Acesso — LIVE! Microsoft 365</title>
-<link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="src/css/variables.css">
-<link rel="stylesheet" href="src/css/base.css">
-<link rel="stylesheet" href="src/css/ui-kit.css">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="/favicon.png" type="image/png" sizes="any">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" as="style" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet"></noscript>
+<link rel="stylesheet" href="/src/css/variables.css?v={{ sv }}">
+<link rel="stylesheet" href="/src/css/base.css?v={{ sv }}">
+<link rel="stylesheet" href="/src/css/ui-kit.css?v={{ sv }}">
 <!-- Redireciona se já autenticado -->
-<script src="src/js/store.js"></script>
+<script src="/src/js/store.js?v={{ sv }}"></script>
 <script>(function(){if(localStorage.getItem('store_auth'))window.location.replace('/');}());</script>
 <style>
 
@@ -42,11 +47,8 @@ body{display:flex;min-height:100vh;padding:0;background:var(--black);}
   border:1px solid rgba(181,164,142,.04);pointer-events:none;
 }
 
-.brand-logo .logo{
-  font-family:'Outfit',sans-serif;font-weight:800;
-  font-size:38px;color:#fff;letter-spacing:2px;line-height:1;
-}
-.brand-logo .logo em{color:var(--tan);font-style:normal;}
+.brand-logo .logo{line-height:1;}
+.brand-logo .logo-img{height:52px;width:auto;filter:invert(1);mix-blend-mode:screen;}
 .brand-logo .logo-sub{
   font-size:9px;color:rgba(255,255,255,.2);
   letter-spacing:3px;text-transform:uppercase;margin-top:5px;
@@ -56,9 +58,9 @@ body{display:flex;min-height:100vh;padding:0;background:var(--black);}
 .brand-tagline{
   font-family:'Outfit',sans-serif;
   font-size:46px;font-weight:800;text-transform:uppercase;
-  letter-spacing:1px;color:#fff;line-height:1.08;
+  letter-spacing:-1px;color:#fff;line-height:1.08;
 }
-.brand-tagline em{display:block;color:var(--tan);font-style:normal;}
+.brand-tagline em{display:block;color:var(--tan);font-style:normal;letter-spacing:-2px;}
 .brand-tagline-sub{
   font-size:13px;color:rgba(255,255,255,.3);
   font-weight:400;margin-top:14px;line-height:1.6;
@@ -95,7 +97,7 @@ body{display:flex;min-height:100vh;padding:0;background:var(--black);}
 .login-heading{
   font-family:'Outfit',sans-serif;
   font-size:40px;font-weight:800;text-transform:uppercase;
-  letter-spacing:.5px;color:var(--black);margin-bottom:6px;
+  letter-spacing:-1.5px;color:var(--black);margin-bottom:6px;
 }
 .login-sub{font-size:15px;color:var(--muted);margin-bottom:36px;line-height:1.5;}
 
@@ -121,12 +123,11 @@ body{display:flex;min-height:100vh;padding:0;background:var(--black);}
   border:1.5px solid var(--border);border-radius:8px;
   font-family:'Lexend',sans-serif;font-size:15.5px;
   background:var(--surface);color:var(--black);
-  outline:none;transition:border-color 0.2s ease, box-shadow 0.2s ease, transform 0.2s ease;
+  outline:none;transition:border-color .15s,box-shadow .15s;
 }
 .form-input:focus{
   border-color:var(--tan);
   box-shadow:0 0 0 3px rgba(181,164,142,.2);
-  transform: translateY(-1px);
 }
 .form-input::placeholder{color:var(--sand);}
 .form-input:disabled{opacity:.5;cursor:not-allowed;}
@@ -138,11 +139,9 @@ body{display:flex;min-height:100vh;padding:0;background:var(--black);}
 .pass-toggle{
   position:absolute;right:11px;top:50%;transform:translateY(-50%);
   background:none;border:none;cursor:pointer;color:var(--sand);
-  padding:4px;display:flex;align-items:center;
-  transition:color 0.15s ease, transform 0.15s ease;
+  padding:4px;display:flex;align-items:center;transition:color .15s;
 }
-.pass-toggle:hover{color:var(--brown); transform: translateY(-50%) scale(1.1);}
-.pass-toggle:active{transform: translateY(-50%) scale(0.95);}
+.pass-toggle:hover{color:var(--brown);}
 .pass-toggle svg{width:18px;height:18px;}
 
 /* Botão */
@@ -154,18 +153,14 @@ body{display:flex;min-height:100vh;padding:0;background:var(--black);}
   font-size:15px;font-weight:700;letter-spacing:.5px;
   cursor:pointer;margin-top:10px;
   display:flex;align-items:center;justify-content:center;gap:8px;
-  transition: background 0.25s cubic-bezier(0.4, 0, 0.2, 1), transform 0.15s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  transition:background .18s,transform .12s,box-shadow .18s;
   box-shadow:0 2px 8px rgba(30,28,26,.18);
 }
 .login-submit:hover:not(:disabled){
-  background:#2e2c2a;transform:translateY(-2px);
-  box-shadow:0 6px 16px rgba(30,28,26,.3);
+  background:#333028;transform:translateY(-1px);
+  box-shadow:0 4px 14px rgba(30,28,26,.28);
 }
-.login-submit:active:not(:disabled){
-  transform:translateY(1px);
-  box-shadow:0 1px 4px rgba(30,28,26,.15);
-  transition-duration: 0.1s;
-}
+.login-submit:active:not(:disabled){transform:translateY(0);}
 .login-submit:disabled{opacity:.55;cursor:not-allowed;transform:none!important;}
 
 @keyframes spin{to{transform:rotate(360deg);}}
@@ -292,7 +287,7 @@ body{display:flex;min-height:100vh;padding:0;background:var(--black);}
   </div>
 </div>
 
-<script src="src/js/auth.js"></script>
+<script src="/src/js/auth.js?v={{ sv }}"></script>
 <script>
 const loginForm  = document.getElementById('loginForm');
 const fUser      = document.getElementById('fUser');
@@ -306,7 +301,13 @@ loginForm.addEventListener('submit', function(e) {
   setLoading(true);
 
   authLogin(fUser.value.trim(), fPass.value)
-    .then(function() { sessionStorage.setItem('boot_pending','1'); window.location.replace('/'); })
+    .then(function() {
+      sessionStorage.removeItem('boot_cache');
+      sessionStorage.setItem('boot_pending','1');
+      document.body.style.transition='opacity .15s ease';
+      document.body.style.opacity='0';
+      setTimeout(function(){ window.location.replace('/'); },140);
+    })
     .catch(function(err) {
       setLoading(false);
       showAlert(err.message || 'Usuário ou senha inválidos.');

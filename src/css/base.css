@@ -1,3 +1,13 @@
-*{margin:0;padding:0;box-sizing:border-box;}
-body{background:var(--bg);color:var(--text);font-family:'Lexend',sans-serif;min-height:100vh;font-size:14px;}
-.layout{display:flex;min-height:100vh;}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--bg-gradient);
+  background-attachment: fixed;
+  color: var(--text);
+  font-family: 'Lexend', sans-serif;
+  height: 100vh;
+  overflow: hidden;
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+.layout { display: flex; height: 100%; }

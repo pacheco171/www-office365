@@ -63,6 +63,7 @@ function _doGlobalSearch(q, val, container) {
 /* ══════════ INICIALIZAÇÃO E REFRESH ══════════ */
 
 document.addEventListener('i18n:change', function() {
+  Object.keys(_rendered).forEach(function(k){_rendered[k]=false;});
   updateMetrics();
   renderCurrentPage();
 });
@@ -78,9 +79,14 @@ function toast(msg,dur){
   setTimeout(function(){t.classList.remove('show');},dur);
 }
 
+/* Controla quais views já foram renderizadas (evita re-render desnecessário) */
+var _rendered = {};
+
 /** Renderiza a view da página atual após carregamento de dados */
 function renderCurrentPage(){
   var page=getActivePage();
+  if(_rendered[page])return;
+  _rendered[page]=true;
   if(page==='dashboard'){updateMetrics();drawCharts();renderCompare();}
   if(page==='colaboradores'){renderTable();}
   if(page==='licencas'){renderLicView();renderLicHist();}
@@ -106,6 +112,7 @@ function renderCurrentPage(){
 /** Re-renderiza a view atual (chamado após alteração de dados) */
 function refresh(){
   invalidateBootCache();
+  Object.keys(_rendered).forEach(function(k){_rendered[k]=false;});
   updateMetrics();
   var page=getActivePage();
   if(page==='colaboradores')renderTable();
@@ -128,7 +135,7 @@ function applyBoot(boot){
   if(Array.isArray(boot.subscriptions))azureSubs=boot.subscriptions;
   if(boot.me){userRole=boot.me.role||'viewer';globalAdmin=boot.me.global_admin||false;if(typeof applyRoleRestrictions==='function')applyRoleRestrictions();if(userRole==='superadmin'&&typeof loadAnnotations==='function')loadAnnotations();}
   if(Array.isArray(boot.licenses)&&boot.licenses.length){LICENSES=boot.licenses;licById=Object.fromEntries(LICENSES.map(function(l){return[l.id,l];}));}
-  if(boot.tenants&&typeof initTenantSwitcher==='function')initTenantSwitcher(boot);
+  if(boot.tenants&&typeof initTenantSwitcher==='function')initTenantSwitcher(boot.tenants);
   db.forEach(function(r){
     if(!r.cargoOrigem) r.cargoOrigem=(r.cargo||'')==='Colaborador'?'fallback':'ad';
   });
@@ -146,7 +153,13 @@ function bootProgress(percent,msg,step){
   var bar=document.getElementById('bootProgressBar');
   var status=document.getElementById('bootStatus');
   if(bar)bar.style.width=percent+'%';
-  if(status&&msg)status.textContent=msg;
+  if(status&&msg){
+    status.classList.add('fade');
+    setTimeout(function(){
+      status.textContent=msg;
+      status.classList.remove('fade');
+    },300);
+  }
   if(step){
     var steps=document.querySelectorAll('.boot-step');
     steps.forEach(function(s){
@@ -201,11 +214,12 @@ function invalidateBootCache(){
     updateMetrics();renderCurrentPage();
     if(typeof uiProgress!=='undefined')uiProgress.done();
     bootProgress(100,null,3);
-    dismissBootLoader();
   }).catch(function(e){
     console.warn('boot error:',e);
-    updateMetrics();renderCurrentPage();
+    try{updateMetrics();}catch(e2){console.warn('metrics error:',e2);}
+    try{renderCurrentPage();}catch(e2){console.warn('render error:',e2);}
     if(typeof uiProgress!=='undefined')uiProgress.done();
+  }).finally(function(){
     dismissBootLoader();
   });
   if(typeof loadChangelog==='function')loadChangelog();

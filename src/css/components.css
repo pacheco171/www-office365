@@ -12,7 +12,7 @@
 .cargo-badge-override{background:rgba(0,120,212,.08);color:#0078d4;}
 
 /* SETOR EXPAND PANEL */
-.setor-all-panel{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:20px;margin-bottom:24px;display:none;}
+.setor-all-panel{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px;margin-bottom:24px;display:none;box-shadow:var(--shadow-sm);}
 .setor-all-panel.open{display:block;}
 .setor-all-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:12px;}
 .setor-all-item{display:flex;align-items:center;gap:8px;padding:7px 10px;background:var(--surface2);border-radius:6px;border:1px solid var(--border);}
@@ -21,7 +21,7 @@
 
 /* MONTH COMPARE BANNER */
 .compare-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:24px;}
-.compare-card{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:20px;}
+.compare-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px;box-shadow:var(--shadow-sm);}
 .compare-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;}
 .compare-month{font-family:'Outfit',sans-serif;font-size:18px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;}
 .compare-total{font-family:'Outfit',sans-serif;font-size:clamp(18px,1.8vw,24px);font-weight:800;color:var(--brown);white-space:nowrap;}
@@ -30,7 +30,7 @@
 .cri-name{color:var(--muted);}
 .cri-qty{color:var(--muted);font-size:11px;margin-left:auto;margin-right:12px;}
 .cri-val{font-weight:700;}
-.diff-card{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:20px;grid-column:1/-1;}
+.diff-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px;grid-column:1/-1;box-shadow:var(--shadow-sm);}
 .diff-title{font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;font-weight:700;margin-bottom:14px;}
 .diff-row{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px;}
 .diff-row:last-child{border-bottom:none;}
@@ -49,17 +49,18 @@
 .dash-snap-tab{
   padding:4px 12px;border-radius:8px;font-size:11px;font-weight:700;
   background:var(--surface2);border:1px solid var(--border);color:var(--muted);
-  cursor:pointer;transition:all .15s;text-transform:uppercase;letter-spacing:.5px;
+  cursor:pointer;transition:var(--transition-fast);text-transform:uppercase;letter-spacing:.5px;
   font-family:'Outfit',sans-serif;
 }
-.dash-snap-tab:hover{background:var(--sand-lt);color:var(--black);}
-.dash-snap-tab.active{background:var(--brown);color:#fff;border-color:var(--brown);}
+.dash-snap-tab:hover{background:var(--sand-lt);color:var(--black);transform:translateY(-1px);}
+.dash-snap-tab:active{transform:translateY(1px);}
+.dash-snap-tab.active{background:var(--brown);color:#fff;border-color:var(--brown);transform:scale(1.03);box-shadow:var(--shadow-sm);}
 
 /* DASHBOARD ALERTS BANNER */
 .dash-alerts-banner{
-  background:var(--surface);border:1px solid var(--border);border-radius:11px;
-  padding:14px 18px;margin-bottom:16px;display:flex;align-items:center;gap:14px;
-  flex-wrap:wrap;
+  background:var(--surface);border:1px solid var(--border);border-radius:14px;
+  padding:16px 20px;margin-bottom:18px;display:flex;align-items:center;gap:14px;
+  flex-wrap:wrap;box-shadow:var(--shadow-sm);
 }
 .dash-alerts-banner.has-warn{border-left:4px solid var(--yellow);}
 .dab-icon{font-size:20px;flex-shrink:0;}
@@ -73,9 +74,10 @@
 .dab-actions{display:flex;gap:6px;flex-shrink:0;}
 .dab-dismiss{
   background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;
-  padding:4px;border-radius:6px;transition:all .12s;
+  padding:4px;border-radius:6px;transition:var(--transition-fast);
 }
-.dab-dismiss:hover{background:var(--sand-lt);color:var(--text);}
+.dab-dismiss:hover{background:var(--sand-lt);color:var(--text);transform:translateY(-1px) scale(1.05);}
+.dab-dismiss:active{transform:translateY(1px) scale(0.95);}
 
 /* SETOR FIXO — lock icon */
 .setor-lock{display:inline-block;font-size:10px;margin-left:3px;vertical-align:middle;opacity:.7;cursor:help;}
@@ -97,8 +99,8 @@
 .gs-esc{font-size:11px;color:var(--muted);background:var(--sand-lt);border:1px solid var(--border);border-radius:4px;padding:2px 6px;flex-shrink:0;}
 .gs-results{overflow-y:auto;max-height:380px;}
 .gs-empty{text-align:center;padding:32px;color:var(--muted);font-size:13px;}
-.gs-item{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;transition:background .1s;}
-.gs-item:hover{background:var(--sand-lt);}
+.gs-item{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;transition:var(--transition-fast);}
+.gs-item:hover{background:var(--sand-lt);transform:translateX(4px);}
 .gs-item-avatar{width:32px;height:32px;border-radius:50%;background:var(--sand);color:var(--brown);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:11px;flex-shrink:0;}
 .gs-item-info{flex:1;min-width:0;}
 .gs-item-name{font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}

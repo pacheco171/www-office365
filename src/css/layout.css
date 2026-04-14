@@ -1,4 +1,4 @@
-main{flex:1;overflow-y:auto;min-width:0;}
+main{flex:1;overflow-y:auto;min-width:0;scrollbar-gutter:stable;}
 .view{display:none;padding:36px 38px;position:relative;}
 .view.active{display:block;}
 .topbar{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:30px;gap:12px;flex-wrap:wrap;}
@@ -6,10 +6,12 @@ main{flex:1;overflow-y:auto;min-width:0;}
 .page-sub{font-size:12px;color:var(--muted);margin-top:3px;}
 .topbar-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
 
-.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 16px;border-radius:6px;font-family:'Lexend',sans-serif;font-weight:700;font-size:12px;cursor:pointer;border:none;transition:all .18s;letter-spacing:.4px;text-transform:uppercase;white-space:nowrap;}
-.btn svg{width:13px;height:13px;}
-.btn-dark{background:var(--black);color:#fff;}
-.btn-dark:hover{background:#2e2c2a;transform:translateY(-1px);}
-.btn-outline{background:transparent;color:var(--muted);border:1px solid var(--border);}
-.btn-outline:hover{border-color:var(--tan);color:var(--brown);}
-.btn-sm{padding:6px 12px;font-size:11px;}
+.btn{display:inline-flex;align-items:center;gap:8px;padding:9px 18px;border-radius:8px;font-family:'Lexend',sans-serif;font-weight:700;font-size:12px;cursor:pointer;border:none;transition:var(--transition-smooth);letter-spacing:.5px;text-transform:uppercase;white-space:nowrap;box-shadow:var(--shadow-sm);}
+.btn svg{width:14px;height:14px;transition:var(--transition-fast);}
+.btn-dark{background:var(--black);color:#fff;border:1px solid transparent;}
+.btn-dark:hover{background:#2e2c2a;transform:translateY(-2px);box-shadow:var(--shadow-md);}
+.btn-dark:active{transform:translateY(0);box-shadow:var(--shadow-sm);}
+.btn-outline{background:var(--surface);color:var(--text);border:1px solid var(--border);}
+.btn-outline:hover{border-color:var(--tan);color:var(--brown);background:var(--surface2);transform:translateY(-1px);box-shadow:var(--shadow-md);}
+.btn-outline:active{transform:translateY(0);box-shadow:var(--shadow-sm);}
+.btn-sm{padding:6px 14px;font-size:11px;border-radius:6px;}

@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" shape-rendering="geometricPrecision">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#2a2725"/>
+      <stop offset="100%" stop-color="#1e1c1a"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="20%" cy="20%" r="60%">
+      <stop offset="0%" stop-color="#fff"/>
+      <stop offset="100%" stop-color="transparent"/>
+    </radialGradient>
+  </defs>
+
+  <!-- Background: dark rounded square -->
+  <rect width="32" height="32" rx="7" fill="url(#bg)"/>
+  <rect width="32" height="32" rx="7" fill="url(#glow)" opacity="0.05"/>
+
+  <!-- Letter L — vertical bar + horizontal base, warm sand color -->
+  <rect x="7" y="7" width="4" height="16" rx="1" fill="#d9cfc3"/>
+  <rect x="7" y="19" width="11" height="4" rx="1" fill="#d9cfc3"/>
+
+  <!-- Red dot — LIVE indicator, top-right -->
+  <circle cx="24" cy="8" r="4.5" fill="#e53935"/>
+</svg>

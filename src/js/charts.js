@@ -20,21 +20,95 @@ function drawDonut(){
   if(!svg)return;
   const cx=55,cy=55,R=44,r=28,tau=Math.PI*2;
   let html='',angle=-Math.PI/2;
+  const hoverParams = {};
   entries.forEach(([id,cnt])=>{
     const slice=(cnt/total)*tau;
+    const halfAngle = angle + slice/2;
     const x1=cx+R*Math.cos(angle),y1=cy+R*Math.sin(angle);
     angle+=slice;
     const x2=cx+R*Math.cos(angle),y2=cy+R*Math.sin(angle);
     const ix1=cx+r*Math.cos(angle-slice),iy1=cy+r*Math.sin(angle-slice);
     const ix2=cx+r*Math.cos(angle),iy2=cy+r*Math.sin(angle);
     const large=slice>Math.PI?1:0;
-    html+=`<path d="M${x1},${y1} A${R},${R} 0 ${large},1 ${x2},${y2} L${ix2},${iy2} A${r},${r} 0 ${large},0 ${ix1},${iy1} Z" fill="${getLic(id).color}" opacity=".85"/>`;
+    
+    // Distância de empurrão (bounce)
+    const tx = Math.cos(halfAngle) * 3;
+    const ty = Math.sin(halfAngle) * 3;
+    const shortName = getLic(id).short.length > 12 ? getLic(id).short.substring(0, 11) + '..' : getLic(id).short;
+    hoverParams[id] = { name: shortName.replace(/'/g, "\\'"), cnt, tx, ty };
+
+    html+=`<path class="donut-slice" data-id="${id}" d="M${x1},${y1} A${R},${R} 0 ${large},1 ${x2},${y2} L${ix2},${iy2} A${r},${r} 0 ${large},0 ${ix1},${iy1} Z" fill="${getLic(id).color}" opacity=".85" style="transition:all 0.25s cubic-bezier(0.4, 0.0, 0.2, 1); cursor:pointer;" onmouseover="hoverDonut('${id}')" onmouseout="clearDonutHover()"/>`;
   });
-  html+=`<circle cx="${cx}" cy="${cy}" r="${r-2}" fill="white"/><text x="${cx}" y="${cy-5}" text-anchor="middle" font-family="Outfit" font-size="16" font-weight="800" fill="#1e1c1a">${total}</text><text x="${cx}" y="${cy+10}" text-anchor="middle" font-family="Lexend" font-size="9" fill="#8a8070">planos</text>`;
+  
+  html+=`<circle cx="${cx}" cy="${cy}" r="${r-2}" fill="var(--surface)"/>
+  <g id="donutCenterDefault" style="transition:opacity 0.2s ease;pointer-events:none;">
+    <text x="${cx}" y="${cy-5}" text-anchor="middle" font-family="Outfit" font-size="16" font-weight="800" fill="var(--text)">${total}</text>
+    <text x="${cx}" y="${cy+10}" text-anchor="middle" font-family="Lexend" font-size="9" fill="var(--muted)">planos</text>
+  </g>
+  <g id="donutCenterHover" style="opacity:0; transition:opacity 0.2s ease; pointer-events:none;">
+    <text id="dh-val" x="${cx}" y="${cy-5}" text-anchor="middle" font-family="Outfit" font-size="16" font-weight="800" fill="var(--brown)">0</text>
+    <text id="dh-name" x="${cx}" y="${cy+10}" text-anchor="middle" font-family="Lexend" font-size="7" font-weight="700" fill="var(--black)">Name</text>
+  </g>`;
+  
   svg.innerHTML=html;
+
+  window._donutParams = hoverParams; // Save state for event handlers
+
   _el('donutLegend').innerHTML=entries.map(([id,cnt])=>`
-    <div class="dl-item"><div class="dl-dot" style="background:${getLic(id).color}"></div>
-    <span class="dl-name">${getLic(id).short}</span><span class="dl-val">${cnt}</span></div>`).join('');
+    <div class="dl-item" data-id="${id}" style="transition:all 0.25s ease;cursor:pointer" onmouseover="hoverDonut('${id}')" onmouseout="clearDonutHover()">
+      <div class="dl-dot" style="background:${getLic(id).color}"></div>
+      <span class="dl-name">${getLic(id).short}</span><span class="dl-val">${cnt}</span>
+    </div>`).join('');
+}
+
+window.hoverDonut = function(id) {
+  var p = window._donutParams[id];
+  if(!p) return;
+  document.querySelectorAll('.donut-slice').forEach(el => {
+    if (el.getAttribute('data-id') === id) {
+      el.style.opacity = '1';
+      el.style.transform = 'translate(' + p.tx + 'px, ' + p.ty + 'px)';
+    } else {
+      el.style.opacity = '0.15';
+      el.style.transform = 'translate(0,0)';
+    }
+  });
+  document.querySelectorAll('.dl-item').forEach(el => {
+    if (el.getAttribute('data-id') === id) {
+      el.style.opacity = '1';
+      el.style.transform = 'translateX(4px)';
+    } else {
+      el.style.opacity = '0.35';
+      el.style.transform = 'translateX(0)';
+    }
+  });
+
+  var def = document.getElementById('donutCenterDefault');
+  var hov = document.getElementById('donutCenterHover');
+  if(def && hov) {
+    def.style.opacity = '0';
+    hov.style.opacity = '1';
+    document.getElementById('dh-val').textContent = p.cnt;
+    document.getElementById('dh-name').textContent = p.name;
+    document.getElementById('dh-name').setAttribute('fill', getLic(id).color);
+  }
+}
+
+window.clearDonutHover = function() {
+  document.querySelectorAll('.donut-slice').forEach(el => {
+    el.style.opacity = '0.85';
+    el.style.transform = 'translate(0,0)';
+  });
+  document.querySelectorAll('.dl-item').forEach(el => {
+    el.style.opacity = '1';
+    el.style.transform = 'translateX(0)';
+  });
+  var def = document.getElementById('donutCenterDefault');
+  var hov = document.getElementById('donutCenterHover');
+  if(def && hov) {
+    def.style.opacity = '1';
+    hov.style.opacity = '0';
+  }
 }
 
 /** Desenha gráfico de barras de custo por setor (top 10) */
