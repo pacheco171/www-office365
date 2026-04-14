@@ -1,2 +1,25 @@
 __pycache__/
 *.pyc
+
+# Ambiente e credenciais
+.env
+.env.*
+
+# Dados sensíveis dos tenants
+data.json
+roles.json
+overrides.json
+annotations.json
+changelog.json
+hierarchy.json
+graph_config.json
+tenants/*/data.json
+tenants/*/roles.json
+tenants/*/overrides.json
+tenants/*/annotations.json
+tenants/*/changelog.json
+tenants/*/hierarchy.json
+tenants/*/graph_config.json
+
+# Logs
+server.log
