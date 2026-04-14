@@ -1,11 +1,2 @@
-.env
-graph_config.json
-data.json
-overrides.json
-changelog.json
-hierarchy.json
-suggestions.json
-annotations.json
-roles.json
 __pycache__/
 *.pyc
