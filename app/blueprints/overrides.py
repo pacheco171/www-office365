@@ -63,6 +63,47 @@ def put_override(email):
     return jsonify({"ok": True})
 
 
+@bp.route("/api/overrides/bulk", methods=["POST"])
+def bulk_override():
+    check = require_role("superadmin")
+    if check:
+        return check
+    payload = request.get_json(force=True, silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"error": "payload inválido"}), 400
+    items = payload.get("overrides")
+    if not isinstance(items, dict):
+        return jsonify({"error": 'campo "overrides" obrigatório'}), 400
+
+    tid = getattr(request, "tenant_id", "live")
+    now = datetime.now(timezone.utc).isoformat()
+    saved = 0
+    with get_tenant_lock(tid, "overrides"):
+        data = load_overrides(tid)
+        for raw_email, raw_entry in items.items():
+            if not isinstance(raw_entry, dict):
+                continue
+            email = validate_email_format(raw_email)
+            if not email:
+                continue
+            setor, err = validate_text_field(raw_entry.get("setor"), "setor")
+            if err:
+                continue
+            entry = {"setor": setor, "fixo": True, "updatedAt": now}
+            for field in ("tipo", "cargo", "area"):
+                raw = raw_entry.get(field)
+                if raw:
+                    val, ferr = validate_text_field(raw, field)
+                    if ferr:
+                        continue
+                    entry[field] = val
+            data["overrides"][email] = entry
+            saved += 1
+        save_overrides(data, tid)
+    _invalidate_data_cache(tid)
+    return jsonify({"ok": True, "saved": saved})
+
+
 @bp.route("/api/overrides/<path:email>", methods=["DELETE"])
 def delete_override(email):
     check = require_role("superadmin")

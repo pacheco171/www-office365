@@ -72,32 +72,25 @@ function isLoja(r) {
     não reativa automaticamente.
     Chamado no init (main.js) após sync. */
 function autoOverrideLojas(records) {
-  let count = 0;
+  const pending = {};
+  const now = new Date().toISOString();
   records.forEach(function(r) {
     if (!isLoja(r)) return;
     const email = (r.email || '').trim().toLowerCase();
     if (!email) return;
     const ov = overrides[email];
-    // Se já existe override com fixo explicitamente false, respeitar escolha manual
     if (ov && ov.fixo === false) return;
-    // Se já existe override com fixo true, não precisa recriar
     if (ov && ov.fixo) return;
-    // Criar override automático: setor=Lojas, cargo=Loja, tipo=Lojas
-    overrides[email] = {
-      setor: 'Lojas',
-      cargo: 'Loja',
-      tipo: 'Lojas',
-      fixo: true,
-      updatedAt: new Date().toISOString()
-    };
-    count++;
-    // Persistir no servidor (fire-and-forget)
-    fetch('/api/overrides/' + encodeURIComponent(email), {
-      method: 'PUT',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ setor: 'Lojas', cargo: 'Loja', tipo: 'Lojas', fixo: true })
-    }).catch(function() {});
+    const entry = { setor: 'Lojas', cargo: 'Loja', tipo: 'Lojas', fixo: true, updatedAt: now };
+    overrides[email] = entry;
+    pending[email] = { setor: 'Lojas', cargo: 'Loja', tipo: 'Lojas' };
   });
+  if (Object.keys(pending).length === 0) return;
+  fetch('/api/overrides/bulk', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ overrides: pending })
+  }).catch(function() {});
 }
 
 /* ── Modal "Editar Setor" ────────────────────────────────────── */

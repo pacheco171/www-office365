@@ -11,7 +11,7 @@ from app.config import BASE_DIR, STATIC_ALLOWED_EXT
 bp = Blueprint("static_files", __name__)
 
 # Hash de versão dos assets estáticos — muda a cada deploy/hora para invalidar cache
-_SV = hashlib.md5(str(int(_time.time() / 3600)).encode()).hexdigest()[:8]
+_SV = hashlib.md5(str(int(_time.time())).encode()).hexdigest()[:8]
 
 _PAGES = {
     'dashboard': 'dashboard.html',
