@@ -1,5 +1,21 @@
 /* ══════════ CONFIG — Graph API Integration ══════════ */
 
+var _configStatusInterval = null;
+
+function _startConfigStatusPolling() {
+  if (_configStatusInterval) return;
+  _configStatusInterval = setInterval(function() {
+    if (typeof getActivePage === 'function' && getActivePage() !== 'config') {
+      clearInterval(_configStatusInterval);
+      _configStatusInterval = null;
+      return;
+    }
+    fetch('/api/graph/status').then(function(r) { return r.json(); }).then(function(status) {
+      updateSyncStatus(status);
+    }).catch(function() {});
+  }, 10000);
+}
+
 /** Toggle visibilidade de campo password */
 function toggleFieldVis(inputId, btn) {
   var el = document.getElementById(inputId);
@@ -49,6 +65,7 @@ function loadGraphConfig() {
     }
 
     updateSyncStatus(cfg.status);
+    _startConfigStatusPolling();
   }).catch(function() {});
 }
 
@@ -281,17 +298,16 @@ function testAiConnection() {
   });
 }
 
-// Carregar config quando a página config for aberta
+// Carregar config no acesso direto à URL /config (quando já é a página inicial)
 document.addEventListener('DOMContentLoaded', function() {
-  var el = document.getElementById('view-config');
-  if (el && el.classList.contains('active')) {
+  if (document.getElementById('view-config')) {
     loadGraphConfig();
     loadAiConfig();
   }
 
-  // Auto-save ao mudar checkbox/select de sync
-  var chk = document.getElementById('cfgAutoSync');
-  var sel = document.getElementById('cfgSyncInterval');
-  if (chk) chk.addEventListener('change', saveAutoSyncSetting);
-  if (sel) sel.addEventListener('change', saveAutoSyncSetting);
+  // Auto-save ao mudar checkbox/select de sync (delegado para funcionar após swap SPA)
+  document.addEventListener('change', function(e) {
+    if (e.target && e.target.id === 'cfgAutoSync') saveAutoSyncSetting();
+    if (e.target && e.target.id === 'cfgSyncInterval') saveAutoSyncSetting();
+  });
 });

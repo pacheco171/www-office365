@@ -15,8 +15,7 @@
 }
 .report-wrap{background:var(--surface);border:1px solid var(--border);border-radius:11px;padding:36px 40px;max-width:900px;margin:0 auto;}
 .report-header{display:grid;grid-template-columns:1fr auto;gap:20px;align-items:start;margin-bottom:32px;padding-bottom:20px;border-bottom:2px solid var(--black);}
-.report-logo{font-family:'Outfit',sans-serif;font-size:26px;font-weight:800;letter-spacing:2px;line-height:1;}
-.report-logo em{color:var(--tan);font-style:normal;}
+.report-logo-img{width:48px;height:auto;display:block;}
 .report-logo-sub{font-size:9px;color:var(--muted);letter-spacing:3px;text-transform:uppercase;margin-top:4px;}
 .report-meta{text-align:right;}
 .report-meta-ref{font-family:'Outfit',sans-serif;font-size:18px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;}

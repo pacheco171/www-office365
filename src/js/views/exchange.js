@@ -37,7 +37,7 @@ function renderExchangeView(){
 
   tblEl.innerHTML = loadingHTML('Carregando dados do Exchange...');
 
-  fetchWithTimeout('/api/reports/exchange').then(function(r){ return r.json(); }).then(function(res){
+  fetchWithTimeout('/api/reports/exchange', 90000).then(function(r){ return r.json(); }).then(function(res){
     if(res.error){
       tblEl.innerHTML = errorHTML('refreshExchange', res.error);
       return;

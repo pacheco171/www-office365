@@ -129,7 +129,7 @@ def post_graph_config():
         return jsonify({"error": "payload inválido"}), 400
     tid = getattr(request, "tenant_id", "live")
     cfg = load_graph_config(tid)
-    for key in ("tenant_id", "client_id", "client_secret", "domain", "ou_root", "auto_sync", "sync_interval_hours"):
+    for key in ("tenant_id", "client_id", "client_secret", "domain", "ou_root", "auto_sync", "sync_interval_hours", "ai_api_key"):
         if key in payload:
             cfg[key] = payload[key]
     save_graph_config(cfg, tid)

@@ -98,7 +98,6 @@ function autoOverrideLojas(records) {
       body: JSON.stringify({ setor: 'Lojas', cargo: 'Loja', tipo: 'Lojas', fixo: true })
     }).catch(function() {});
   });
-  if (count > 0) console.log('[autoOverrideLojas] Criados', count, 'overrides automáticos para lojas L###');
 }
 
 /* ── Modal "Editar Setor" ────────────────────────────────────── */
@@ -241,6 +240,8 @@ function saveOverrideModal() {
     cargo = cargoSelVal;
   }
 
+  const syncAD = !!(document.getElementById('ovSyncAD') && document.getElementById('ovSyncAD').checked);
+
   saveOverride(overrideEditEmail, setor, tipo, fixo, cargo, area).then(() => {
     // Atualizar registro em memória
     const rec = db.find(x => (x.email || '').trim().toLowerCase() === overrideEditEmail);
@@ -265,10 +266,24 @@ function saveOverrideModal() {
 
     closeOverrideModal();
     refresh();
-    const parts = [];
-    if (fixo) parts.push('Setor: "' + setor + '"');
-    if (area) parts.push('Area: "' + area + '"');
-    if (cargo) parts.push('Cargo: "' + cargo + '"');
-    toast(fixo ? (parts.join(' · ') + ' 🔒') : 'Override removido — valores voltarão ao CSV.');
+
+    if (syncAD) {
+      fetch('/api/ad-patch/' + encodeURIComponent(overrideEditEmail), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ cargo: cargo || '', setor: setor || '' })
+      })
+      .then(r => r.json())
+      .then(res => {
+        toast(res.ok ? 'Salvo localmente + atualizado no AD ✓' : 'Salvo localmente. AD: ' + (res.reason || 'erro'));
+      })
+      .catch(() => toast('Salvo localmente. Falha ao contactar o AD.'));
+    } else {
+      const parts = [];
+      if (fixo) parts.push('Setor: "' + setor + '"');
+      if (area) parts.push('Area: "' + area + '"');
+      if (cargo) parts.push('Cargo: "' + cargo + '"');
+      toast(fixo ? (parts.join(' · ') + ' 🔒') : 'Override removido — valores voltarão ao CSV.');
+    }
   }).catch(() => { toast('Erro ao salvar override.'); });
 }

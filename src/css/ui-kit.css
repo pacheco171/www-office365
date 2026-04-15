@@ -581,61 +581,43 @@ th.sort:hover{
 .boot-loader{
   position:fixed;top:0;left:0;width:100%;height:100%;z-index:10000;
   background:radial-gradient(circle at center,#1a1612 0%,#0d0b09 100%);
-  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  display:flex;justify-content:center;align-items:center;
   overflow:hidden;
   transition:opacity .4s ease,transform .4s ease;
 }
-.boot-loader.fade-out{
-  opacity:0;transform:scale(1.04);pointer-events:none;
-}
+.boot-loader.fade-out{opacity:0;transform:scale(1.04);pointer-events:none;}
 .boot-loader::after{
-  content:'';position:absolute;
-  width:200%;height:200%;
+  content:'';position:absolute;width:200%;height:200%;
   background:radial-gradient(circle,rgba(198,167,125,.03) 0%,transparent 70%);
-  animation:moveBg 12s linear infinite;
-  pointer-events:none;
+  animation:moveBg 12s linear infinite;pointer-events:none;
 }
-.boot-loader .boot-brand{text-align:center;position:relative;z-index:1;}
-.boot-loader .boot-logo{
-  font-size:48px;font-weight:700;
-  color:#e7e2dc;letter-spacing:2px;line-height:1;
+.boot-loader .box{text-align:center;position:relative;z-index:1;}
+.boot-loader .logo{
+  font-size:48px;font-weight:700;letter-spacing:2px;
+  color:#e7e2dc;line-height:1;
 }
-.boot-loader .boot-logo em{color:#c6a77d;font-style:normal;text-shadow:0 0 10px rgba(198,167,125,.5);}
-.boot-loader .boot-sub{
-  font-size:11px;color:#8b8175;
-  letter-spacing:4px;text-transform:uppercase;
-  margin-top:6px;margin-bottom:30px;
+.boot-loader .logo span{color:#c6a77d;text-shadow:0 0 10px rgba(198,167,125,.5);}
+.boot-loader .subtitle{
+  font-size:11px;letter-spacing:4px;color:#8b8175;
+  text-transform:uppercase;margin-bottom:30px;
 }
-.boot-loader .boot-progress{
+.boot-loader .progress-bar{
   width:180px;height:2px;
   background:rgba(255,255,255,.08);
   border-radius:10px;overflow:hidden;
-  position:relative;z-index:1;
-  margin-bottom:20px;
+  margin:0 auto 20px auto;
 }
-.boot-loader .boot-progress-bar{
-  width:0%;height:100%;
+.boot-loader .progress-fill{
+  height:100%;width:0%;
   background:linear-gradient(90deg,#c6a77d,#e7d3b0);
-  border-radius:10px;
-  transition:width .6s ease;
+  border-radius:10px;transition:width .6s ease;
 }
-.boot-loader .boot-status{
+.boot-loader .status{
   font-size:13px;color:#a39a8f;
-  text-align:center;min-height:18px;
-  position:relative;z-index:1;
   transition:opacity .3s ease,transform .3s ease;
 }
-.boot-loader .boot-status.fade{
-  opacity:0;transform:translateY(5px);
-}
-@keyframes moveBg{
-  from{transform:translate(0,0);}
-  to{transform:translate(-10%,-10%);}
-}
-@keyframes bootEnter{
-  from{opacity:0;transform:translateY(20px) scale(.96);}
-  to{opacity:1;transform:translateY(0) scale(1);}
-}
+.boot-loader .status.fade{opacity:0;transform:translateY(5px);}
+@keyframes moveBg{from{transform:translate(0,0);}to{transform:translate(-10%,-10%);}}
 
 /* ── 17. DIVIDER REFINEMENT ───────────────────────────────────────── */
 

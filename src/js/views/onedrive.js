@@ -20,7 +20,7 @@ function renderOnedriveView(){
   ]);
   tblEl.innerHTML = loadingHTML('Carregando dados do OneDrive...');
 
-  fetchWithTimeout('/api/reports/onedrive').then(function(r){ return r.json(); }).then(function(res){
+  fetchWithTimeout('/api/reports/onedrive', 90000).then(function(r){ return r.json(); }).then(function(res){
     if(res.error){
       tblEl.innerHTML = errorHTML('renderOnedriveView', res.error);
       return;

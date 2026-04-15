@@ -5,9 +5,25 @@
   <div class="topbar">
     <div><div class="page-heading" data-i18n="term.colaboradores">Colaboradores</div><div class="page-sub" id="colabSub">—</div></div>
     <div class="topbar-actions">
+      <input type="file" id="rhCsvInput" accept=".csv" style="display:none" onchange="uploadRHCsv(this)">
+      <button id="btnImportarRH" class="btn btn-outline" style="display:none" onclick="document.getElementById('rhCsvInput').click()" title="Importar CSV do RH para atualizar cargo e setor">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg><span>Importar RH</span>
+      </button>
       <button class="btn btn-outline" onclick="exportCSV()">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg><span data-i18n="btn.exportar">Exportar</span>
       </button>
+    </div>
+
+    </div>
+
+  <!-- Modal resultado da importação RH -->
+  <div id="rhImportModal" style="display:none;position:fixed;inset:0;z-index:1000;background:rgba(0,0,0,.55);align-items:center;justify-content:center">
+    <div style="background:var(--bg-card,#1e1e2e);border-radius:12px;padding:28px 32px;max-width:700px;width:92%;max-height:80vh;overflow:auto;box-shadow:0 8px 40px rgba(0,0,0,.5)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:18px">
+        <h3 style="margin:0;font-size:1.1rem">Importação CSV RH</h3>
+        <button onclick="closeRHModal()" style="background:none;border:none;cursor:pointer;font-size:1.4rem;color:var(--text-muted,#888)">&times;</button>
+      </div>
+      <div id="rhImportBody"></div>
     </div>
   </div>
   <div class="toolbar">

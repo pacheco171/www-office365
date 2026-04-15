@@ -2,9 +2,12 @@ aside{width:240px;flex-shrink:0;background:var(--black);border-right:1px solid r
 aside::-webkit-scrollbar{width:4px;}
 aside::-webkit-scrollbar-thumb{background:rgba(255,255,255,.1);border-radius:4px;}
 aside::-webkit-scrollbar-track{background:transparent;}
-.logo{font-family:'Outfit',sans-serif;font-size:28px;font-weight:800;color:#fff;letter-spacing:-0.5px;line-height:1;}
+.sidebar-brand{display:flex;align-items:center;gap:10px;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.08);}
+.sidebar-brand-icon{width:30px;height:30px;object-fit:contain;flex-shrink:0;border-radius:6px;}
+.sidebar-brand-text{display:flex;flex-direction:column;min-width:0;}
+.logo{font-family:'Outfit',sans-serif;font-size:24px;font-weight:800;color:#fff;letter-spacing:-0.5px;line-height:1;}
 .logo em{color:var(--tan);font-style:normal;}
-.logo-sub{font-size:9px;color:rgba(255,255,255,0.25);letter-spacing:3px;text-transform:uppercase;margin-top:4px;margin-bottom:0;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,0.08);}
+.logo-sub{font-size:9px;color:rgba(255,255,255,0.25);letter-spacing:3px;text-transform:uppercase;margin-top:3px;margin-bottom:0;}
 .tenant-nav-item{position:relative;cursor:pointer;}
 .nav-item.tenant-nav-item{overflow:visible;}
 .nav-item.tenant-nav-item:hover{transform:none;}

@@ -13,11 +13,8 @@ var globalAdmin = false;
 
 // ── Store de autenticação (apenas dados do usuário, SEM tokens) ───
 var authStore = createStore('auth', {
-  username:   null,
-  name:       null,
-  email:      null,
-  department: null,
-  loginAt:    null
+  username: null,
+  name:     null,
 });
 
 // ─────────────────────────────────────────────────────────────────
@@ -50,11 +47,8 @@ function authLogin(username, password) {
     var user = data.user || {};
 
     authStore.setState({
-      username:   user.username || username,
-      name:       user.name || username,
-      email:      user.email || '',
-      department: user.department || '',
-      loginAt:    new Date().toISOString()
+      username: user.username || username,
+      name:     user.name || username,
     });
 
     return authStore.getState();

@@ -20,13 +20,13 @@ def create_app() -> Flask:
     # ── Register blueprints ────────────────────────────────────────────────────
     from app.blueprints import (
         auth, core, annotations, overrides, hierarchy, changelog,
-        graph, reports, security, support, ai, admin, static_files,
+        graph, reports, security, support, ai, admin, static_files, import_rh,
     )
 
     for bp in [
         auth.bp, core.bp, annotations.bp, overrides.bp, hierarchy.bp,
         changelog.bp, graph.bp, reports.bp, security.bp, support.bp,
-        ai.bp, admin.bp, static_files.bp,
+        ai.bp, admin.bp, static_files.bp, import_rh.bp,
     ]:
         app.register_blueprint(bp)
 
@@ -79,7 +79,9 @@ def create_app() -> Flask:
             "img-src 'self' data:; "
             "frame-ancestors 'none'"
         )
-        if request.path.startswith("/api/") or request.path.endswith(".html"):
+        import os as _os
+        _ext = _os.path.splitext(request.path)[1].lower()
+        if request.path.startswith("/api/") or _ext in ("", ".html"):
             response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
             response.headers["Pragma"] = "no-cache"
             response.headers["Expires"] = "0"

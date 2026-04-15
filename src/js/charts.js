@@ -122,7 +122,7 @@ function drawBarCusto(){
   const top=sorted.slice(0,10);
   const max=top[0]?.[1]||1;
   barEl.innerHTML=top.map(([s,v])=>`
-    <div class="bc-row">
+    <div class="bc-row" style="cursor:pointer" data-setor="${s.replace(/"/g,'&quot;')}" onclick="navigateToSetor(this.dataset.setor)" onmouseenter="showSectorHover('${s.replace(/'/g, "\\'")}', event)" onmouseleave="hideSectorHover()" onmousemove="moveSectorHover(event)">
       <div class="bc-label" title="${s}">${s}</div>
       <div class="bc-track"><div class="bc-fill" style="width:${Math.round(v/max*100)}%;background:var(--tan)"></div></div>
       <div class="bc-val">${fmtBRL(v)}</div>
@@ -242,7 +242,7 @@ function _calcCustoMedioSetor(){
 function _renderCustoMedioBars(el, data){
   var max=data.length?data[0].media:1;
   el.innerHTML=data.map(function(e){
-    return '<div class="bc-row">'+
+    return '<div class="bc-row" style="cursor:pointer" data-setor="'+e.name.replace(/"/g,'&quot;')+'" onclick="navigateToSetor(this.dataset.setor)" onmouseenter="showSectorHover(\''+e.name.replace(/'/g,"\\'")+'\', event)" onmouseleave="hideSectorHover()" onmousemove="moveSectorHover(event)">' +
       '<div class="bc-label" title="'+e.name+'">'+e.name+'</div>'+
       '<div class="bc-track"><div class="bc-fill" style="width:'+Math.round(e.media/max*100)+'%;background:var(--green)"></div></div>'+
       '<div class="bc-val">'+fmtBRL(e.media)+'<span style="font-size:9px;color:var(--muted);margin-left:3px">('+e.count+')</span></div>'+
@@ -424,12 +424,35 @@ function drawBarStatus(){
   const max=Math.max(...Object.values(byStatus));
   const colors={Ativo:'var(--green)',Pendente:'var(--yellow)',Inativo:'var(--muted)'};
   statusEl.innerHTML=Object.entries(byStatus).map(([s,v])=>`
-    <div class="bc-row">
+    <div class="bc-row" style="cursor:pointer" onclick="navigateToStatus('${s}')">
       <div class="bc-label">${s}</div>
       <div class="bc-track"><div class="bc-fill" style="width:${Math.round(v/max*100)}%;background:${colors[s]}"></div></div>
       <div class="bc-val">${v}</div>
     </div>`).join('');
 }
+
+/** Navega para Colaboradores filtrado pelo macro-setor */
+window.navigateToSetor = function(sectorName) {
+  if (getActivePage() === 'colaboradores') {
+    window._activeMacroFilter = sectorName;
+    var fs = document.getElementById('fltSetor'); if (fs) fs.value = '';
+    currentPage = 1; renderTable();
+  } else {
+    window._pendingColabFilter = { macro: sectorName };
+    _spaNavigate('/colaboradores');
+  }
+};
+
+/** Navega para Colaboradores filtrado por status */
+window.navigateToStatus = function(status) {
+  if (getActivePage() === 'colaboradores') {
+    var el = document.getElementById('fltStatus');
+    if (el) { el.value = status; currentPage = 1; renderTable(); }
+  } else {
+    window._pendingColabFilter = { status: status };
+    _spaNavigate('/colaboradores');
+  }
+};
 
 document.addEventListener('i18n:change', function(){
   var setorPanel=document.getElementById('setorAllPanel');
@@ -437,3 +460,80 @@ document.addEventListener('i18n:change', function(){
   var medioPanel=document.getElementById('custoMedioAllPanel');
   _syncVerTodosLink('verTodosMedio', medioPanel&&medioPanel.classList.contains('open'));
 });
+
+/** ══════════ HOVER CARD (GLASSMORPHISM) ══════════ */
+let _sectorTooltipTimer = null;
+window.showSectorHover = function(sectorName, event) {
+  const tooltip = document.getElementById('globalSectorTooltip');
+  if(!tooltip) return;
+  clearTimeout(_sectorTooltipTimer);
+  
+  const d = dashData();
+  const members = d.filter(r => r.status === 'Ativo' && resolveHierarchy(r).macro === sectorName);
+  const custoTotal = members.reduce((sum, r) => sum + userCost(r), 0);
+  const totalPessoas = members.filter(r => r.licId && r.licId !== 'none' && r.licId !== 'other').length;
+  const totalGeral = members.length;
+  const custoMedio = totalPessoas > 0 ? custoTotal / totalPessoas : 0;
+  
+  const licCounts = {};
+  members.forEach(r => {
+    if(r.licId && r.licId !== 'none' && r.licId !== 'other') {
+      licCounts[r.licId] = (licCounts[r.licId]||0) + 1;
+    }
+  });
+  const topLics = Object.entries(licCounts).sort((a,b) => b[1]-a[1]).slice(0,3);
+  
+  let licsHtml = '';
+  if(topLics.length) {
+    licsHtml = '<div class="st-lics" style="margin-top:8px;padding-top:10px;border-top:1px solid rgba(0,0,0,0.05)">' + 
+      '<div style="font-size:9px;text-transform:uppercase;letter-spacing:1px;font-weight:700;color:var(--muted);margin-bottom:6px">Principais Licenças</div>' +
+      topLics.map(([id, cnt]) => {
+        const lic = getLic(id) || {color:'#ccc', short:id};
+        return `<div class="st-lic-row"><div class="st-lic-dot" style="background:${lic.color}"></div><div class="st-lic-name">${lic.short}</div><div class="st-lic-cnt">${cnt}</div></div>`;
+      }).join('') + '</div>';
+  }
+
+  const lblComLicenca = (typeof t === 'function' ? t('dash.com_licenca') : 'Com licença').split(' ')[0] + ' Lic.';
+  const lblCustoMedio = typeof t === 'function' ? t('dash.custo_medio') : 'Custo médio';
+
+  tooltip.innerHTML = `
+    <div class="st-hdr">
+      <div class="st-title" title="${sectorName}">${sectorName}</div>
+      <div class="st-cost">${fmtBRL(custoTotal)}</div>
+    </div>
+    <div class="st-stats">
+      <div class="st-stat"><span class="st-stat-lbl" style="color:var(--black)">Pessoas</span><span class="st-stat-val">${totalGeral}</span></div>
+      <div class="st-stat"><span class="st-stat-lbl">${lblComLicenca}</span><span class="st-stat-val" style="color:#0078d4">${totalPessoas}</span></div>
+    </div>
+    <div class="st-stats" style="margin-bottom:0">
+      <div class="st-stat" style="background:var(--sand-lt);padding:8px;border-radius:6px;width:100%"><span class="st-stat-lbl">${lblCustoMedio}</span><span class="st-stat-val" style="color:var(--green)">${fmtBRL(custoMedio)}</span></div>
+    </div>
+    ${licsHtml}
+  `;
+  
+  tooltip.classList.add('active');
+  moveSectorHover(event);
+};
+
+window.moveSectorHover = function(event) {
+  const tooltip = document.getElementById('globalSectorTooltip');
+  if(!tooltip || !tooltip.classList.contains('active')) return;
+  // Try to keep it inside the window
+  let x = event.clientX;
+  let y = event.clientY;
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  if(x > w - 260) x = w - 260;
+  if(y < 180) y = 180;
+  
+  tooltip.style.left = x + 'px';
+  tooltip.style.top = y + 'px';
+};
+
+window.hideSectorHover = function() {
+  const tooltip = document.getElementById('globalSectorTooltip');
+  if(!tooltip) return;
+  _sectorTooltipTimer = setTimeout(() => {
+    tooltip.classList.remove('active');
+  }, 50);
+};

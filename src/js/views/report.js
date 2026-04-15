@@ -66,7 +66,7 @@ function renderReport(){
   <div class="report-wrap">
     <div class="report-header">
       <div>
-        <div class="report-logo">LIVE<em>!</em></div>
+        <img src="/src/images/logo.png" class="report-logo-img" alt="LIVE!">
         <div class="report-logo-sub">Microsoft 365 — Gestão de Licenças</div>
       </div>
       <div class="report-meta">

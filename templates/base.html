@@ -4,63 +4,41 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>LIVE! — {% block title %}Microsoft 365{% endblock %}</title>
-<link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="icon" href="/favicon.png" type="image/png" sizes="any">
+<link rel="icon" href="/favicon.ico" type="image/x-icon">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Lexend:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<!-- CSS -->
-<link rel="stylesheet" href="/src/css/variables.css?v={{ sv }}">
-<link rel="stylesheet" href="/src/css/base.css?v={{ sv }}">
-<link rel="stylesheet" href="/src/css/sidebar.css?v={{ sv }}">
-<link rel="stylesheet" href="/src/css/layout.css?v={{ sv }}">
-<link rel="stylesheet" href="/src/css/metrics.css?v={{ sv }}">
-<link rel="stylesheet" href="/src/css/charts.css?v={{ sv }}">
-<link rel="stylesheet" href="/src/css/components.css?v={{ sv }}">
-<link rel="stylesheet" href="/src/css/table.css?v={{ sv }}">
-<link rel="stylesheet" href="/src/css/modal.css?v={{ sv }}">
-<link rel="stylesheet" href="/src/css/toolbar.css?v={{ sv }}">
-<link rel="stylesheet" href="/src/css/views/licencas.css?v={{ sv }}">
-<link rel="stylesheet" href="/src/css/views/optimization.css?v={{ sv }}">
-<link rel="stylesheet" href="/src/css/views/config.css?v={{ sv }}">
-<link rel="stylesheet" href="/src/css/views/radar.css?v={{ sv }}">
-<link rel="stylesheet" href="/src/css/views/contracts.css?v={{ sv }}">
-<link rel="stylesheet" href="/src/css/views/suggestions.css?v={{ sv }}">
-<link rel="stylesheet" href="/src/css/views/report.css?v={{ sv }}">
-<link rel="stylesheet" href="/src/css/views/auditoria.css?v={{ sv }}">
-<link rel="stylesheet" href="/src/css/views/acoes.css?v={{ sv }}">
-<link rel="stylesheet" href="/src/css/views/simulador.css?v={{ sv }}">
-<link rel="stylesheet" href="/src/css/views/forecast.css?v={{ sv }}">
-<link rel="stylesheet" href="/src/css/views/exchange.css?v={{ sv }}">
-<link rel="stylesheet" href="/src/css/views/onedrive.css?v={{ sv }}">
-<link rel="stylesheet" href="/src/css/views/dominios.css?v={{ sv }}">
-<link rel="stylesheet" href="/src/css/views/grupos.css?v={{ sv }}">
-<link rel="stylesheet" href="/src/css/views/aplicativos.css?v={{ sv }}">
-<link rel="stylesheet" href="/src/css/views/privilegios.css?v={{ sv }}">
-<link rel="stylesheet" href="/src/css/views/politicas.css?v={{ sv }}">
-<link rel="stylesheet" href="/src/css/views/alertas.css?v={{ sv }}">
-<link rel="stylesheet" href="/src/css/views/assessment.css?v={{ sv }}">
-<link rel="stylesheet" href="/src/css/views/suporte.css?v={{ sv }}">
-<link rel="stylesheet" href="/src/css/ai-chat.css?v={{ sv }}">
+<!-- CSS (bundles: 33 arquivos -> 3 requests) -->
+<link rel="stylesheet" href="/src/css/bundle-core.css?v={{ sv }}">
 <link rel="stylesheet" href="/src/css/ui-kit.css?v={{ sv }}">
+<link rel="stylesheet" href="/src/css/bundle-views.css?v={{ sv }}">
+<!-- Expõe hash de versão para lazy loader -->
+<script>window._sv="{{ sv }}";</script>
 <!-- Guard: redireciona para login se não autenticado -->
 <script src="/src/js/store.js?v={{ sv }}"></script>
 <script>(function(){if(!localStorage.getItem('store_auth'))window.location.replace('/login.html');}());</script>
 </head>
 <body data-page="{{ active_page }}">
-<div id="bootLoader" class="boot-loader" style="display:none">
-  <div class="boot-brand">
-    <div class="boot-logo">LIVE<em>!</em></div>
-    <div class="boot-sub">Microsoft 365</div>
+<div id="loader" class="boot-loader" style="display:none">
+  <div class="box">
+    <div class="logo">LIVE<span>!</span></div>
+    <div class="subtitle">MICROSOFT 365</div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progress"></div>
+    </div>
+    <div class="status" id="statusText">Inicializando...</div>
   </div>
-  <div class="boot-progress"><div class="boot-progress-bar" id="bootProgressBar"></div></div>
-  <div class="boot-status" id="bootStatus">Inicializando...</div>
 </div>
-<script>(function(){if(sessionStorage.getItem('boot_pending'))document.getElementById('bootLoader').style.display='';}());</script>
+<script>(function(){if(sessionStorage.getItem('boot_pending'))document.getElementById('loader').style.display='';}());</script>
 <div class="layout">
 <aside>
-  <div class="logo">LIVE<em>!</em></div>
-  <div class="logo-sub">Microsoft 365</div>
+  <div class="sidebar-brand">
+    <img src="/src/images/logo.png" alt="LIVE" class="sidebar-brand-icon">
+    <div class="sidebar-brand-text">
+      <div class="logo">LIVE<em>!</em></div>
+      <div class="logo-sub">Microsoft 365</div>
+    </div>
+  </div>
   <div id="tenantSwitcher" class="nav-item tenant-nav-item" style="display:none" onclick="openTenantSelector()">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="10" rx="2"/><path d="M16 3l4 4-4 4"/><path d="M8 21l-4-4 4-4"/></svg>
     <span id="tenantDisplayName" class="tenant-nav-name"></span>
@@ -324,6 +302,10 @@
         <input type="checkbox" id="ovFixo" checked>
         <label for="ovFixo" style="margin:0;font-size:12px;cursor:pointer" data-i18n="modal.setor_fixo">Manter setor fixo (não sobrescrever nas importações)</label>
       </div>
+      <div class="form-group form-full" style="display:flex;align-items:center;gap:8px">
+        <input type="checkbox" id="ovSyncAD">
+        <label for="ovSyncAD" style="margin:0;font-size:12px;cursor:pointer">Atualizar cargo e setor no AD também</label>
+      </div>
     </div>
     <div class="modal-ftr">
       <button class="btn btn-outline" onclick="closeOverrideModal()" data-i18n="btn.cancelar">Cancelar</button>
@@ -461,21 +443,9 @@
 <script defer src="/src/js/views/radar.js?v={{ sv }}"></script>
 <script defer src="/src/js/views/acoes.js?v={{ sv }}"></script>
 <script defer src="/src/js/views/simulador.js?v={{ sv }}"></script>
-<script defer src="/src/js/views/report.js?v={{ sv }}"></script>
-<script defer src="/src/js/views/auditoria.js?v={{ sv }}"></script>
-<script defer src="/src/js/views/config.js?v={{ sv }}"></script>
 <script defer src="/src/js/views/checklist.js?v={{ sv }}"></script>
 <script defer src="/src/js/report-table.js?v={{ sv }}"></script>
-<script defer src="/src/js/views/exchange.js?v={{ sv }}"></script>
-<script defer src="/src/js/views/onedrive.js?v={{ sv }}"></script>
-<script defer src="/src/js/views/dominios.js?v={{ sv }}"></script>
-<script defer src="/src/js/views/grupos.js?v={{ sv }}"></script>
-<script defer src="/src/js/views/aplicativos.js?v={{ sv }}"></script>
-<script defer src="/src/js/views/privilegios.js?v={{ sv }}"></script>
-<script defer src="/src/js/views/politicas.js?v={{ sv }}"></script>
-<script defer src="/src/js/views/alertas.js?v={{ sv }}"></script>
-<script defer src="/src/js/views/assessment.js?v={{ sv }}"></script>
-<script defer src="/src/js/views/suporte.js?v={{ sv }}"></script>
+<!-- views de relatório: carregadas sob demanda pelo lazy loader em main.js -->
 <!-- JS: permissions -->
 <script defer src="/src/js/permissions.js?v={{ sv }}"></script>
 <!-- JS: overrides (setor fixo/manual) -->

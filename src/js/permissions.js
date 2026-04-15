@@ -48,6 +48,10 @@ function applyRoleRestrictions(){
     });
   }
 
+  // Botão importar RH — só superadmin vê
+  var btnRH=document.getElementById('btnImportarRH');
+  if(btnRH) btnRH.style.display=isSuperAdmin?'':'none';
+
   // Config read-only para admins (inputs desabilitados)
   if(userRole==='admin'&&!isSuperAdmin){
     document.querySelectorAll('#view-config input, #view-config select').forEach(function(el){

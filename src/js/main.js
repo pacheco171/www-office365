@@ -82,6 +82,34 @@ function toast(msg,dur){
 /* Controla quais views já foram renderizadas (evita re-render desnecessário) */
 var _rendered = {};
 
+/* ── Lazy loading de views de relatório ── */
+var _loadedViews = {};
+var _LAZY_VIEWS = {
+  'exchange':    '/src/js/views/exchange.js',
+  'onedrive':    '/src/js/views/onedrive.js',
+  'dominios':    '/src/js/views/dominios.js',
+  'grupos':      '/src/js/views/grupos.js',
+  'aplicativos': '/src/js/views/aplicativos.js',
+  'privilegios': '/src/js/views/privilegios.js',
+  'politicas':   '/src/js/views/politicas.js',
+  'alertas':     '/src/js/views/alertas.js',
+  'assessment':  '/src/js/views/assessment.js',
+  'suporte':     '/src/js/views/suporte.js',
+  'auditoria':   '/src/js/views/auditoria.js',
+  'relatorio':   '/src/js/views/report.js',
+  'config':      '/src/js/views/config.js'
+};
+
+/** Injeta script de view sob demanda e executa callback quando pronto */
+function _lazyView(page, cb) {
+  if (_loadedViews[page]) { cb(); return; }
+  var s = document.createElement('script');
+  s.src = (_LAZY_VIEWS[page] || '') + '?v=' + (window._sv || '');
+  s.onload = function() { _loadedViews[page] = true; cb(); };
+  s.onerror = function() { console.warn('[lazy] falha ao carregar view:', page); };
+  document.head.appendChild(s);
+}
+
 /** Renderiza a view da página atual após carregamento de dados */
 function renderCurrentPage(){
   var page=getActivePage();
@@ -94,19 +122,30 @@ function renderCurrentPage(){
   if(page==='historico')renderHistView();
   if(page==='radar'){renderRadar();if(typeof syncRadarAcoes==='function')syncRadarAcoes();}
   if(page==='contratos')renderContracts();
-  if(page==='relatorio')renderReport();
-  if(page==='auditoria')renderAuditoria();
   if(page==='sugestoes'&&typeof loadAnnotations==='function')loadAnnotations();
-  if(page==='exchange')renderExchangeView();
-  if(page==='onedrive')renderOnedriveView();
-  if(page==='dominios')renderDominiosView();
-  if(page==='grupos')renderGruposView();
-  if(page==='aplicativos')renderAplicativosView();
-  if(page==='privilegios')renderPrivilegiosView();
-  if(page==='politicas')renderPoliticasView();
-  if(page==='alertas')renderAlertasView();
-  if(page==='assessment')renderAssessmentView();
-  if(page==='suporte')renderSuporteView();
+  /* views lazy: carregam o script na primeira visita */
+  if(_LAZY_VIEWS[page]){
+    _rendered[page]=false; /* permite re-chamar após load */
+    _lazyView(page, function(){
+      _rendered[page]=true;
+      if(page==='relatorio')renderReport();
+      if(page==='auditoria')renderAuditoria();
+      if(page==='exchange')renderExchangeView();
+      if(page==='onedrive')renderOnedriveView();
+      if(page==='dominios')renderDominiosView();
+      if(page==='grupos')renderGruposView();
+      if(page==='aplicativos')renderAplicativosView();
+      if(page==='privilegios')renderPrivilegiosView();
+      if(page==='politicas')renderPoliticasView();
+      if(page==='alertas')renderAlertasView();
+      if(page==='assessment')renderAssessmentView();
+      if(page==='suporte')renderSuporteView();
+      if(page==='config'){
+        if(typeof loadGraphConfig==='function')loadGraphConfig();
+        if(typeof loadAiConfig==='function')loadAiConfig();
+      }
+    });
+  }
 }
 
 /** Re-renderiza a view atual (chamado após alteração de dados) */
@@ -149,9 +188,9 @@ function applyBoot(boot){
   if(typeof applyOverridesLocal==='function')applyOverridesLocal(db);
 }
 
-function bootProgress(percent,msg,step){
-  var bar=document.getElementById('bootProgressBar');
-  var status=document.getElementById('bootStatus');
+function bootProgress(percent,msg){
+  var bar=document.getElementById('progress');
+  var status=document.getElementById('statusText');
   if(bar)bar.style.width=percent+'%';
   if(status&&msg){
     status.classList.add('fade');
@@ -160,64 +199,85 @@ function bootProgress(percent,msg,step){
       status.classList.remove('fade');
     },300);
   }
-  if(step){
-    var steps=document.querySelectorAll('.boot-step');
-    steps.forEach(function(s){
-      var n=parseInt(s.getAttribute('data-step'));
-      if(n<step)s.className='boot-step done';
-      else if(n===step)s.className='boot-step active';
-      else s.className='boot-step';
-    });
-  }
 }
 
 function dismissBootLoader(){
   sessionStorage.removeItem('boot_pending');
-  var bl=document.getElementById('bootLoader');
+  var bl=document.getElementById('loader');
   if(!bl)return;
   bl.classList.add('fade-out');
   setTimeout(function(){bl.remove();},500);
 }
 
+/* ── Cache do /api/boot em sessionStorage (TTL: 5 min) ── */
+var _BOOT_TTL = 5 * 60 * 1000;
+function _bootCacheKey() {
+  var s = typeof authGetSession === 'function' ? (authGetSession() || {}) : {};
+  return 'boot_v2_' + (s.tenant || s.username || 'default');
+}
+function fetchBoot() {
+  /* boot_pending = pós-login ou troca de tenant: sempre buscar dados frescos
+     para garantir que a animação do loader rode por tempo suficiente */
+  if (!sessionStorage.getItem('boot_pending')) {
+    var key = _bootCacheKey();
+    var raw = sessionStorage.getItem(key);
+    if (raw) {
+      try {
+        var entry = JSON.parse(raw);
+        if (Date.now() - entry.ts < _BOOT_TTL) return Promise.resolve(entry.data);
+      } catch(e) { /* cache corrompido, ignora */ }
+    }
+  }
+  return fetch('/api/boot', {cache:'no-store'})
+    .then(function(r){ return r.json(); })
+    .then(function(boot){
+      var key = _bootCacheKey();
+      try { sessionStorage.setItem(key, JSON.stringify({ts: Date.now(), data: boot})); } catch(e){}
+      return boot;
+    });
+}
+
 function invalidateBootCache(){
   sessionStorage.removeItem('boot_cache');
+  try { sessionStorage.removeItem(_bootCacheKey()); } catch(e){}
 }
 
 (function(){
   var s=authGetSession();
   if(s)document.getElementById('sbUserName').textContent=s.name||s.username;
 
-  var cached=sessionStorage.getItem('boot_cache');
-  var isFirstBoot=sessionStorage.getItem('boot_pending');
-
-  if(cached&&!isFirstBoot){
-    try{
-      applyBoot(JSON.parse(cached));
-      updateMetrics();renderCurrentPage();
-    }catch(e){sessionStorage.removeItem('boot_cache');}
-    if(typeof loadChangelog==='function')loadChangelog();
-    return;
-  }
-
   if(typeof uiProgress!=='undefined')uiProgress.start();
   if(getActivePage()==='colaboradores'&&typeof uiSkeleton!=='undefined')uiSkeleton.table('tableBody',8,6);
 
-  bootProgress(20,'Conectando ao tenant...',1);
+  var _bootDone = false;
+  var _bootSteps = [
+    { p: 20,  msg: 'Conectando ao tenant...' },
+    { p: 40,  msg: 'Validando credenciais...' },
+    { p: 60,  msg: 'Sincronizando usu\u00e1rios...' },
+    { p: 80,  msg: 'Carregando licen\u00e7as...' },
+  ];
+  var _bootIdx = 0;
+  bootProgress(_bootSteps[0].p, _bootSteps[0].msg);
+  _bootIdx = 1;
+  var _bootTimer = setInterval(function(){
+    if(_bootDone || _bootIdx >= _bootSteps.length){ clearInterval(_bootTimer); return; }
+    bootProgress(_bootSteps[_bootIdx].p, _bootSteps[_bootIdx].msg);
+    _bootIdx++;
+  }, 1200);
 
-  fetch('/api/boot',{cache:'no-store'}).then(function(r){
-    bootProgress(60,'Carregando dados...',2);
-    return r.json();
-  }).then(function(boot){
-    bootProgress(90,'Preparando interface...',3);
-    try{sessionStorage.setItem('boot_cache',JSON.stringify(boot));}catch(e){}
+  fetchBoot().then(function(boot){
+    _bootDone = true;
+    clearInterval(_bootTimer);
+    bootProgress(100,'Finalizando ambiente...');
     applyBoot(boot);
     updateMetrics();renderCurrentPage();
     if(typeof uiProgress!=='undefined')uiProgress.done();
-    bootProgress(100,null,3);
   }).catch(function(e){
-    console.warn('boot error:',e);
-    try{updateMetrics();}catch(e2){console.warn('metrics error:',e2);}
-    try{renderCurrentPage();}catch(e2){console.warn('render error:',e2);}
+    _bootDone = true;
+    clearInterval(_bootTimer);
+    console.warn('[app] boot error');
+    try{updateMetrics();}catch(e2){console.warn('[app] metrics error');}
+    try{renderCurrentPage();}catch(e2){console.warn('[app] render error');}
     if(typeof uiProgress!=='undefined')uiProgress.done();
   }).finally(function(){
     dismissBootLoader();
