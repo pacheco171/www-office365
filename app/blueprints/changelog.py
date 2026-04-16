@@ -56,7 +56,7 @@ def get_changelog():
 
 @bp.route("/api/changelog", methods=["POST"])
 def post_changelog():
-    check = require_role("superadmin")
+    check = require_role("superadmin", "admin", "tecnico")
     if check:
         return check
     payload = request.get_json(force=True, silent=True)

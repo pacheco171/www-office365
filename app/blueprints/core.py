@@ -160,7 +160,7 @@ def get_data():
 
 @bp.route("/api/data", methods=["POST"])
 def post_data():
-    check = require_role("superadmin")
+    check = require_role("superadmin", "admin", "tecnico")
     if check:
         return check
     payload = request.get_json(force=True, silent=True)

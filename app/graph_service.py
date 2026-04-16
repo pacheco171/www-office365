@@ -157,6 +157,62 @@ def graph_get_simple(token: str, url: str) -> list:
     return data.get("value", data if isinstance(data, list) else [])
 
 
+def graph_post(token: str, url: str, payload: dict) -> dict:
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+        **_GRAPH_LANG_HEADERS,
+    }
+    resp = http_requests.post(url, headers=headers, json=payload, timeout=30)
+    if not resp.ok:
+        log.error("Graph API POST erro %s %s: %s", resp.status_code, url, resp.text[:500])
+    resp.raise_for_status()
+    if resp.status_code == 204 or not resp.content:
+        return {}
+    try:
+        return resp.json()
+    except ValueError:
+        return {}
+
+
+def resolve_sku_ids_for_lic(lic_id: str, addons: list, subscriptions: list) -> set:
+    if not subscriptions:
+        return set()
+    wanted = set()
+    keys = set()
+    if lic_id and lic_id not in ("none", "other"):
+        keys.add(lic_id)
+    for a in addons or []:
+        if a:
+            keys.add(a)
+    for s in subscriptions:
+        if s.get("licId") in keys and s.get("skuId"):
+            wanted.add(s["skuId"])
+    return wanted
+
+
+def assign_license_for_user(token: str, user_email: str, target_sku_ids: set, managed_sku_ids: set) -> dict:
+    user_url = f"https://graph.microsoft.com/v1.0/users/{user_email}"
+    headers = {"Authorization": f"Bearer {token}", **_GRAPH_LANG_HEADERS}
+    resp = http_requests.get(user_url + "?$select=id,assignedLicenses", headers=headers, timeout=30)
+    if not resp.ok:
+        log.error("Graph GET user %s falhou %s: %s", user_email, resp.status_code, resp.text[:500])
+    resp.raise_for_status()
+    user = resp.json()
+    current = {a.get("skuId") for a in (user.get("assignedLicenses") or []) if a.get("skuId")}
+    current_managed = current & managed_sku_ids
+    add = sorted(target_sku_ids - current)
+    remove = sorted(current_managed - target_sku_ids)
+    if not add and not remove:
+        return {"added": [], "removed": [], "noop": True}
+    payload = {
+        "addLicenses": [{"skuId": sid, "disabledPlans": []} for sid in add],
+        "removeLicenses": remove,
+    }
+    graph_post(token, f"{user_url}/assignLicense", payload)
+    return {"added": add, "removed": remove, "noop": False}
+
+
 def graph_get_csv_report(token: str, url: str) -> list:
     headers = {"Authorization": f"Bearer {token}"}
     resp = http_requests.get(url, headers=headers, timeout=120)
@@ -441,18 +497,14 @@ def do_graph_sync(cfg=None, tenant_id: str = "live") -> dict:
 
         log.info("Montados %d registros de usuários", len(records))
 
-        # Auto-atualizar hierarquia com OUs descobertas
         if discovered_hierarchy:
             _update_hierarchy_from_discovery(tenant_id, discovered_hierarchy)
 
-        # Pré-computar custo
         for rec in records:
             rec["custo"] = compute_cost(rec["licId"], rec["addons"])
 
-        # Buscar relatórios de uso
         usage = _fetch_usage_reports(token, now_iso)
 
-        # Salvar dados
         data = load_data(tenant_id)
         _preserve_demissao_dates(records, data)
 

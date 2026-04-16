@@ -4,6 +4,7 @@ import threading
 import unicodedata
 
 from flask import Blueprint, request, jsonify
+from requests.exceptions import HTTPError as RequestsHTTPError
 
 from app.auth_service import require_role
 from app.config import http_requests
@@ -16,7 +17,7 @@ from app.graph_service import (
     load_graph_config, save_graph_config, graph_get_token, graph_get_paginated,
     graph_get_simple, build_subscriptions, do_graph_sync, ensure_sync_thread,
     process_graph_user, _parse_ou_dn, _parse_dept, NAME_SUFFIX_RE, build_area_to_macro,
-    resolve_hierarchy_server,
+    resolve_hierarchy_server, assign_license_for_user, resolve_sku_ids_for_lic,
 )
 
 bp = Blueprint("graph", __name__)
@@ -347,3 +348,60 @@ def test_graph_connection():
     except Exception:
         log.exception("Erro no graph test")
         return jsonify({"ok": False, "error": "Falha ao conectar com Azure. Verifique credenciais e logs."}), 400
+
+
+@bp.route("/api/graph/assign-license", methods=["POST"])
+def assign_license_route():
+    check = require_role("superadmin", "admin", "tecnico")
+    if check:
+        return check
+
+    payload = request.get_json(force=True, silent=True) or {}
+    email = (payload.get("email") or "").strip().lower()
+    lic_id = (payload.get("licId") or "none").strip()
+    addons = [a for a in (payload.get("addons") or []) if isinstance(a, str)]
+    if not email:
+        return jsonify({"error": "email é obrigatório"}), 400
+
+    tid = getattr(request, "tenant_id", "live")
+    cfg = load_graph_config(tid)
+    if not (cfg.get("tenant_id") and cfg.get("client_id") and cfg.get("client_secret")):
+        return jsonify({"error": "Credenciais Azure não configuradas — não é possível alterar licenças no M365."}), 503
+
+    try:
+        token = graph_get_token(cfg)
+        data = load_data(tid)
+        subscriptions = data.get("subscriptions") or []
+        if not subscriptions:
+            skus = graph_get_simple(token, "https://graph.microsoft.com/v1.0/subscribedSkus")
+            subscriptions = build_subscriptions(skus)
+            data["subscriptions"] = subscriptions
+            save_data(data, tid)
+
+        target_sku_ids = resolve_sku_ids_for_lic(lic_id, addons, subscriptions)
+        managed_sku_ids = {s["skuId"] for s in subscriptions if s.get("skuId")}
+
+        if lic_id not in ("none", "other") and not target_sku_ids:
+            return jsonify({"error": f"Licença '{lic_id}' não está disponível neste tenant Azure."}), 400
+
+        result = assign_license_for_user(token, email, target_sku_ids, managed_sku_ids)
+
+        for rec in data.get("db", []):
+            if (rec.get("email") or "").strip().lower() == email:
+                rec["licId"] = lic_id
+                rec["addons"] = list(addons)
+                break
+        save_data(data, tid)
+
+        return jsonify({"ok": True, **result})
+    except RequestsHTTPError as e:
+        status = getattr(e.response, "status_code", 502)
+        try:
+            body = (e.response.json().get("error", {}) or {}).get("message", "") or e.response.text[:300]
+        except Exception:
+            body = getattr(e.response, "text", "")[:300] if e.response is not None else str(e)
+        log.warning("Graph assignLicense %s falhou %s: %s", email, status, body)
+        return jsonify({"error": body or "Falha na chamada ao Microsoft Graph."}), 502
+    except Exception:
+        log.exception("Erro inesperado em assign-license")
+        return jsonify({"error": "Erro interno. Verifique os logs do servidor."}), 500

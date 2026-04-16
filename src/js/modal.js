@@ -86,8 +86,8 @@ function closeModal(){document.getElementById('modalOverlay').classList.remove('
 /** Fecha modal ao clicar no overlay (fundo) */
 function bgClose(e){if(e.target.id==='modalOverlay')closeModal();}
 
-/** Remove a licença atual do colaborador (define como 'none') */
-function removeLic(){
+/** Remove a licença atual do colaborador (define como 'none') e dispara o save */
+async function removeLic(){
   selLicId='none';
   document.querySelectorAll('.lic-opt').forEach(el=>el.classList.remove('sel'));
   document.getElementById('cpLic').textContent=typeof t==='function'?t('lic.sem_licenca'):'Sem licença';
@@ -96,10 +96,11 @@ function removeLic(){
     document.getElementById('cpMes').textContent=fmtBRL(0);
     document.getElementById('cpAno').textContent=fmtBRL(0);
   }
+  if(editingId)await saveColaborador();
 }
 
 /** Valida, salva (cria ou atualiza) colaborador e persiste */
-function saveColaborador(){
+async function saveColaborador(){
   const nome=document.getElementById('fNome').value.trim();
   const setor=document.getElementById('fSetor').value.trim();
   if(!nome){toast('Atenção: Informe o nome.');return;}
@@ -109,6 +110,31 @@ function saveColaborador(){
   const status=document.getElementById('fStatus').value;
   const dataISO=document.getElementById('fData').value||new Date().toISOString().slice(0,10);
   const responsavel=document.getElementById('fResponsavel').value.trim();
+  const previousLicId=editingId?(db.find(x=>x.id===editingId)||{}).licId:'none';
+  const licChanged=editingId?(previousLicId!==selLicId):(selLicId&&selLicId!=='none');
+  const saveBtn=document.getElementById('saveBtn');
+  if(licChanged){
+    const originalLabel=saveBtn?saveBtn.textContent:'';
+    if(saveBtn){saveBtn.disabled=true;saveBtn.textContent='Aplicando licença no Microsoft 365…';}
+    try{
+      const resp=await fetch('/api/graph/assign-license',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({email,licId:selLicId,addons:[]})
+      });
+      const body=await resp.json().catch(()=>({}));
+      if(!resp.ok){
+        toast('Erro ao alterar licença: '+(body.error||resp.statusText));
+        if(saveBtn){saveBtn.disabled=false;saveBtn.textContent=originalLabel;}
+        return;
+      }
+    }catch(err){
+      toast('Falha de rede ao alterar licença no Microsoft 365.');
+      if(saveBtn){saveBtn.disabled=false;saveBtn.textContent=originalLabel;}
+      return;
+    }
+    if(saveBtn){saveBtn.disabled=false;saveBtn.textContent=originalLabel;}
+  }
   if(editingId){
     const idx=db.findIndex(x=>x.id===editingId);
     const before={...db[idx]};
