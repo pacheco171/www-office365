@@ -57,7 +57,7 @@ function updateMetrics(){
   _el('custoAnual').textContent=fmtBRL(custo*12);
 
   var viewLabel=dashSnapIdx!=null&&snapshots[dashSnapIdx]?snapshots[dashSnapIdx].label:'atual';
-  _el('dashSub').textContent=nPessoas+' pessoas · '+nCompartilhados+' compartilhadas · custo mensal R$'+custo.toLocaleString('pt-BR',{maximumFractionDigits:0})+(dashSnapIdx!=null?' · '+viewLabel:'');
+  _el('dashSub').textContent=nPessoas+' pessoas · '+nCompartilhados+' compartilhadas'+(typeof userRole==='undefined'||userRole!=='tecnico'?' · custo mensal R$'+custo.toLocaleString('pt-BR',{maximumFractionDigits:0}):'')+(dashSnapIdx!=null?' · '+viewLabel:'');
   _el('colabSub').textContent=nPessoas+' pessoas · '+total+' contas no total';
   _el('mTotalDelta').innerHTML=dTotal;
   _el('mLicDelta').innerHTML=dLic;
@@ -79,16 +79,45 @@ function updateMetrics(){
   }
   _el('mCustoMedioDelta').innerHTML=dCustoMedio;
 
-  // sidebar — custo por licença
-  const byLic={};
-  ativos.forEach(r=>{
-    byLic[r.licId]=(byLic[r.licId]||0)+getLic(r.licId).price;
-    (r.addons||[]).forEach(a=>{byLic[a]=(byLic[a]||0)+(licById[a]?.price||0);});
-  });
+  // sidebar — custo por licença (técnico vê contagem, demais vêem custo)
   var sbShort={bstd:'Biz Std',bbasic:'Biz Basic',apps:'Apps Biz',f3:'F3',e3:'E3',pbi:'PBI Pro'};
-  _el('sbRows').innerHTML=Object.entries(byLic).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).map(([id,v])=>
-    `<div class="sb-row"><span class="sb-k">${sbShort[id]||getLic(id).short}</span><span class="sb-v">${fmtBRL(v)}</span></div>`).join('');
-  _el('sbTotal').textContent=fmtBRL(custo);
+  var isTecnico=typeof userRole!=='undefined'&&userRole==='tecnico';
+  if(isTecnico){
+    // Técnico: mostra quantas licenças de cada tipo (sem valores)
+    const byLicCount={};
+    ativos.forEach(r=>{
+      byLicCount[r.licId]=(byLicCount[r.licId]||0)+1;
+      (r.addons||[]).forEach(a=>{byLicCount[a]=(byLicCount[a]||0)+1;});
+    });
+    _el('sbRows').innerHTML=Object.entries(byLicCount).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).map(([id,v])=>{
+      var name=sbShort[id]||getLic(id).short;
+      var availHtml='<span class="sb-lic-avail" style="color:rgba(255,255,255,.2)">—</span>';
+      if(typeof getSubData==='function'){
+        var sd=getSubData(id);
+        if(sd.contratadas>0){
+          var disp=sd.contratadas-sd.emUso;
+          var col=disp<=0?'#f44336':disp<=Math.ceil(sd.contratadas*0.1)?'#ffb300':'#4caf50';
+          availHtml=`<span class="sb-lic-avail" style="color:${col}">${Math.max(0,disp)} disp.</span>`;
+        }
+      }
+      return `<div class="sb-row-lic"><span class="sb-k">${name}</span><span class="sb-lic-total">${v}</span>${availHtml}</div>`;
+    }).join('');
+    var sbSep=document.querySelector('.sb-sep');
+    var sbTotalRow=document.querySelector('.sb-total-row');
+    if(sbSep)sbSep.style.display='none';
+    if(sbTotalRow)sbTotalRow.style.display='none';
+    var sbTitle=document.querySelector('.sb-costs-title');
+    if(sbTitle)sbTitle.setAttribute('data-i18n','');sbTitle&&(sbTitle.textContent='Licenças ativas');
+  }else{
+    const byLic={};
+    ativos.forEach(r=>{
+      byLic[r.licId]=(byLic[r.licId]||0)+getLic(r.licId).price;
+      (r.addons||[]).forEach(a=>{byLic[a]=(byLic[a]||0)+(licById[a]?.price||0);});
+    });
+    _el('sbRows').innerHTML=Object.entries(byLic).filter(([,v])=>v>0).sort((a,b)=>b[1]-a[1]).map(([id,v])=>
+      `<div class="sb-row"><span class="sb-k">${sbShort[id]||getLic(id).short}</span><span class="sb-v">${fmtBRL(v)}</span></div>`).join('');
+    _el('sbTotal').textContent=fmtBRL(custo);
+  }
 
   // filters — usa db local como fallback (API paginada atualiza via _updateFiltersFromServer)
   if(!_filtersFromServer){

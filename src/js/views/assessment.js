@@ -17,6 +17,7 @@ var _assessmentLastUpdated = null;
 var _assessmentUpdateTimer = null;
 
 function refreshAssessment() {
+  sessionStorage.removeItem('vc_assessment');
   _assessmentData = null;
   _assessmentLastUpdated = new Date();
   clearTimeout(_assessmentUpdateTimer);
@@ -52,6 +53,7 @@ function renderAssessmentView(){
   var el = document.getElementById('assessmentContent');
   if(!el) return;
 
+  if(!_assessmentData){try{var _c=JSON.parse(sessionStorage.getItem('vc_assessment'));if(_c)_assessmentData=_c;}catch(e){}}
   if(_assessmentData){
     _renderAssessmentContent(el, _assessmentData);
     return;
@@ -73,6 +75,7 @@ function renderAssessmentView(){
       score: scoreRes.data || {},
       profiles: profilesRes.data || []
     };
+    try{sessionStorage.setItem('vc_assessment',JSON.stringify(_assessmentData));}catch(e){}
     _renderAssessmentContent(el, _assessmentData);
   }).catch(function(){
     el.innerHTML = errorHTML('refreshAssessment');

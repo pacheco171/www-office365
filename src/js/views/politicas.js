@@ -5,6 +5,7 @@ var _politicasLastUpdated = null;
 var _politicasUpdateTimer = null;
 
 function refreshPoliticas() {
+  sessionStorage.removeItem('vc_politicas');
   _politicasData = null;
   _politicasLastUpdated = new Date();
   clearTimeout(_politicasUpdateTimer);
@@ -29,6 +30,7 @@ function renderPoliticasView(){
   var tblEl = document.getElementById('politicasTable');
   if(!kpiEl || !tblEl) return;
 
+  if(!_politicasData){try{var _c=JSON.parse(sessionStorage.getItem('vc_politicas'));if(_c)_politicasData=_c;}catch(e){}}
   if(_politicasData){
     _renderPoliticasContent(kpiEl, tblEl, _politicasData);
     return;
@@ -40,6 +42,7 @@ function renderPoliticasView(){
   fetchWithTimeout('/api/reports/policies').then(function(r){ return r.json(); }).then(function(res){
     if(res.error){ tblEl.innerHTML = errorHTML('refreshPoliticas', res.error); return; }
     _politicasData = res.data || [];
+    try{sessionStorage.setItem('vc_politicas',JSON.stringify(_politicasData));}catch(e){}
     _renderPoliticasContent(kpiEl, tblEl, _politicasData);
   }).catch(function(){
     tblEl.innerHTML = errorHTML('refreshPoliticas');

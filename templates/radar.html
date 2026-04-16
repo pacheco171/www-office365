@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 {% block title %}Radar{% endblock %}
 {% block content %}
+<style>
+  body.role-tecnico #radarTabAcoes,
+  body.role-tecnico #radarTabSimulador { display: none !important; }
+</style>
 <div class="view active" id="view-radar">
   <div class="topbar">
     <div><div class="page-heading" data-i18n="term.radar">Radar</div><div class="page-sub" data-i18n="rad.sub">Desperdícios e oportunidades de economia identificados automaticamente</div></div>
@@ -12,8 +16,8 @@
   </div>
   <div class="tab-strip">
     <button class="tab-btn active" onclick="switchTab('radar','alertas',this)" data-i18n="term.alertas">Alertas</button>
-    <button class="tab-btn" onclick="switchTab('radar','acoes',this)" data-i18n="rad.centro_acoes">Centro de Ações</button>
-    <button class="tab-btn" onclick="switchTab('radar','simulador',this)" data-i18n="rad.simulador">Simulador</button>
+    <button class="tab-btn" id="radarTabAcoes" onclick="switchTab('radar','acoes',this)" data-i18n="rad.centro_acoes">Centro de Ações</button>
+    <button class="tab-btn" id="radarTabSimulador" onclick="switchTab('radar','simulador',this)" data-i18n="rad.simulador">Simulador</button>
   </div>
   <div class="tab-panel active" id="radar-alertas">
     <div class="radar-kpis" id="radarKpis"></div>

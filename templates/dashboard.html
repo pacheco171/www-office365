@@ -19,52 +19,54 @@
   <div class="metrics">
     <div class="mc"><div class="mc-accent" style="background:var(--tan)"></div><div class="mc-label" data-i18n="dash.total_colab">Total colaboradores</div><div class="mc-val" id="mTotal">0</div><div class="mc-sub" id="mTotalSub">—</div><div class="mc-delta neutral" id="mTotalDelta"></div><div class="mc-bar"><div class="mc-bar-fill" style="width:100%;background:var(--tan)"></div></div></div>
     <div class="mc"><div class="mc-accent" style="background:#0078d4"></div><div class="mc-label" data-i18n="dash.com_licenca">Com licença M365</div><div class="mc-val" id="mLic">0</div><div class="mc-sub" id="mLicSub">—</div><div class="mc-delta neutral" id="mLicDelta"></div><div class="mc-bar"><div class="mc-bar-fill" id="mLicBar" style="width:0%;background:#0078d4"></div></div></div>
-    <div class="mc"><div class="mc-accent" style="background:var(--brown)"></div><div class="mc-label" data-i18n="dash.custo_mensal">Custo mensal</div><div class="mc-val" id="mCusto">R$0</div><div class="mc-sub" id="mCustoSub">—</div><div class="mc-delta neutral" id="mCustoDelta"></div><div class="mc-bar"><div class="mc-bar-fill" id="mCustoBar" style="width:70%;background:var(--brown)"></div></div></div>
-    <div class="mc"><div class="mc-accent" style="background:var(--green)"></div><div class="mc-label" data-i18n="dash.custo_medio">Custo médio / usuário</div><div class="mc-val" id="mCustoMedio">R$0</div><div class="mc-sub" id="mCustoMedioSub">—</div><div class="mc-delta neutral" id="mCustoMedioDelta"></div><div class="mc-bar"><div class="mc-bar-fill" id="mCustoMedioBar" style="width:0%;background:var(--green)"></div></div></div>
+    <div class="mc" data-financial="true"><div class="mc-accent" style="background:var(--brown)"></div><div class="mc-label" data-i18n="dash.custo_mensal">Custo mensal</div><div class="mc-val" id="mCusto">R$0</div><div class="mc-sub" id="mCustoSub">—</div><div class="mc-delta neutral" id="mCustoDelta"></div><div class="mc-bar"><div class="mc-bar-fill" id="mCustoBar" style="width:70%;background:var(--brown)"></div></div></div>
+    <div class="mc" data-financial="true"><div class="mc-accent" style="background:var(--green)"></div><div class="mc-label" data-i18n="dash.custo_medio">Custo médio / usuário</div><div class="mc-val" id="mCustoMedio">R$0</div><div class="mc-sub" id="mCustoMedioSub">—</div><div class="mc-delta neutral" id="mCustoMedioDelta"></div><div class="mc-bar"><div class="mc-bar-fill" id="mCustoMedioBar" style="width:0%;background:var(--green)"></div></div></div>
   </div>
   <!-- Botões de análise -->
-  <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap">
-    <button class="btn btn-outline" onclick="toggleCompare()" id="compareToggleBtn">
+  <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap" data-financial="true">
+    <button class="btn btn-outline" onclick="toggleCompare()" id="compareToggleBtn" data-financial="true">
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="18" rx="1"/><rect x="14" y="3" width="7" height="18" rx="1"/></svg>
       <span data-i18n="dash.comp_mensal">Comparativo Mensal</span>
     </button>
-    <button class="btn btn-outline" onclick="toggleForecast()" id="forecastToggleBtn">
+    <button class="btn btn-outline" onclick="toggleForecast()" id="forecastToggleBtn" data-financial="true">
       <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
       <span data-i18n="dash.forecast_custo">Forecast de Custo</span>
     </button>
   </div>
   <!-- Comparativo meses -->
-  <div id="comparePanel" style="display:none"><div id="compareSection"></div></div>
+  <div id="comparePanel" style="display:none" data-financial="true"><div id="compareSection"></div></div>
   <!-- Forecast de Custo -->
-  <div id="forecastPanel" style="display:none"><div id="forecastSection"></div></div>
+  <div id="forecastPanel" style="display:none" data-financial="true"><div id="forecastSection"></div></div>
   <div class="charts-row">
     <div class="chart-card">
       <div class="chart-title" data-i18n="dash.dist_licenca">Distribuição por licença</div>
       <div class="donut-wrap"><svg class="donut-svg" id="donutSvg" width="140" height="140" viewBox="0 0 110 110"></svg><div class="donut-legend" id="donutLegend"></div></div>
     </div>
-    <div class="chart-card">
+    <div class="chart-card" data-financial="true">
       <div class="chart-title"><span data-i18n="dash.custo_setor">Custo por setor (top 10)</span> <a id="verTodosSetor" onclick="toggleSetorAll()" data-i18n="dash.ver_todos">ver todos</a></div>
       <div class="bar-chart" id="barChart"></div>
     </div>
-    <div class="chart-card">
+    <div class="chart-card" data-financial="true">
       <div class="chart-title"><span data-i18n="dash.custo_medio_setor">Custo médio por pessoa / setor (top 10)</span> <a id="verTodosMedio" onclick="toggleCustoMedioAll()" data-i18n="dash.ver_todos">ver todos</a></div>
       <div class="bar-chart" id="custoMedioSetorChart"></div>
     </div>
     <div class="chart-card">
       <div class="chart-title" data-i18n="dash.por_status">Por status</div>
       <div class="bar-chart" id="statusChart"></div>
-      <div class="divider"></div>
-      <div class="chart-title" data-i18n="dash.custo_anual">Custo anual estimado</div>
-      <div class="chart-custo-anual" id="custoAnual">R$ 0</div>
-      <div class="chart-custo-sub" data-i18n="dash.proj_mes">projeção baseada no mês atual</div>
+      <div data-financial="true">
+        <div class="divider"></div>
+        <div class="chart-title" data-i18n="dash.custo_anual">Custo anual estimado</div>
+        <div class="chart-custo-anual" id="custoAnual">R$ 0</div>
+        <div class="chart-custo-sub" data-i18n="dash.proj_mes">projeção baseada no mês atual</div>
+      </div>
     </div>
   </div>
-  <div class="setor-all-panel" id="custoMedioAllPanel">
+  <div class="setor-all-panel" id="custoMedioAllPanel" data-financial="true">
     <div style="font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;font-weight:700;margin-bottom:14px" data-i18n="dash.todos_setores_medio">Todos os setores — custo médio por pessoa</div>
     <div id="custoMedioConsolidated" class="setor-consol-row"></div>
     <div id="custoMedioRanking"></div>
   </div>
-  <div class="setor-all-panel" id="setorAllPanel">
+  <div class="setor-all-panel" id="setorAllPanel" data-financial="true">
     <div style="font-size:10px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;font-weight:700;margin-bottom:14px" data-i18n="dash.todos_setores_custo">Todos os setores — custo mensal</div>
     <div id="dashSetorConsolidated" class="setor-consol-row"></div>
     <div class="sub-tab-strip">

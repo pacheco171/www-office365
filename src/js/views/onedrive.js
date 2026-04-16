@@ -7,6 +7,7 @@ function renderOnedriveView(){
   var tblEl = document.getElementById('onedriveTable');
   if(!kpiEl || !tblEl) return;
 
+  if(!_onedriveData){try{var _c=JSON.parse(sessionStorage.getItem('vc_onedrive'));if(_c)_onedriveData=_c;}catch(e){}}
   if(_onedriveData){
     _renderOnedriveContent(kpiEl, tblEl, _onedriveData);
     return;
@@ -26,6 +27,7 @@ function renderOnedriveView(){
       return;
     }
     _onedriveData = res.data || [];
+    try{sessionStorage.setItem('vc_onedrive',JSON.stringify(_onedriveData));}catch(e){}
     _renderOnedriveContent(kpiEl, tblEl, _onedriveData);
   }).catch(function(){
     tblEl.innerHTML = errorHTML('renderOnedriveView');

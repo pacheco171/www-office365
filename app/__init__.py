@@ -21,12 +21,13 @@ def create_app() -> Flask:
     from app.blueprints import (
         auth, core, annotations, overrides, hierarchy, changelog,
         graph, reports, security, support, ai, admin, static_files, import_rh,
+        organograma,
     )
 
     for bp in [
         auth.bp, core.bp, annotations.bp, overrides.bp, hierarchy.bp,
         changelog.bp, graph.bp, reports.bp, security.bp, support.bp,
-        ai.bp, admin.bp, static_files.bp, import_rh.bp,
+        ai.bp, admin.bp, static_files.bp, import_rh.bp, organograma.bp,
     ]:
         app.register_blueprint(bp)
 

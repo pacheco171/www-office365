@@ -34,11 +34,112 @@ function applyRoleRestrictions(){
   // Badge de role na sidebar
   var badge=document.getElementById('sbRoleBadge');
   if(badge){
-    var labels={superadmin:'Super Admin',admin:'Admin',viewer:'Visualizador'};
-    var colors={superadmin:'var(--brown)',admin:'var(--green)',viewer:'var(--muted)'};
+    var labels={superadmin:'Super Admin',admin:'Admin',viewer:'Visualizador',tecnico:'Técnico'};
+    var colors={superadmin:'var(--brown)',admin:'var(--green)',viewer:'var(--muted)',tecnico:'var(--muted)'};
     badge.textContent=labels[userRole]||'Visualizador';
     badge.style.color=colors[userRole]||'var(--muted)';
     badge.style.display='';
+  }
+
+  // Restrições do técnico — sem visibilidade de valores financeiros
+  if(userRole==='tecnico'){
+    // Classe no body — permite seletores CSS de alta especificidade
+    document.body.classList.add('role-tecnico');
+    // CSS injection: cobre [data-financial] + IDs existentes no HTML original
+    // (independe de template cacheado — funciona mesmo sem novos atributos no HTML)
+    if(!document.getElementById('_technicoCss')){
+      var s=document.createElement('style');
+      s.id='_technicoCss';
+      s.textContent=[
+        /* coluna custo na tabela — células e header */
+        'body.role-tecnico .td-custo{display:none!important}',
+        'body.role-tecnico #thCusto{display:none!important}',
+        /* colaboradores: coluna Criado em — header (7º th) e células */
+        'body.role-tecnico #view-colaboradores thead th:nth-child(7),body.role-tecnico .date-cell{display:none!important}',
+        /* colaboradores: filtro Certeza do cargo (wrapper inclui o ?) */
+        'body.role-tecnico .filter-with-help{display:none!important}',
+        /* colaboradores: filtro de período (filtra por data de criação) */
+        'body.role-tecnico #fltPeriodo{display:none!important}',
+        /* elementos marcados com data-financial */
+        'body.role-tecnico [data-financial]{display:none!important}',
+        /* botões e painéis de análise financeira por ID */
+        'body.role-tecnico #compareToggleBtn,body.role-tecnico #forecastToggleBtn{display:none!important}',
+        'body.role-tecnico #comparePanel,body.role-tecnico #forecastPanel{display:none!important}',
+        'body.role-tecnico #custoMedioAllPanel,body.role-tecnico #setorAllPanel{display:none!important}',
+        /* custo anual estimado no card Por status (classes únicas) */
+        'body.role-tecnico .chart-custo-anual{display:none!important}',
+        'body.role-tecnico .chart-custo-sub{display:none!important}',
+        /* layout: 2 cards e 2 charts proporcionais */
+        'body.role-tecnico .metrics{grid-template-columns:repeat(2,1fr)!important}',
+        'body.role-tecnico .charts-row{grid-template-columns:repeat(2,1fr)!important}',
+        /* contratos: 4 KPIs visíveis (sem os 2 de custo) */
+        'body.role-tecnico .contract-kpis{grid-template-columns:repeat(4,1fr)!important}',
+        /* contratos: th das colunas de custo — belt-and-suspenders via nth-child */
+        'body.role-tecnico #view-contratos thead th:nth-child(6),body.role-tecnico #view-contratos thead th:nth-child(7){display:none!important}',
+        /* contratos: fatura — seção inteira por posição (não depende de data-financial) */
+        'body.role-tecnico #view-contratos .contracts-main-col .contracts-table-wrap:last-child{display:none!important}',
+        /* contratos: fatura — valores específicos belt-and-suspenders */
+        'body.role-tecnico #faturaTotal,body.role-tecnico #faturaTotalFooter,body.role-tecnico .fatura-total-label,body.role-tecnico .fatura-val-total,body.role-tecnico .fatura-total-row,body.role-tecnico .fatura-table thead{display:none!important}',
+        /* contratos: tabela detalhamento proporcional com 5 colunas */
+        'body.role-tecnico #view-contratos .contracts-table-wrap:not([data-financial]) table{table-layout:fixed;width:100%}',
+        'body.role-tecnico #view-contratos .contracts-table-wrap:not([data-financial]) thead th:nth-child(1){width:35%}',
+        'body.role-tecnico #view-contratos .contracts-table-wrap:not([data-financial]) thead th:nth-child(2),body.role-tecnico #view-contratos .contracts-table-wrap:not([data-financial]) thead th:nth-child(3),body.role-tecnico #view-contratos .contracts-table-wrap:not([data-financial]) thead th:nth-child(4){width:14%}',
+        'body.role-tecnico #view-contratos .contracts-table-wrap:not([data-financial]) thead th:nth-child(5){width:23%}',
+        /* contratos: células com overflow elegante no layout fixo */
+        'body.role-tecnico #view-contratos .contracts-table-wrap:not([data-financial]) td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+        /* radar: ocultar tabs Centro de Ações e Simulador */
+        'body.role-tecnico #radarTabAcoes,body.role-tecnico #radarTabSimulador{display:none!important}'
+      ].join('');
+      document.head.appendChild(s);
+    }
+    // Tabs do radar — técnico só vê Alertas
+    ['radarTabAcoes','radarTabSimulador'].forEach(function(id){
+      var el=document.getElementById(id);
+      if(el)el.style.display='none';
+    });
+    // Chart cards de custo — sem ID, esconder via traversal do elemento interno
+    ['barChart','custoMedioSetorChart'].forEach(function(id){
+      var el=document.getElementById(id);
+      if(el){var card=el.closest?el.closest('.chart-card'):null;if(card)card.style.display='none';}
+    });
+    // Wrapper dos botões de análise financeira (div sem ID/class, pai dos botões)
+    var cmpBtn=document.getElementById('compareToggleBtn');
+    if(cmpBtn&&cmpBtn.parentNode)cmpBtn.parentNode.style.display='none';
+    // "Custo anual estimado" — título e divider (template antigo sem wrapper data-financial)
+    var ca=document.getElementById('custoAnual');
+    if(ca&&!(ca.closest?ca.closest('[data-financial]'):null)){
+      ca.style.display='none';
+      var prev=ca.previousElementSibling;
+      if(prev)prev.style.display='none'; // .chart-title "Custo anual estimado"
+      var divEl=prev?prev.previousElementSibling:null;
+      if(divEl&&divEl.classList&&divEl.classList.contains('divider'))divEl.style.display='none';
+      var next=ca.nextElementSibling;
+      if(next)next.style.display='none'; // .chart-custo-sub
+    }
+    // Seção "Resumo de custo" no modal
+    var cp=document.getElementById('costPreviewSection');
+    if(cp)cp.style.display='none';
+    // Menu items ocultos para técnico
+    var _tecnicoNavHide=['/licencas','/setores','/historico','/dominios','/aplicativos','/privilegios','/relatorio','/auditoria','/suporte'];
+    _tecnicoNavHide.forEach(function(href){
+      var el=document.querySelector('a.nav-item[href="'+href+'"]');
+      if(el)el.style.display='none';
+    });
+    // Seções que o técnico SEMPRE pode ver — allowlist explícita
+    // (sobrepõe qualquer entrada acidental na blocklist acima)
+    var _tecnicoNavAllow=['/exchange','/onedrive','/grupos','/alertas','/politicas','/assessment'];
+    _tecnicoNavAllow.forEach(function(href){
+      var el=document.querySelector('a.nav-item[href="'+href+'"]');
+      if(el)el.style.display='flex';
+    });
+    // Labels de seção — garantir visibilidade enquanto houver itens visíveis
+    ['relatorios','seguranca'].forEach(function(sec){
+      var lbl=document.querySelector('.nav-label[data-section="'+sec+'"]');
+      if(lbl)lbl.style.display='';
+    });
+    // Seção "Licenças M365" fica vazia — ocultar o label
+    var _lblLic=document.querySelector('.nav-label[data-i18n="nav.licencas_m365"]');
+    if(_lblLic)_lblLic.style.display='none';
   }
 
   // Botões de edição — só superadmin pode editar

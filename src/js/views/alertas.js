@@ -4,6 +4,8 @@ var _alertasLastUpdated = null;
 var _alertasUpdateTimer = null;
 
 function refreshAlertas() {
+  sessionStorage.removeItem('vc_alertas_ms');
+  sessionStorage.removeItem('vc_alertas_local');
   _alertasMsData = null;
   _alertasLocalData = null;
   _alertasLastUpdated = new Date();
@@ -99,6 +101,7 @@ function _loadAlertasMicrosoft(){
   var el = document.getElementById('alertasMsContent');
   if(!el) return;
 
+  if(!_alertasMsData){try{var _c=JSON.parse(sessionStorage.getItem('vc_alertas_ms'));if(_c)_alertasMsData=_c;}catch(e){}}
   if(_alertasMsData){
     _renderAlertasMs(el, _alertasMsData);
     return;
@@ -112,6 +115,7 @@ function _loadAlertasMicrosoft(){
       return;
     }
     _alertasMsData = res.data || [];
+    try{sessionStorage.setItem('vc_alertas_ms',JSON.stringify(_alertasMsData));}catch(e){}
     _renderAlertasMs(el, _alertasMsData);
   }).catch(function(){
     el.innerHTML = errorHTML('refreshAlertas');
@@ -160,6 +164,7 @@ function _loadAlertasLocal(){
   var resumoEl = document.getElementById('alertasResumoContent');
   if(!el) return;
 
+  if(!_alertasLocalData){try{var _cl=JSON.parse(sessionStorage.getItem('vc_alertas_local'));if(_cl)_alertasLocalData=_cl;}catch(e){}}
   if(_alertasLocalData){
     _renderAlertasLocal(el, _alertasLocalData);
     if(resumoEl) _renderAlertasResumo(resumoEl);
@@ -174,6 +179,7 @@ function _loadAlertasLocal(){
       return;
     }
     _alertasLocalData = res.data || {};
+    try{sessionStorage.setItem('vc_alertas_local',JSON.stringify(_alertasLocalData));}catch(e){}
     _renderAlertasLocal(el, _alertasLocalData);
     if(resumoEl) _renderAlertasResumo(resumoEl);
   }).catch(function(){

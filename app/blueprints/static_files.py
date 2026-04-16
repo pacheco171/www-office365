@@ -35,6 +35,7 @@ _PAGES = {
     'alertas': 'alertas.html',
     'assessment': 'assessment.html',
     'suporte': 'suporte.html',
+    'organograma': 'organograma.html',
 }
 
 _BLOCKED_FILES = {

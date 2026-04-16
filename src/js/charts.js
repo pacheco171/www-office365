@@ -3,7 +3,10 @@
 /** Renderiza todos os gráficos do dashboard */
 function drawCharts(){
   if(getActivePage()!=='dashboard')return;
-  drawDonut();drawBarCusto();drawBarCustoMedioSetor();drawBarStatus();
+  var isTecnico=typeof userRole!=='undefined'&&userRole==='tecnico';
+  drawDonut();
+  if(!isTecnico){drawBarCusto();drawBarCustoMedioSetor();}
+  drawBarStatus();
 }
 
 /** Desenha gráfico SVG donut de distribuição de licenças */

@@ -5,6 +5,7 @@ var _gruposLastUpdated = null;
 var _gruposUpdateTimer = null;
 
 function refreshGrupos() {
+  sessionStorage.removeItem('vc_grupos');
   _gruposData = null;
   _gruposLastUpdated = new Date();
   clearTimeout(_gruposUpdateTimer);
@@ -29,6 +30,7 @@ function renderGruposView(){
   var tblEl = document.getElementById('gruposTable');
   if(!kpiEl || !tblEl) return;
 
+  if(!_gruposData){try{var _c=JSON.parse(sessionStorage.getItem('vc_grupos'));if(_c)_gruposData=_c;}catch(e){}}
   if(_gruposData){
     _renderGruposContent(kpiEl, tblEl, _gruposData);
     return;
@@ -48,6 +50,7 @@ function renderGruposView(){
       return;
     }
     _gruposData = res.data || [];
+    try{sessionStorage.setItem('vc_grupos',JSON.stringify(_gruposData));}catch(e){}
     _renderGruposContent(kpiEl, tblEl, _gruposData);
   }).catch(function(){
     tblEl.innerHTML = errorHTML('refreshGrupos');

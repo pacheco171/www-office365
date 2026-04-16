@@ -165,28 +165,28 @@ function renderRadar(){
     kpiCard('rgba(184,92,74,.1)','var(--red)','<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
       bloqueados.length, bloqueados.length>0?'var(--red)':'var(--black)',
       'Bloqueados com licença',
-      bloqueados.length>0?fmtBRL(custoBloq)+'/mês desperdiçado':'Nenhum',
+      bloqueados.length>0?'<span data-financial>'+fmtBRL(custoBloq)+'/mês desperdiçado</span>':'Nenhum',
       bloqueados.length>0?'var(--red)':'var(--muted)', 'radar-block-bloqueados')+
     kpiCard('rgba(0,120,212,.1)','#0078d4','<polyline points="7 13 12 18 17 13"/><line x1="12" y1="6" x2="12" y2="18"/>',
       basicToF3.length, basicToF3.length>0?'#0078d4':'var(--black)',
       'Basic → F3',
-      basicToF3.length>0?'Economia '+fmtBRL(economiaBasicF3)+'/mês':'Nenhum',
+      basicToF3.length>0?'Economia <span data-financial>'+fmtBRL(economiaBasicF3)+'/mês</span>':'Nenhum',
       basicToF3.length>0?'#0078d4':'var(--muted)', 'radar-block-basicf3')+
     kpiCard('rgba(181,164,142,.12)','var(--brown)','<polyline points="7 13 12 18 17 13"/><polyline points="7 6 12 11 17 6"/>',
       stdToBasic.length, stdToBasic.length>0?'var(--brown)':'var(--black)',
       'Standard → Basic',
-      stdToBasic.length>0?'Economia '+fmtBRL(economiaStdBasic)+'/mês':'Nenhum',
+      stdToBasic.length>0?'Economia <span data-financial>'+fmtBRL(economiaStdBasic)+'/mês</span>':'Nenhum',
       stdToBasic.length>0?'var(--brown)':'var(--muted)', 'radar-block-stdbasic')+
     kpiCard('rgba(184,144,58,.1)','var(--yellow)','<path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
       superLic.length, superLic.length>0?'var(--yellow)':'var(--black)',
       'Operacionais com licença cara',
-      superLic.length>0?'Economia '+fmtBRL(economiaDowngrade)+'/mês':'Nenhum',
+      superLic.length>0?'Economia <span data-financial>'+fmtBRL(economiaDowngrade)+'/mês</span>':'Nenhum',
       superLic.length>0?'var(--yellow)':'var(--muted)', 'radar-block-superlicenciados')+
     kpiCard('rgba(90,138,106,.1)','var(--green)','<line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>',
       fmtBRL(totalPotencial), 'var(--green)',
       'Economia potencial / mês',
       fmtBRL(totalPotencial*12)+' / ano',
-      'var(--green)', null)+
+      'var(--green)', null, true)+
     kpiCard('rgba(0,120,212,.06)','#0078d4','<rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/>',
       usageCount, '#0078d4',
       'Dados de uso (Azure API)',
@@ -209,7 +209,7 @@ function renderRadar(){
     'var(--red)','rgba(184,92,74,.1)',icoAlert,
     'Bloqueados com licença ativa',
     'Usuários inativos que ainda geram custo — remova a licença',
-    bloqueados.length>0?bloqueados.length+' usuários · '+fmtBRL(custoBloq)+'/mês':'Nenhum',
+    bloqueados.length>0?bloqueados.length+' usuários <span data-financial>· '+fmtBRL(custoBloq)+'/mês</span>':'Nenhum',
     bloqueados.length>0?'radar-badge-red':'radar-badge-green',
     bloqueados.slice().sort(function(a,b){return (a.nome||'').localeCompare(b.nome||'');}).map(function(r){
       return {
@@ -229,7 +229,7 @@ function renderRadar(){
     '#0078d4','rgba(0,120,212,.1)',icoF3,
     'Basic → F3: economia prioritária',
     basicF3Sub,
-    basicToF3.length>0?basicToF3.length+' usuários · economia '+fmtBRL(economiaBasicF3)+'/mês':'Nenhum candidato',
+    basicToF3.length>0?basicToF3.length+' usuários <span data-financial>· economia '+fmtBRL(economiaBasicF3)+'/mês</span>':'Nenhum candidato',
     basicToF3.length>0?'radar-badge-yellow':'radar-badge-green',
     basicToF3.map(function(r){
       var usage=getUserUsage(r);
@@ -259,7 +259,7 @@ function renderRadar(){
     'var(--brown)','rgba(181,164,142,.12)',icoDown,
     'Standard → Basic: sem uso de apps desktop',
     stdSub,
-    stdToBasic.length>0?stdToBasic.length+' usuários · economia '+fmtBRL(economiaStdBasic)+'/mês':'Nenhum',
+    stdToBasic.length>0?stdToBasic.length+' usuários <span data-financial>· economia '+fmtBRL(economiaStdBasic)+'/mês</span>':'Nenhum',
     stdToBasic.length>0?'radar-badge-yellow':'radar-badge-green',
     stdToBasic.sort(function(a,b){return (a.nome||'').localeCompare(b.nome||'');}).map(function(r){
       var usage=getUserUsage(r);
@@ -289,7 +289,7 @@ function renderRadar(){
     'var(--yellow)','rgba(184,144,58,.1)',icoWarn,
     'Cargos operacionais com licença cara',
     'Detecção por palavras-chave no cargo (auxiliar, operador, costureira, etc.)',
-    superLic.length>0?superLic.length+' usuários · economia '+fmtBRL(economiaDowngrade)+'/mês':'Nenhum',
+    superLic.length>0?superLic.length+' usuários <span data-financial>· economia '+fmtBRL(economiaDowngrade)+'/mês</span>':'Nenhum',
     superLic.length>0?'radar-badge-yellow':'radar-badge-green',
     superLic.slice().sort(function(a,b){return (a.nome||'').localeCompare(b.nome||'');}).map(function(r){
       var usage=getUserUsage(r);
@@ -316,8 +316,8 @@ function renderRadar(){
     html+=section('radar-block-lowusage',
       '#0078d4','rgba(0,120,212,.08)',icoMail,
       'Caixa de email subutilizada (< '+fmtStorage(USAGE_THRESHOLDS.mailboxLowMB)+' de 50 GB)',
-      'Licença oferece 50 GB mas usa menos de 2 GB — candidatos a F3 (2 GB, R$ '+licById['f3'].price.toFixed(2).replace('.',',')+'/mês)',
-      lowUsageUnique.length>0?lowUsageUnique.length+' usuários · economia '+fmtBRL(economiaLowUsage)+'/mês':'Nenhum',
+      'Licença oferece 50 GB mas usa menos de 2 GB — candidatos a F3 (2 GB, <span data-financial>R$ '+licById['f3'].price.toFixed(2).replace('.',',')+'/mês</span>)',
+      lowUsageUnique.length>0?lowUsageUnique.length+' usuários <span data-financial>· economia '+fmtBRL(economiaLowUsage)+'/mês</span>':'Nenhum',
       lowUsageUnique.length>0?'radar-badge-yellow':'radar-badge-green',
       lowUsageUnique.slice().sort(function(a,b){return (a.nome||'').localeCompare(b.nome||'');}).map(function(r){
         var usage=getUserUsage(r);
@@ -370,12 +370,13 @@ document.addEventListener('click', function(e) {
 });
 
 /** Gera HTML de um KPI card clicável */
-function kpiCard(bg, strokeColor, svgPath, val, valColor, label, sub, subColor, targetBlockId) {
+function kpiCard(bg, strokeColor, svgPath, val, valColor, label, sub, subColor, targetBlockId, wrapFinancial) {
   var isActive = radarFilterBlock === targetBlockId;
   var clickAttr = targetBlockId ? ' onclick="radarFilterTo(\''+targetBlockId+'\')"' : '';
   var activeCls = isActive ? ' radar-kpi-active' : '';
   var chevron = targetBlockId ? '<svg class="radar-kpi-chevron" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.5" width="10" height="10"><polyline points="9 18 15 12 9 6"/></svg>' : '';
-  return '<div class="radar-kpi'+activeCls+'"'+clickAttr+'>'+
+  var dataFin = wrapFinancial ? ' data-financial' : '';
+  return '<div class="radar-kpi'+activeCls+'"'+clickAttr+dataFin+'>'+
     '<div class="radar-kpi-icon" style="background:'+bg+'">'+
       '<svg viewBox="0 0 24 24" fill="none" stroke="'+strokeColor+'" stroke-width="2.5">'+svgPath+'</svg>'+
     '</div>'+
@@ -438,7 +439,7 @@ function section(blockId, color, bgColor, icon, title, sub, badge, badgeCls, ite
         '<div style="font-size:11px;color:var(--muted)">'+it.r.email+'</div>'+
       '</div>'+
       '<div class="radar-row-meta">'+it.detail+'</div>'+
-      '<div class="radar-row-cost" style="color:'+color+'">'+it.cost+'</div>'+
+      '<div class="radar-row-cost" data-financial style="color:'+color+'">'+it.cost+'</div>'+
       '<button class="radar-row-btn" onclick="event.stopPropagation();'+it.btnFn+'">'+it.btnLabel+'</button>'+
     '</div>';
   }).join('');

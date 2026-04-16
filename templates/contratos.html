@@ -18,11 +18,11 @@
         <span class="contracts-source-hint" id="contractSourceHint"></span>
       </div>
       <table>
-        <thead><tr><th data-i18n="ctr.licenca">Licença</th><th data-i18n="ctr.contratadas">Contratadas</th><th data-i18n="ctr.em_uso">Em uso</th><th data-i18n="ctr.disponiveis">Disponíveis</th><th data-i18n="ctr.ocupacao">Ocupação</th><th data-i18n="ctr.custo_uso">Custo em uso / mês</th><th data-i18n="ctr.custo_ocioso">Custo ocioso / mês</th></tr></thead>
+        <thead><tr><th data-i18n="ctr.licenca">Licença</th><th data-i18n="ctr.contratadas">Contratadas</th><th data-i18n="ctr.em_uso">Em uso</th><th data-i18n="ctr.disponiveis">Disponíveis</th><th data-i18n="ctr.ocupacao">Ocupação</th><th data-financial data-i18n="ctr.custo_uso">Custo em uso / mês</th><th data-financial data-i18n="ctr.custo_ocioso">Custo ocioso / mês</th></tr></thead>
         <tbody id="contractTableBody"></tbody>
       </table>
     </div>
-    <div class="contracts-table-wrap">
+    <div class="contracts-table-wrap" data-financial>
       <div class="contracts-table-header">
         <span class="contracts-table-title" data-i18n="ctr.fatura_titulo">Fatura Microsoft — Detalhamento Mensal</span>
         <div style="display:flex;gap:8px;align-items:center">
@@ -35,8 +35,8 @@
           <th data-i18n="ctr.vencimento">Vencimento</th>
           <th data-i18n="ctr.produto">Produto</th>
           <th style="width:80px;text-align:right" data-i18n="ctr.qtd_col">Qtd</th>
-          <th style="width:130px;text-align:right" data-i18n="ctr.valor_unit">Valor Unit.</th>
-          <th style="width:130px;text-align:right" data-i18n="ctr.valor_total">Valor Total</th>
+          <th data-financial style="width:130px;text-align:right" data-i18n="ctr.valor_unit">Valor Unit.</th>
+          <th data-financial style="width:130px;text-align:right" data-i18n="ctr.valor_total">Valor Total</th>
           <th style="width:36px" data-perm="edit"></th>
         </tr></thead>
         <tbody id="faturaTableBody"></tbody>

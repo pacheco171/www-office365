@@ -120,7 +120,7 @@ def debug_exchange_columns():
 
 @bp.route("/api/reports/exchange", methods=["GET"])
 def report_exchange():
-    check = require_role("viewer", "admin", "superadmin")
+    check = require_role("viewer", "admin", "superadmin", "tecnico")
     if check:
         return check
     tid = getattr(request, "tenant_id", "live")
@@ -182,7 +182,7 @@ def report_exchange():
 
 @bp.route("/api/reports/onedrive", methods=["GET"])
 def report_onedrive():
-    check = require_role("viewer", "admin", "superadmin")
+    check = require_role("viewer", "admin", "superadmin", "tecnico")
     if check:
         return check
     tid = getattr(request, "tenant_id", "live")
@@ -242,7 +242,7 @@ def report_domains():
 
 @bp.route("/api/reports/groups", methods=["GET"])
 def report_groups():
-    check = require_role("viewer", "admin", "superadmin")
+    check = require_role("viewer", "admin", "superadmin", "tecnico")
     if check:
         return check
     tid = getattr(request, "tenant_id", "live")
@@ -291,7 +291,7 @@ def report_groups():
 
 @bp.route("/api/reports/groups/<group_id>/members", methods=["GET"])
 def report_group_members(group_id):
-    check = require_role("viewer", "admin", "superadmin")
+    check = require_role("viewer", "admin", "superadmin", "tecnico")
     if check:
         return check
     tid = getattr(request, "tenant_id", "live")
@@ -401,7 +401,7 @@ def report_privileged_users():
 
 @bp.route("/api/reports/policies", methods=["GET"])
 def report_policies():
-    check = require_role("viewer", "admin", "superadmin")
+    check = require_role("viewer", "admin", "superadmin", "tecnico")
     if check:
         return check
     tid = getattr(request, "tenant_id", "live")

@@ -21,7 +21,7 @@ function buildLicGrid(){
     return `<div class="lic-opt${l.id===selLicId?' sel':''}" data-id="${l.id}" onclick="pickLic('${l.id}')">
       <div class="lic-opt-ico">${l.ico}</div>
       <div class="lic-opt-name">${l.short}</div>
-      <div class="lic-opt-price">${l.price>0?fmtBRL(l.price)+(typeof t==='function'?t('common.mes'):'/mês'):(typeof t==='function'?t('lic.gratuito'):'Gratuito')}</div>
+      ${userRole!=='tecnico'?`<div class="lic-opt-price">${l.price>0?fmtBRL(l.price)+(typeof t==='function'?t('common.mes'):'/mês'):(typeof t==='function'?t('lic.gratuito'):'Gratuito')}</div>`:''}
       <div class="lic-opt-tier">${l.tier}</div>
       ${availHtml}
     </div>`;
@@ -35,8 +35,10 @@ function pickLic(id){
   const l=getLic(id);
   document.getElementById('cpLic').textContent=l.name;
   document.getElementById('cpDesc').textContent=l.features[0]+(l.features.length>1?` + ${l.features.length-1} recursos`:'');
-  document.getElementById('cpMes').textContent=fmtBRL(l.price);
-  document.getElementById('cpAno').textContent=fmtBRL(l.price*12);
+  if(userRole!=='tecnico'){
+    document.getElementById('cpMes').textContent=fmtBRL(l.price);
+    document.getElementById('cpAno').textContent=fmtBRL(l.price*12);
+  }
 }
 
 /** Popula datalist de responsáveis baseado no setor selecionado */
@@ -62,11 +64,13 @@ function openModal(id=null){
     document.getElementById('fData').value=r.dataISO;document.getElementById('fStatus').value=r.status;
     document.getElementById('fResponsavel').value=r.responsavel||'';
     selLicId=r.licId;document.getElementById('saveBtn').textContent=typeof t==='function'?t('btn.salvar_alt'):'Salvar Alterações';
+    document.getElementById('removeLicGroup').style.display='';
   }else{
     document.getElementById('modalTitleText').textContent=typeof t==='function'?t('modal.novo_colab'):'Novo Colaborador';
     ['fNome','fEmail','fSetor','fCargo','fResponsavel'].forEach(i=>document.getElementById(i).value='');
     document.getElementById('fData').valueAsDate=new Date();document.getElementById('fStatus').value='Ativo';
     selLicId='bbasic';document.getElementById('saveBtn').textContent=typeof t==='function'?t('btn.salvar_colab'):'Salvar Colaborador';
+    document.getElementById('removeLicGroup').style.display='none';
   }
   updateResponsavelSuggestions();
   var fSetor=document.getElementById('fSetor');
@@ -81,6 +85,18 @@ function closeModal(){document.getElementById('modalOverlay').classList.remove('
 
 /** Fecha modal ao clicar no overlay (fundo) */
 function bgClose(e){if(e.target.id==='modalOverlay')closeModal();}
+
+/** Remove a licença atual do colaborador (define como 'none') */
+function removeLic(){
+  selLicId='none';
+  document.querySelectorAll('.lic-opt').forEach(el=>el.classList.remove('sel'));
+  document.getElementById('cpLic').textContent=typeof t==='function'?t('lic.sem_licenca'):'Sem licença';
+  document.getElementById('cpDesc').textContent='—';
+  if(userRole!=='tecnico'){
+    document.getElementById('cpMes').textContent=fmtBRL(0);
+    document.getElementById('cpAno').textContent=fmtBRL(0);
+  }
+}
 
 /** Valida, salva (cria ou atualiza) colaborador e persiste */
 function saveColaborador(){

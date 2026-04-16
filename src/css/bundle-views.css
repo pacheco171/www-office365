@@ -1020,3 +1020,261 @@
 .ticket-card-subject{font-weight:700;font-size:14px;}
 .ticket-card-body{font-size:12px;color:var(--muted);line-height:1.5;}
 .ticket-card-meta{display:flex;gap:12px;margin-top:8px;font-size:11px;color:var(--muted);}
+
+
+/* ── views/organograma.css ── */
+/* ══════════ ORGANOGRAMA ══════════ */
+
+.org-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 16px;
+  padding: 20px;
+}
+
+.org-loading {
+  padding: 40px;
+  text-align: center;
+  color: var(--muted);
+  font-size: .875rem;
+}
+
+/* ── Card ── */
+
+.org-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 20px 16px;
+  box-shadow: var(--shadow-sm);
+  transition: box-shadow var(--transition-fast);
+  overflow: hidden;
+}
+.org-card:hover { box-shadow: var(--shadow-md); }
+
+.org-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.org-card-title {
+  font-family: 'Outfit', sans-serif;
+  font-size: .88rem;
+  font-weight: 800;
+  color: var(--black);
+  text-transform: uppercase;
+  letter-spacing: .5px;
+  flex: 1;
+}
+
+.org-card-meta {
+  font-size: .72rem;
+  color: var(--muted);
+  white-space: nowrap;
+}
+
+.org-edit-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--muted);
+  padding: 3px 5px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: color var(--transition-fast), background var(--transition-fast);
+}
+.org-edit-btn:hover { color: var(--brown); background: var(--sand-lt); }
+.org-edit-btn svg { width: 13px; height: 13px; }
+
+.org-tree-wrap { overflow: hidden; }
+.org-empty { font-size: .8rem; color: var(--muted); font-style: italic; padding: 4px 0; }
+
+/* ══════════ ÁRVORE CSS ══════════ */
+
+.org-tree {
+  list-style: none;
+  margin: 0;
+  padding: 0 0 0 22px;
+  position: relative;
+}
+
+.org-tree-root {
+  padding-left: 0;
+}
+
+/* Linha vertical que conecta irmãos */
+.org-tree:not(.org-tree-root) {
+  border-left: 1px solid var(--border);
+  margin-left: 12px;
+}
+
+.org-tree-li {
+  position: relative;
+  padding: 3px 0;
+}
+
+/* Linha horizontal antes de cada nó (exceto raiz) */
+.org-tree:not(.org-tree-root) > .org-tree-li::before {
+  content: '';
+  position: absolute;
+  left: -22px;
+  top: 16px;
+  width: 14px;
+  height: 1px;
+  background: var(--border);
+}
+
+/* Remove a linha vertical no último filho */
+.org-tree:not(.org-tree-root) > .org-tree-li:last-child {
+  position: relative;
+}
+.org-tree:not(.org-tree-root) > .org-tree-li:last-child::after {
+  content: '';
+  position: absolute;
+  left: -23px;
+  top: 17px;
+  bottom: 0;
+  width: 2px;
+  background: var(--surface);
+}
+
+/* ── Nó ── */
+
+.org-node {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 5px 8px;
+  border-radius: 8px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+  cursor: default;
+  min-width: 0;
+}
+.org-node:hover { background: var(--sand-lt); }
+
+.org-node-root {
+  background: var(--surface2);
+  border-color: var(--tan);
+  border-left: 3px solid var(--brown);
+}
+
+.org-node-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--sand-lt);
+  color: var(--muted);
+  font-size: .69rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-family: 'Outfit', sans-serif;
+  border: 1px solid var(--border);
+}
+
+.org-node-avatar-root {
+  background: var(--brown);
+  color: #fff;
+  border-color: var(--brown);
+  width: 32px;
+  height: 32px;
+  font-size: .75rem;
+}
+
+.org-node-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+
+.org-node-nome {
+  font-size: .82rem;
+  font-weight: 600;
+  color: var(--black);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+.org-node-cargo {
+  font-size: .73rem;
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1.3;
+}
+
+/* ── "mais" colapsável ── */
+
+.org-tree-more {
+  padding-top: 2px;
+}
+
+.org-mais {
+  display: inline-block;
+  font-size: .78rem;
+  color: var(--brown);
+  cursor: pointer;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(156,122,82,.07);
+  margin-left: 0;
+  transition: background var(--transition-fast);
+}
+.org-mais:hover { background: rgba(156,122,82,.15); }
+
+/* ══════════ MODAL DE EDIÇÃO ══════════ */
+
+.org-tree-edit .org-node-editable {
+  cursor: pointer;
+}
+.org-tree-edit .org-node-editable:hover {
+  border-color: var(--brown);
+}
+
+.org-move-btn {
+  background: none;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  cursor: pointer;
+  color: var(--muted);
+  padding: 3px 5px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  transition: color var(--transition-fast), border-color var(--transition-fast), background var(--transition-fast);
+  opacity: 0;
+}
+.org-node-editable:hover .org-move-btn { opacity: 1; }
+.org-move-btn:hover { color: var(--brown); border-color: var(--brown); background: var(--sand-lt); }
+.org-move-btn svg { width: 13px; height: 13px; }
+
+.org-parent-select {
+  margin-top: 6px;
+  width: 100%;
+  padding: 6px 8px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: .82rem;
+  font-family: 'Lexend', sans-serif;
+  cursor: pointer;
+  display: block;
+}
+.org-parent-select:focus {
+  outline: none;
+  border-color: var(--brown);
+}

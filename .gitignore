@@ -23,3 +23,10 @@ tenants/*/graph_config.json
 
 # Logs
 server.log
+run.log
+
+# Backups
+*.bak
+
+# Claude Code local config
+.claude/

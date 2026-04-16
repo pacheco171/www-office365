@@ -97,7 +97,8 @@ var _LAZY_VIEWS = {
   'suporte':     '/src/js/views/suporte.js',
   'auditoria':   '/src/js/views/auditoria.js',
   'relatorio':   '/src/js/views/report.js',
-  'config':      '/src/js/views/config.js'
+  'config':      '/src/js/views/config.js',
+  'organograma': '/src/js/views/organograma.js'
 };
 
 /** Injeta script de view sob demanda e executa callback quando pronto */
@@ -144,6 +145,7 @@ function renderCurrentPage(){
         if(typeof loadGraphConfig==='function')loadGraphConfig();
         if(typeof loadAiConfig==='function')loadAiConfig();
       }
+      if(page==='organograma')renderOrganograma();
     });
   }
 }
@@ -151,6 +153,7 @@ function renderCurrentPage(){
 /** Re-renderiza a view atual (chamado após alteração de dados) */
 function refresh(){
   invalidateBootCache();
+  ['vc_exchange','vc_onedrive','vc_grupos','vc_alertas_ms','vc_alertas_local','vc_politicas','vc_assessment'].forEach(function(k){try{sessionStorage.removeItem(k);}catch(e){}});
   Object.keys(_rendered).forEach(function(k){_rendered[k]=false;});
   updateMetrics();
   var page=getActivePage();

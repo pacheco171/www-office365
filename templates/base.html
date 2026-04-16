@@ -52,6 +52,9 @@
   <a class="nav-item{% if active_page == 'colaboradores' %} active{% endif %}" href="/colaboradores">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="9" cy="7" r="4"/><path d="M3 21v-2a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v2"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/><path d="M21 21v-2a4 4 0 0 0-3-3.87"/></svg><span data-i18n="term.colaboradores">Colaboradores</span>
   </a>
+  <a class="nav-item{% if active_page == 'organograma' %} active{% endif %}" href="/organograma">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="2" width="6" height="4" rx="1"/><rect x="2" y="18" width="6" height="4" rx="1"/><rect x="9" y="18" width="6" height="4" rx="1"/><rect x="16" y="18" width="6" height="4" rx="1"/><path d="M12 6v4"/><path d="M12 10h-7v8"/><path d="M12 10v8"/><path d="M12 10h7v8"/></svg><span>Organograma</span>
+  </a>
   <div class="nav-label" data-i18n="nav.licencas_m365">Licenças M365</div>
   <a class="nav-item{% if active_page == 'licencas' %} active{% endif %}" href="/licencas">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 0 0-4 0v2"/><line x1="12" y1="12" x2="12" y2="16"/></svg><span data-i18n="nav.licencas">Licenças</span>
@@ -175,8 +178,9 @@
       </div>
       <div class="form-group"><label data-i18n="modal.status">Status</label><select class="form-select" id="fStatus"><option value="Ativo" data-i18n="status.ativo">Ativo</option><option value="Pendente" data-i18n="status.pendente">Pendente</option><option value="Inativo" data-i18n="status.inativo">Inativo</option></select></div>
       <div class="form-group"><label data-i18n="modal.data_criacao">Data de criação</label><input type="date" class="form-input" id="fData"></div>
+      <div class="form-group" id="removeLicGroup" style="display:none"><label class="lic-remove-label" data-i18n="modal.remover_licenca">Remover Licença</label><div class="btn-lic-container"><button type="button" class="btn-remover-lic" id="removeLicBtn" onclick="removeLic()">Remover Licença</button></div></div>
       <div class="form-group form-full"><label data-i18n="modal.licenca">Licença Microsoft 365</label><div class="lic-grid" id="licGrid"></div></div>
-      <div class="form-group form-full"><label data-i18n="modal.resumo_custo">Resumo de custo</label>
+      <div class="form-group form-full" id="costPreviewSection"><label data-i18n="modal.resumo_custo">Resumo de custo</label>
         <div class="cost-preview">
           <div class="cp-row"><span data-i18n="modal.plano">Plano principal</span><span id="cpLic">—</span></div>
           <div class="cp-row"><span data-i18n="modal.o_que_inclui">O que inclui</span><span id="cpDesc" style="text-align:right;max-width:60%">—</span></div>

@@ -146,7 +146,7 @@ function _renderTableLocal(){
       +'<td><span class="dept-tag">'+r.setor+'</span>'+(r.area?'<span style="font-size:10px;color:var(--muted);margin-left:4px">/ '+r.area+'</span>':'')+(r.subarea?'<span style="font-size:10px;color:var(--muted);margin-left:2px">/ '+r.subarea+'</span>':'')+(r.setorFixo?'<span class="setor-lock" title="Setor fixo — não sobrescrito na importação">🔒</span>':'')+'</td>'
       +'<td style="font-size:12px">'+cargoCell(r)+'</td>'
       +'<td>'+licBadge(r.licId)+(r.addons||[]).filter(function(a){return licById[a]&&licById[a].price>0;}).map(function(a){return' '+licBadge(a);}).join('')+'</td>'
-      +'<td><span class="cost-val">'+(c>0?fmtBRL(c):'—')+'</span>'+(c>0?'<span class="cost-per">/mês</span>':'')+'</td>'
+      +'<td class="td-custo"><span class="cost-val">'+(c>0?fmtBRL(c):'—')+'</span>'+(c>0?'<span class="cost-per">/mês</span>':'')+'</td>'
       +'<td>'+statusBadge(r.status)+'</td>'
       +'<td class="date-cell">'+fmtDate(r.dataISO)+'</td>'
       +'<td style="white-space:nowrap">'+(canEdit()?'<button class="act-btn" onclick="event.stopPropagation();openOverrideModal('+r.id+')" title="Editar setor">✎</button> ':'')+'<button class="act-btn" onclick="event.stopPropagation();openDetail('+r.id+')">Ver</button></td>'

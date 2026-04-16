@@ -52,6 +52,7 @@ VIEWS_FILES = [
     "views/alertas.css",
     "views/assessment.css",
     "views/suporte.css",
+    "views/organograma.css",
 ]
 
 

@@ -7,6 +7,7 @@ var _exchangeLastUpdated = null;
 var _exchangeUpdateTimer = null;
 
 function refreshExchange() {
+  sessionStorage.removeItem('vc_exchange');
   _exchangeData = null;
   _exchangeLastUpdated = new Date();
   clearTimeout(_exchangeUpdateTimer);
@@ -30,6 +31,7 @@ function renderExchangeView(){
   var tblEl = document.getElementById('exchangeTable');
   if(!tblEl) return;
 
+  if(!_exchangeData){try{var _c=JSON.parse(sessionStorage.getItem('vc_exchange'));if(_c)_exchangeData=_c;}catch(e){}}
   if(_exchangeData){
     _renderExchangeContent(tblEl, _exchangeData);
     return;
@@ -43,6 +45,7 @@ function renderExchangeView(){
       return;
     }
     _exchangeData = res.data || [];
+    try{sessionStorage.setItem('vc_exchange',JSON.stringify(_exchangeData));}catch(e){}
     _renderExchangeContent(tblEl, _exchangeData);
   }).catch(function(){
     tblEl.innerHTML = errorHTML('refreshExchange');

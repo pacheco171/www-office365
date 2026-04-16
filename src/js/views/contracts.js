@@ -73,11 +73,11 @@ function renderContracts(){
         <div class="contract-kpi-label">Ocupação</div>
         <div class="contract-kpi-bar"><div class="contract-kpi-bar-fill" style="width:${Math.min(totalPct,100)}%;background:${totalPct>100?'var(--red)':totalPct>=90?'var(--yellow)':'var(--green)'}"></div></div>
       </div>
-      <div class="contract-kpi">
+      <div class="contract-kpi" data-financial>
         <div class="contract-kpi-val" style="color:var(--brown)">${fmtBRL(totalCustoUso)}</div>
         <div class="contract-kpi-label">Custo em uso / mês</div>
       </div>
-      <div class="contract-kpi">
+      <div class="contract-kpi" data-financial>
         <div class="contract-kpi-val" style="color:${totalCustoOcioso>0?'var(--red)':'var(--green)'}">${totalCustoOcioso>0?fmtBRL(totalCustoOcioso):'R$ 0,00'}</div>
         <div class="contract-kpi-label">Custo ocioso / mês</div>
       </div>`;
@@ -105,8 +105,8 @@ function renderContracts(){
           </div>
           <span style="font-size:11px;font-weight:700;color:${over?'var(--red)':warn?'var(--yellow)':'var(--muted)'};white-space:nowrap">${pct}%</span>
         </div>`:'—'}</td>
-      <td><strong style="color:var(--brown)">${usedCost>0?fmtBRL(usedCost):'—'}</strong></td>
-      <td><span style="color:${freeCost>0?'var(--red)':sd.contratadas>0?'var(--green)':'var(--muted)'}">${freeCost>0?fmtBRL(freeCost):sd.contratadas>0?'R$ 0,00':'—'}</span></td>
+      <td class="td-custo"><strong style="color:var(--brown)">${usedCost>0?fmtBRL(usedCost):'—'}</strong></td>
+      <td class="td-custo"><span style="color:${freeCost>0?'var(--red)':sd.contratadas>0?'var(--green)':'var(--muted)'}">${freeCost>0?fmtBRL(freeCost):sd.contratadas>0?'R$ 0,00':'—'}</span></td>
     </tr>`;
   });
 
@@ -117,8 +117,8 @@ function renderContracts(){
     <td>${totalEmUso}</td>
     <td style="color:${totalContratadas-totalEmUso<0?'var(--red)':'var(--green)'}">${totalContratadas-totalEmUso}</td>
     <td>${totalContratadas>0?Math.round(totalEmUso/totalContratadas*100)+'%':'—'}</td>
-    <td style="color:var(--brown)">${fmtBRL(totalCustoUso)}</td>
-    <td style="color:${totalCustoOcioso>0?'var(--red)':'var(--green)'}">${totalCustoOcioso>0?fmtBRL(totalCustoOcioso):'R$ 0,00'}</td>
+    <td class="td-custo" style="color:var(--brown)">${fmtBRL(totalCustoUso)}</td>
+    <td class="td-custo" style="color:${totalCustoOcioso>0?'var(--red)':'var(--green)'}">${totalCustoOcioso>0?fmtBRL(totalCustoOcioso):'R$ 0,00'}</td>
   </tr>`);
 
   document.getElementById('contractTableBody').innerHTML=rows.join('');
