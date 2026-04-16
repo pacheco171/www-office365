@@ -1,9 +1,10 @@
 /* ══════════ ORGANOGRAMA — Árvore hierárquica por setor ══════════ */
 
-var _orgData     = [];   // dados completos
-var _orgFiltered = [];   // após filtro de busca
-var _orgEditMacro = '';  // macro aberto no modal de edição
-var _orgEditOverrides = {}; // overrides locais no modal (antes de salvar)
+var _orgData     = [];
+var _orgFiltered = [];
+var _orgEditMacro = '';
+var _orgEditOverrides = {};
+var _orgAllUsers = [];
 
 /* ── Carrega dados e renderiza ─────────────────────────────────────────────── */
 
@@ -12,15 +13,26 @@ function renderOrganograma() {
   if (!grid) return;
   grid.innerHTML = '<div class="org-loading">Carregando...</div>';
 
-  fetch('/api/organograma')
-    .then(function(r) {
+  var isSuper = typeof userRole !== 'undefined' && userRole === 'superadmin';
+
+  var pUsers = isSuper
+    ? fetch('/api/organograma/usuarios')
+        .then(function(r) { return r.ok ? r.json() : []; })
+        .catch(function() { return []; })
+    : Promise.resolve([]);
+
+  Promise.all([
+    fetch('/api/organograma').then(function(r) {
       if (!r.ok) throw new Error('HTTP ' + r.status);
       return r.json();
-    })
-    .then(function(data) {
-      _orgData = data;
+    }),
+    pUsers,
+  ])
+    .then(function(results) {
+      _orgData = results[0];
+      _orgAllUsers = Array.isArray(results[1]) ? results[1] : [];
       var sub = document.getElementById('orgSub');
-      if (sub) sub.textContent = data.length + ' setores';
+      if (sub) sub.textContent = _orgData.length + ' setores';
       _orgFilter();
     })
     .catch(function(err) {
@@ -172,31 +184,51 @@ function _orgOpenEditModal(macro) {
 }
 
 function _orgPopulatePapeisSelects(sector) {
-  var membros = (sector.todos_membros || []).slice().sort(function(a, b) {
-    return (a.nome || '').localeCompare(b.nome || '');
-  });
   var gerente = sector.gerente_email || '';
   var coords = {};
   (sector.coordenadores_emails || []).forEach(function(e) { coords[e] = true; });
 
+  var fonte = (_orgAllUsers && _orgAllUsers.length)
+    ? _orgAllUsers
+    : (sector.todos_membros || []).map(function(m) {
+        return { email: m.email, nome: m.nome, cargo: m.cargo, macro: sector.macro };
+      });
+
+  var porMacro = {};
+  fonte.forEach(function(m) {
+    var key = m.macro || sector.macro || 'Sem setor';
+    (porMacro[key] = porMacro[key] || []).push(m);
+  });
+  Object.keys(porMacro).forEach(function(k) {
+    porMacro[k].sort(function(a, b) { return (a.nome || '').localeCompare(b.nome || ''); });
+  });
+
+  var currentMacro = sector.macro;
+  var outros = Object.keys(porMacro).filter(function(k) { return k !== currentMacro; }).sort();
+  var ordered = [];
+  if (porMacro[currentMacro]) ordered.push({ label: 'Setor desta área', members: porMacro[currentMacro] });
+  outros.forEach(function(k) { ordered.push({ label: k, members: porMacro[k] }); });
+
+  function buildOptions(selectedCheck) {
+    return ordered.map(function(group) {
+      var opts = group.members.map(function(m) {
+        var label = m.nome + (m.cargo ? ' — ' + m.cargo : '');
+        var sel = selectedCheck(m.email) ? ' selected' : '';
+        return '<option value="' + _esc(m.email) + '"' + sel + '>' + _esc(label) + '</option>';
+      }).join('');
+      return '<optgroup label="' + _esc(group.label) + '">' + opts + '</optgroup>';
+    }).join('');
+  }
+
   var selG = document.getElementById('orgGerenteSelect');
   if (selG) {
-    var optsG = '<option value="">— Automático (por cargo) —</option>';
-    membros.forEach(function(m) {
-      var label = m.nome + (m.cargo ? ' (' + m.cargo + ')' : '');
-      optsG += '<option value="' + _esc(m.email) + '"' + (m.email === gerente ? ' selected' : '') + '>' + _esc(label) + '</option>';
-    });
-    selG.innerHTML = optsG;
+    selG.innerHTML = '<option value="">— Automático (por cargo) —</option>'
+      + buildOptions(function(e) { return e === gerente; });
   }
 
   var selC = document.getElementById('orgCoordSelect');
   if (selC) {
-    var optsC = '';
-    membros.forEach(function(m) {
-      var label = m.nome + (m.cargo ? ' (' + m.cargo + ')' : '');
-      optsC += '<option value="' + _esc(m.email) + '"' + (coords[m.email] ? ' selected' : '') + '>' + _esc(label) + '</option>';
-    });
-    selC.innerHTML = optsC;
+    selC.innerHTML = buildOptions(function(e) { return !!coords[e]; });
   }
 }
 

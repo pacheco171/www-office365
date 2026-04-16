@@ -224,6 +224,37 @@ def _build_member(m: dict) -> dict:
     }
 
 
+# ── Endpoint GET /api/organograma/usuarios ────────────────────────────────────
+
+@bp.route("/api/organograma/usuarios", methods=["GET"])
+def list_usuarios():
+    check = require_role("superadmin")
+    if check:
+        return check
+
+    tid = getattr(request, "tenant_id", "live")
+    rows = _get_processed_rows(tid)
+
+    usuarios = []
+    for r in rows:
+        if r.get("status") == "Inativo":
+            continue
+        if r.get("tipo") not in (None, "", "Pessoa"):
+            continue
+        email = r.get("email") or ""
+        if not email:
+            continue
+        usuarios.append({
+            "email": email,
+            "nome":  r.get("nome") or "",
+            "cargo": r.get("cargo") or "",
+            "macro": r.get("macro") or r.get("setor") or "Sem setor",
+        })
+
+    usuarios.sort(key=lambda u: (_norm(u["macro"]), _norm(u["nome"])))
+    return jsonify(usuarios)
+
+
 # ── Endpoint POST /api/organograma/responsavel ────────────────────────────────
 
 @bp.route("/api/organograma/responsavel", methods=["POST"])
