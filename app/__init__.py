@@ -59,6 +59,40 @@ def create_app() -> Flask:
             request.tenant_id = resolve_tenant_id()
             uname = user.get("username") or user.get("email") or user.get("name", "")
             request.auth_role = get_user_role(uname, request.tenant_id)
+            if request.auth_role == "gestor":
+                import logging as _log
+                from app.blueprints.core import _get_processed_rows
+                email_full   = (user.get("email") or "").lower().strip()
+                uname_prefix = uname.split("@")[0].lower().strip()
+                display_name = (user.get("name") or "").lower().strip()
+                rows = _get_processed_rows(request.tenant_id)
+                _log.getLogger("graph-sync").info(
+                    "[gestor-debug] uname=%s email=%s name=%s rows=%d path=%s",
+                    uname_prefix, email_full, display_name, len(rows), request.path
+                )
+                def _match_gestor(r):
+                    row_email = (r.get("email") or "").lower().strip()
+                    row_nome  = (r.get("nome")  or "").lower().strip()
+                    return (
+                        (email_full and row_email == email_full) or
+                        row_email.split("@")[0] == uname_prefix or
+                        (display_name and row_nome == display_name)
+                    )
+                matched = next((r for r in rows if _match_gestor(r)), None)
+                if matched:
+                    request.auth_setor = matched.get("setor") or ""
+                    _log.getLogger("graph-sync").info("[gestor-debug] matched email=%s setor=%s macro=%s", matched.get("email"), matched.get("setor"), matched.get("macro"))
+                else:
+                    # fallback: department do SSO → parse para macro
+                    dept = (user.get("department") or "").strip()
+                    if dept:
+                        from app.graph_service import _parse_dept
+                        macro, _ = _parse_dept(dept)
+                        request.auth_setor = macro or ""
+                    else:
+                        request.auth_setor = ""
+            else:
+                request.auth_setor = None
             return None
 
         return None

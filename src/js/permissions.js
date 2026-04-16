@@ -1,6 +1,7 @@
 /* ══════════ PERMISSIONS + ANOTAÇÕES VISUAIS ══════════ */
 
 let annotations=[];
+var userSetor='';
 
 /** Carrega role do usuário logado e aplica restrições de UI */
 function loadUserRole(){
@@ -9,6 +10,7 @@ function loadUserRole(){
     .then(function(data){
       userRole=data.role||'viewer';
       globalAdmin=data.global_admin||false;
+      userSetor=data.setor_acesso||'';
       applyRoleRestrictions();
       if(userRole==='superadmin')loadAnnotations();
       return userRole;
@@ -34,11 +36,28 @@ function applyRoleRestrictions(){
   // Badge de role na sidebar
   var badge=document.getElementById('sbRoleBadge');
   if(badge){
-    var labels={superadmin:'Super Admin',admin:'Admin',viewer:'Visualizador',tecnico:'Técnico'};
-    var colors={superadmin:'var(--brown)',admin:'var(--green)',viewer:'var(--muted)',tecnico:'var(--muted)'};
+    var labels={superadmin:'Super Admin',admin:'Admin',viewer:'Visualizador',tecnico:'Técnico',gestor:'Gestor'};
+    var colors={superadmin:'var(--brown)',admin:'var(--green)',viewer:'var(--muted)',tecnico:'var(--muted)',gestor:'var(--muted)'};
     badge.textContent=labels[userRole]||'Visualizador';
     badge.style.color=colors[userRole]||'var(--muted)';
     badge.style.display='';
+  }
+
+  // Restrições do gestor — acesso somente ao setor próprio
+  if(userRole==='gestor'){
+    document.body.classList.add('role-gestor');
+    document.querySelectorAll('a.nav-item').forEach(function(el){el.style.display='none';});
+    ['/', '/colaboradores'].forEach(function(href){
+      var el=document.querySelector('a.nav-item[href="'+href+'"]');
+      if(el)el.style.display='flex';
+    });
+    document.querySelectorAll('.nav-label').forEach(function(el){el.style.display='none';});
+    if(!document.getElementById('_gestorCss')){
+      var gs=document.createElement('style');
+      gs.id='_gestorCss';
+      gs.textContent='body.role-gestor .filter-with-help{display:none!important}';
+      document.head.appendChild(gs);
+    }
   }
 
   // Restrições do técnico — sem visibilidade de valores financeiros

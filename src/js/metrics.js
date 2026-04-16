@@ -126,6 +126,7 @@ function updateMetrics(){
       var cs=ss.value;
       const opts=[...new Set(db.map(r=>r.setor))].sort();
       ss.innerHTML='<option value="">Todos os setores</option>'+opts.map(o=>`<option${o===cs?' selected':''}>${o}</option>`).join('');
+      if(typeof userRole!=='undefined'&&userRole==='gestor'&&typeof userSetor!=='undefined'&&userSetor){ss.value=userSetor;}
       var ls=document.getElementById('fltLic'),cl=ls.value;
       const used=[...new Set(db.filter(r=>r.licId!=='none'&&r.licId!=='other').map(r=>r.licId))];
       ls.innerHTML='<option value="">Todas as licenças</option>'+LICENSES.filter(l=>used.includes(l.id)).map(l=>`<option value="${l.id}"${l.id===cl?' selected':''}>${l.name}</option>`).join('');

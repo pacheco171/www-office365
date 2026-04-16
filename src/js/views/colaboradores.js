@@ -104,6 +104,7 @@ function _renderTableLocal(){
   }
 
   var rows=db.filter(function(r){
+    if(typeof userRole!=='undefined'&&userRole==='gestor'&&typeof userSetor!=='undefined'&&userSetor&&r.setor!==userSetor)return false;
     var l=getLic(r.licId);
     var txt=(r.nome+r.email+r.setor+(r.area||'')+r.cargo+l.name+l.short).toLowerCase();
     if(q&&txt.indexOf(q)<0)return false;

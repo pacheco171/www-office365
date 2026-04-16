@@ -76,7 +76,7 @@ function _orgRender() {
     return '<div class="org-card">'
       + '<div class="org-card-header">'
       + '<div class="org-card-title">' + _esc(s.macro) + '</div>'
-      + '<div class="org-card-meta">' + s.total + ' pessoa' + (s.total !== 1 ? 's' : '') + '</div>'
+      + '<div class="org-card-meta">' + s.total + ' colaborador' + (s.total !== 1 ? 'es' : '') + ' na área</div>'
       + editBtn
       + '</div>'
       + '<div class="org-tree-wrap">' + treeHtml + '</div>'

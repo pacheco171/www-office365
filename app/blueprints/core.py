@@ -85,6 +85,18 @@ def _get_processed_rows(tid: str) -> list:
     return rows
 
 
+def _build_data_response_filtered(tid: str, setor: str) -> bytes:
+    rows = _get_processed_rows(tid)
+    data = load_data(tid)
+    result = {k: v for k, v in data.items() if k not in ("db", "snapshots", "fatura", "contracts", "acoes")}
+    result["db"] = [r for r in rows if r.get("setor") == setor]
+    result["snapshots"] = []
+    result["fatura"] = []
+    result["contracts"] = []
+    result["acoes"] = []
+    return json.dumps(result, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+
+
 def _build_data_response(tid: str) -> bytes:
     data = load_data(tid)
     hier_data = load_json_safe(tenant_path(tid, "hierarchy.json"), {"hierarchy": {}})
@@ -146,12 +158,17 @@ def get_me():
         "role": role,
         "tenant_id": tid,
         "global_admin": is_global_admin(uname),
+        "setor_acesso": getattr(request, "auth_setor", None),
     })
 
 
 @bp.route("/api/data", methods=["GET"])
 def get_data():
     tid = getattr(request, "tenant_id", "live")
+    role = getattr(request, "auth_role", DEFAULT_ROLE)
+    setor = getattr(request, "auth_setor", None)
+    if role == "gestor":
+        return Response(_build_data_response_filtered(tid, setor or ""), mimetype="application/json")
     cached = _data_response_cache.get(tid)
     if cached:
         return Response(cached, mimetype="application/json")
@@ -188,6 +205,7 @@ def api_boot():
         "username": uname,
         "role": role,
         "global_admin": is_global_admin(uname),
+        "setor_acesso": getattr(request, "auth_setor", None),
     }
 
     if phase == "core":
@@ -197,6 +215,9 @@ def api_boot():
         ov = boot_parts["overrides"].get("overrides", {})
         db_rows = data.get("db", [])
         _process_records(db_rows, ov, area_to_macro, macro_set)
+        if role == "gestor":
+            setor = getattr(request, "auth_setor", None) or ""
+            db_rows = [r for r in db_rows if r.get("setor") == setor] if setor else []
         result = {
             "data": {"db": db_rows}, "me": me_obj,
             "overrides": boot_parts["overrides"],
@@ -229,10 +250,14 @@ def api_boot():
         current_app.logger.info("boot phase=history tenant=%s %dms", tid, round((_time.time() - t0) * 1000))
         return jsonify(result)
 
-    cached_data = _data_response_cache.get(tid)
-    if not cached_data:
-        _build_data_response(tid)
+    if role == "gestor":
+        setor = getattr(request, "auth_setor", None) or ""
+        cached_data = _build_data_response_filtered(tid, setor)
+    else:
         cached_data = _data_response_cache.get(tid)
+        if not cached_data:
+            _build_data_response(tid)
+            cached_data = _data_response_cache.get(tid)
 
     static_json = json.dumps({
         "overrides": boot_parts["overrides"],
@@ -265,6 +290,11 @@ def get_colaboradores():
 
     tid = getattr(request, "tenant_id", "live")
     rows = _get_processed_rows(tid)
+
+    role = getattr(request, "auth_role", DEFAULT_ROLE)
+    if role == "gestor":
+        setor_acesso = getattr(request, "auth_setor", None) or ""
+        rows = [r for r in rows if r.get("setor") == setor_acesso] if setor_acesso else []
 
     all_setores = sorted(set(r.get("setor", "") for r in rows if r.get("setor")))
     all_lics = sorted(set(r.get("licId", "") for r in rows if r.get("licId")))

@@ -175,7 +175,7 @@ function applyBoot(boot){
   if(boot.overrides)overrides=(boot.overrides.overrides)||{};
   if(boot.hierarchy){HIERARCHY=(boot.hierarchy.hierarchy)||{};if(typeof rebuildAreaMap==='function')rebuildAreaMap();}
   if(Array.isArray(boot.subscriptions))azureSubs=boot.subscriptions;
-  if(boot.me){userRole=boot.me.role||'viewer';globalAdmin=boot.me.global_admin||false;if(typeof applyRoleRestrictions==='function')applyRoleRestrictions();if(userRole==='superadmin'&&typeof loadAnnotations==='function')loadAnnotations();}
+  if(boot.me){userRole=boot.me.role||'viewer';globalAdmin=boot.me.global_admin||false;userSetor=boot.me.setor_acesso||'';if(typeof applyRoleRestrictions==='function')applyRoleRestrictions();if(userRole==='superadmin'&&typeof loadAnnotations==='function')loadAnnotations();}
   if(Array.isArray(boot.licenses)&&boot.licenses.length){LICENSES=boot.licenses;licById=Object.fromEntries(LICENSES.map(function(l){return[l.id,l];}));}
   if(boot.tenants&&typeof initTenantSwitcher==='function')initTenantSwitcher(boot.tenants);
   db.forEach(function(r){
@@ -216,7 +216,7 @@ function dismissBootLoader(){
 var _BOOT_TTL = 5 * 60 * 1000;
 function _bootCacheKey() {
   var s = typeof authGetSession === 'function' ? (authGetSession() || {}) : {};
-  return 'boot_v2_' + (s.tenant || s.username || 'default');
+  return 'boot_v2_' + (s.username || 'default') + '_' + (s.tenant || 'live');
 }
 function fetchBoot() {
   /* boot_pending = pós-login ou troca de tenant: sempre buscar dados frescos
@@ -235,7 +235,11 @@ function fetchBoot() {
     .then(function(r){ return r.json(); })
     .then(function(boot){
       var key = _bootCacheKey();
-      try { sessionStorage.setItem(key, JSON.stringify({ts: Date.now(), data: boot})); } catch(e){}
+      if(!boot.me || boot.me.role !== 'gestor'){
+        try { sessionStorage.setItem(key, JSON.stringify({ts: Date.now(), data: boot})); } catch(e){}
+      } else {
+        try { sessionStorage.removeItem(key); } catch(e){}
+      }
       return boot;
     });
 }

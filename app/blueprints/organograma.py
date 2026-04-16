@@ -5,6 +5,7 @@ import unicodedata
 from flask import Blueprint, request, jsonify
 
 from app.auth_service import require_role
+from app.config import DEFAULT_ROLE
 from app.utils import (
     get_tenant_lock, load_json_safe, save_json_atomic, tenant_path,
     _invalidate_data_cache,
@@ -143,7 +144,10 @@ def get_organograma():
 
         members_sorted = sorted(members, key=lambda m: (m["_nivel"], _norm(m.get("nome") or "")))
 
-        # Responsável
+        # Filtra apenas gerentes (2) e coordenadores (3)
+        leaders = [m for m in members_sorted if m["_nivel"] in (2, 3)]
+
+        # Responsável (busca entre todos os membros, incluindo líderes manuais)
         responsavel = None
         if manual_email:
             manual_member = next((m for m in members_sorted if m.get("email") == manual_email), None)
@@ -152,18 +156,18 @@ def get_organograma():
             else:
                 manual_email = None
 
-        if not responsavel and members_sorted:
-            responsavel = _build_resp(members_sorted[0], "auto")
+        if not responsavel and leaders:
+            responsavel = _build_resp(leaders[0], "auto")
 
-        # Equipe plana (para compatibilidade)
+        # Equipe plana — apenas líderes
         resp_email = responsavel["email"] if responsavel else None
-        equipe = [_build_member(m) for m in members_sorted if m.get("email") != resp_email]
+        equipe = [_build_member(m) for m in leaders if m.get("email") != resp_email]
 
-        # Árvore hierárquica
+        # Árvore hierárquica — apenas líderes
         flat_for_tree = [
             {"email": m.get("email") or "", "nome": m.get("nome") or "",
              "cargo": m.get("cargo") or "", "nivel": m["_nivel"]}
-            for m in members_sorted
+            for m in leaders
         ]
         tree = _build_tree(flat_for_tree, tree_overrides)
 
@@ -172,8 +176,13 @@ def get_organograma():
             "responsavel": responsavel,
             "equipe": equipe,
             "tree": tree,
-            "total": len(members),
+            "total": len(members),  # total real do setor (todos os colaboradores)
         })
+
+    role = getattr(request, "auth_role", DEFAULT_ROLE)
+    if role == "gestor":
+        setor = getattr(request, "auth_setor", None) or ""
+        result = [s for s in result if s["macro"] == setor] if setor else []
 
     return jsonify(result)
 
