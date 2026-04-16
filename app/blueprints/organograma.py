@@ -137,33 +137,42 @@ def get_organograma():
         macro_cfg = hier.get(macro, {})
         manual_email = macro_cfg.get("responsavel_email")
         tree_overrides = macro_cfg.get("tree_overrides", {})
+        gerente_email = (macro_cfg.get("gerente_email") or "").strip()
+        coordenadores_emails = {
+            e for e in (macro_cfg.get("coordenadores_emails") or [])
+            if isinstance(e, str) and e and e != gerente_email
+        }
 
-        # Adiciona nível a cada membro
         for m in members:
-            m["_nivel"] = _cargo_level(m.get("cargo") or "")
+            email = m.get("email") or ""
+            level = _cargo_level(m.get("cargo") or "")
+            if email and email == gerente_email:
+                level = 2
+            elif email and email in coordenadores_emails:
+                level = 3
+            m["_nivel"] = level
 
         members_sorted = sorted(members, key=lambda m: (m["_nivel"], _norm(m.get("nome") or "")))
 
-        # Filtra apenas gerentes (2) e coordenadores (3)
         leaders = [m for m in members_sorted if m["_nivel"] in (2, 3)]
 
-        # Responsável (busca entre todos os membros, incluindo líderes manuais)
         responsavel = None
-        if manual_email:
+        if gerente_email:
+            gerente_member = next((m for m in members_sorted if m.get("email") == gerente_email), None)
+            if gerente_member:
+                responsavel = _build_resp(gerente_member, "manual")
+
+        if not responsavel and manual_email:
             manual_member = next((m for m in members_sorted if m.get("email") == manual_email), None)
             if manual_member:
                 responsavel = _build_resp(manual_member, "manual")
-            else:
-                manual_email = None
 
         if not responsavel and leaders:
             responsavel = _build_resp(leaders[0], "auto")
 
-        # Equipe plana — apenas líderes
         resp_email = responsavel["email"] if responsavel else None
         equipe = [_build_member(m) for m in leaders if m.get("email") != resp_email]
 
-        # Árvore hierárquica — apenas líderes
         flat_for_tree = [
             {"email": m.get("email") or "", "nome": m.get("nome") or "",
              "cargo": m.get("cargo") or "", "nivel": m["_nivel"]}
@@ -171,12 +180,20 @@ def get_organograma():
         ]
         tree = _build_tree(flat_for_tree, tree_overrides)
 
+        todos_membros = [
+            {"email": m.get("email") or "", "nome": m.get("nome") or "", "cargo": m.get("cargo") or ""}
+            for m in members_sorted if m.get("email")
+        ]
+
         result.append({
             "macro": macro,
             "responsavel": responsavel,
             "equipe": equipe,
             "tree": tree,
-            "total": len(members),  # total real do setor (todos os colaboradores)
+            "total": len(members),
+            "gerente_email": gerente_email,
+            "coordenadores_emails": sorted(coordenadores_emails),
+            "todos_membros": todos_membros,
         })
 
     role = getattr(request, "auth_role", DEFAULT_ROLE)
@@ -234,6 +251,60 @@ def set_responsavel():
             macro_cfg["responsavel_email"] = email
         else:
             macro_cfg.pop("responsavel_email", None)
+        save_json_atomic(tenant_path(tid, "hierarchy.json"), hier_data)
+
+    _invalidate_data_cache(tid)
+    return jsonify({"ok": True})
+
+
+# ── Endpoint POST /api/organograma/papeis ─────────────────────────────────────
+
+@bp.route("/api/organograma/papeis", methods=["POST"])
+def set_papeis():
+    check = require_role("superadmin")
+    if check:
+        return check
+
+    payload = request.get_json(force=True, silent=True)
+    if not isinstance(payload, dict):
+        return jsonify({"error": "payload inválido"}), 400
+
+    macro = (payload.get("macro") or "").strip()
+    gerente_email = (payload.get("gerente_email") or "").strip()
+    coords_raw = payload.get("coordenadores_emails") or []
+
+    if not macro:
+        return jsonify({"error": "macro obrigatório"}), 400
+    if not isinstance(coords_raw, list):
+        return jsonify({"error": "coordenadores_emails deve ser lista"}), 400
+
+    seen = set()
+    coordenadores = []
+    for e in coords_raw:
+        if not isinstance(e, str):
+            continue
+        email = e.strip()
+        if not email or email == gerente_email or email in seen:
+            continue
+        seen.add(email)
+        coordenadores.append(email)
+
+    tid = getattr(request, "tenant_id", "live")
+    with get_tenant_lock(tid, "hierarchy"):
+        hier_data = load_json_safe(tenant_path(tid, "hierarchy.json"), {"hierarchy": {}})
+        hier = hier_data.setdefault("hierarchy", {})
+        macro_cfg = hier.setdefault(macro, {})
+
+        if gerente_email:
+            macro_cfg["gerente_email"] = gerente_email
+        else:
+            macro_cfg.pop("gerente_email", None)
+
+        if coordenadores:
+            macro_cfg["coordenadores_emails"] = coordenadores
+        else:
+            macro_cfg.pop("coordenadores_emails", None)
+
         save_json_atomic(tenant_path(tid, "hierarchy.json"), hier_data)
 
     _invalidate_data_cache(tid)

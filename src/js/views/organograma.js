@@ -157,25 +157,67 @@ function _orgOpenEditModal(macro) {
   var sector = _orgData.find(function(s) { return s.macro === macro; });
   if (!sector) return;
 
-  // Inicializa overrides locais vazios (usa automático até o usuário mudar)
   _orgEditOverrides = {};
 
   var modal = document.getElementById('orgEditModal');
+  if (modal && modal.parentNode !== document.body) {
+    document.body.appendChild(modal);
+  }
   document.getElementById('orgEditModalTitle').textContent = macro;
 
-  // Renderiza a árvore completa no modal
+  _orgPopulatePapeisSelects(sector);
   _orgRenderEditTree(sector);
 
   modal.style.display = 'flex';
 }
 
+function _orgPopulatePapeisSelects(sector) {
+  var membros = (sector.todos_membros || []).slice().sort(function(a, b) {
+    return (a.nome || '').localeCompare(b.nome || '');
+  });
+  var gerente = sector.gerente_email || '';
+  var coords = {};
+  (sector.coordenadores_emails || []).forEach(function(e) { coords[e] = true; });
+
+  var selG = document.getElementById('orgGerenteSelect');
+  if (selG) {
+    var optsG = '<option value="">— Automático (por cargo) —</option>';
+    membros.forEach(function(m) {
+      var label = m.nome + (m.cargo ? ' (' + m.cargo + ')' : '');
+      optsG += '<option value="' + _esc(m.email) + '"' + (m.email === gerente ? ' selected' : '') + '>' + _esc(label) + '</option>';
+    });
+    selG.innerHTML = optsG;
+  }
+
+  var selC = document.getElementById('orgCoordSelect');
+  if (selC) {
+    var optsC = '';
+    membros.forEach(function(m) {
+      var label = m.nome + (m.cargo ? ' (' + m.cargo + ')' : '');
+      optsC += '<option value="' + _esc(m.email) + '"' + (coords[m.email] ? ' selected' : '') + '>' + _esc(label) + '</option>';
+    });
+    selC.innerHTML = optsC;
+  }
+}
+
+function _orgReadPapeis() {
+  var selG = document.getElementById('orgGerenteSelect');
+  var selC = document.getElementById('orgCoordSelect');
+  var gerente = selG ? (selG.value || '') : '';
+  var coords = [];
+  if (selC) {
+    for (var i = 0; i < selC.options.length; i++) {
+      if (selC.options[i].selected && selC.options[i].value && selC.options[i].value !== gerente) {
+        coords.push(selC.options[i].value);
+      }
+    }
+  }
+  return { gerente_email: gerente, coordenadores_emails: coords };
+}
+
 function _orgRenderEditTree(sector) {
   var container = document.getElementById('orgEditTree');
   if (!container) return;
-
-  // Reconstrói a árvore localmente usando os overrides do modal
-  var all = sector.equipe.concat(sector.responsavel ? [sector.responsavel] : []);
-  // Usa os nós da tree já recebida da API como base
   container.innerHTML = _renderEditNodes(sector.tree, null, sector);
 }
 
@@ -328,66 +370,74 @@ function saveOrgTree() {
   var sector = _orgData.find(function(s) { return s.macro === _orgEditMacro; });
   if (!sector) return;
 
-  // Combina overrides já existentes (da API) com os novos
-  var allMembers = _flattenTree(sector.tree);
-  var existingParentMap = {};
-  function extractParents2(nodes, parentEmail) {
-    (nodes || []).forEach(function(n) {
-      existingParentMap[n.email] = parentEmail || '';
-      extractParents2(n.children, n.email);
-    });
-  }
-  extractParents2(sector.tree, '');
-
-  // Mescla com overrides locais
-  Object.keys(_orgEditOverrides).forEach(function(email) {
-    existingParentMap[email] = _orgEditOverrides[email] || '';
-  });
-
-  // Remove entradas onde o pai é o mesmo que o automático (não precisamos salvar)
-  // Mas é mais seguro salvar tudo que foi modificado
   var toSave = {};
   Object.keys(_orgEditOverrides).forEach(function(email) {
     toSave[email] = _orgEditOverrides[email] || '';
   });
 
-  fetch('/api/organograma/tree', {
+  var papeis = _orgReadPapeis();
+
+  fetch('/api/organograma/papeis', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ macro: _orgEditMacro, overrides: toSave }),
+    body: JSON.stringify({
+      macro: _orgEditMacro,
+      gerente_email: papeis.gerente_email,
+      coordenadores_emails: papeis.coordenadores_emails,
+    }),
   })
+    .then(function(r) { return r.json(); })
+    .then(function(res) {
+      if (!res.ok) throw new Error(res.error || 'falha nos papéis');
+      return fetch('/api/organograma/tree', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ macro: _orgEditMacro, overrides: toSave }),
+      });
+    })
     .then(function(r) { return r.json(); })
     .then(function(res) {
       if (res.ok) {
         closeOrgEditModal();
         _orgData = [];
         renderOrganograma();
-        if (typeof toast === 'function') toast('Árvore salva.');
+        if (typeof toast === 'function') toast('Alterações salvas.');
       } else {
         if (typeof toast === 'function') toast('Erro: ' + (res.error || 'falha'));
       }
     })
-    .catch(function() {
-      if (typeof toast === 'function') toast('Erro ao salvar.');
+    .catch(function(err) {
+      if (typeof toast === 'function') toast('Erro ao salvar: ' + (err.message || 'falha'));
     });
 }
 
 function resetOrgTree() {
   if (!_orgEditMacro) return;
-  fetch('/api/organograma/tree', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ macro: _orgEditMacro, overrides: null }),
-  })
-    .then(function(r) { return r.json(); })
-    .then(function(res) {
-      if (res.ok) {
-        closeOrgEditModal();
-        _orgData = [];
-        renderOrganograma();
-        if (typeof toast === 'function') toast('Árvore resetada para automático.');
-      }
-    });
+  var macro = _orgEditMacro;
+
+  Promise.all([
+    fetch('/api/organograma/papeis', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ macro: macro, gerente_email: '', coordenadores_emails: [] }),
+    }).then(function(r) { return r.json(); }),
+    fetch('/api/organograma/tree', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ macro: macro, overrides: null }),
+    }).then(function(r) { return r.json(); }),
+  ]).then(function(results) {
+    if (results[0].ok && results[1].ok) {
+      closeOrgEditModal();
+      _orgData = [];
+      renderOrganograma();
+      if (typeof toast === 'function') toast('Área resetada para automático.');
+    } else {
+      if (typeof toast === 'function') toast('Erro ao resetar.');
+    }
+  }).catch(function() {
+    if (typeof toast === 'function') toast('Erro ao resetar.');
+  });
 }
 
 /* ── Helpers ───────────────────────────────────────────────────────────────── */

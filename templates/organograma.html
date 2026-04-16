@@ -28,8 +28,8 @@
   <div id="orgGrid" class="org-grid"></div>
 
   <!-- Modal edição da árvore -->
-  <div id="orgEditModal" style="display:none;position:fixed;inset:0;z-index:1000;background:var(--overlay);align-items:flex-start;justify-content:center;overflow-y:auto;padding:24px 16px">
-    <div style="background:var(--surface);border-radius:16px;width:100%;max-width:680px;box-shadow:var(--shadow-lg);margin:auto">
+  <div id="orgEditModal" style="display:none;position:fixed;inset:0;z-index:1000;background:var(--overlay);align-items:center;justify-content:center;padding:16px">
+    <div style="background:var(--surface);border-radius:16px;width:100%;max-width:680px;box-shadow:var(--shadow-lg);display:flex;flex-direction:column;max-height:calc(100vh - 32px)">
 
       <!-- Header -->
       <div style="display:flex;align-items:center;justify-content:space-between;padding:22px 28px 0">
@@ -44,11 +44,20 @@
 
       <!-- Instrução -->
       <p style="margin:10px 28px 16px;font-size:.8rem;color:var(--muted);line-height:1.5">
-        Clique em <strong>⊕</strong> ao lado de qualquer pessoa para mover ela na hierarquia. As alterações só são aplicadas ao salvar.
+        Defina o gerente e os coordenadores da área e clique em <strong>⊕</strong> ao lado de qualquer pessoa para mover ela na hierarquia. As alterações só são aplicadas ao salvar.
       </p>
 
+      <!-- Papéis da área -->
+      <div style="padding:0 28px 12px">
+        <div style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:6px">Papéis da área</div>
+        <label for="orgGerenteSelect" style="display:block;font-size:.8rem;font-weight:600;margin:8px 0 4px">Gerente</label>
+        <select id="orgGerenteSelect" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:inherit;font:inherit"></select>
+        <label for="orgCoordSelect" style="display:block;font-size:.8rem;font-weight:600;margin:10px 0 4px">Coordenadores <span style="color:var(--muted);font-weight:400">(Ctrl/Cmd para múltiplos)</span></label>
+        <select id="orgCoordSelect" multiple size="5" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:inherit;font:inherit"></select>
+      </div>
+
       <!-- Árvore editável -->
-      <div id="orgEditTree" style="padding:0 28px 20px;max-height:60vh;overflow-y:auto"></div>
+      <div id="orgEditTree" style="padding:0 28px 20px;flex:1;min-height:0;overflow-y:auto"></div>
 
       <!-- Footer -->
       <div style="display:flex;align-items:center;justify-content:space-between;padding:16px 28px;border-top:1px solid var(--border)">
