@@ -1,14 +1,31 @@
 /* ══════════ MODAL EDIT — Criação e edição de colaboradores ══════════ */
 
+/** Retorna quantas licenças de um tipo ainda estão disponíveis (enabled - consumed) */
+function getSubAvail(licId){
+  if(!Array.isArray(azureSubs)||!azureSubs.length)return null;
+  const s=azureSubs.find(x=>x.licId===licId);
+  if(!s)return null;
+  return s.enabled-s.consumed;
+}
+
 /** Renderiza grid de seleção de licença no modal */
 function buildLicGrid(){
-  document.getElementById('licGrid').innerHTML=LICENSES.filter(l=>!l.addon||l.price>0).map(l=>
-    `<div class="lic-opt${l.id===selLicId?' sel':''}" data-id="${l.id}" onclick="pickLic('${l.id}')">
+  document.getElementById('licGrid').innerHTML=LICENSES.filter(l=>l.id!=='none'&&l.id!=='other'&&(!l.addon||l.price>0)).map(l=>{
+    const avail=getSubAvail(l.id);
+    let availHtml='<div class="lic-opt-avail avail-na">—</div>';
+    if(avail!==null){
+      if(avail<=0) availHtml='<div class="lic-opt-avail avail-none">0 disp.</div>';
+      else if(avail<=3) availHtml=`<div class="lic-opt-avail avail-low">${avail} disp.</div>`;
+      else availHtml=`<div class="lic-opt-avail avail-ok">${avail} disp.</div>`;
+    }
+    return `<div class="lic-opt${l.id===selLicId?' sel':''}" data-id="${l.id}" onclick="pickLic('${l.id}')">
       <div class="lic-opt-ico">${l.ico}</div>
       <div class="lic-opt-name">${l.short}</div>
       <div class="lic-opt-price">${l.price>0?fmtBRL(l.price)+(typeof t==='function'?t('common.mes'):'/mês'):(typeof t==='function'?t('lic.gratuito'):'Gratuito')}</div>
       <div class="lic-opt-tier">${l.tier}</div>
-    </div>`).join('');
+      ${availHtml}
+    </div>`;
+  }).join('');
 }
 
 /** Callback de seleção de licença: atualiza UI e custo preview */
