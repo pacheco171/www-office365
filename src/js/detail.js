@@ -62,7 +62,7 @@ function openDetail(id){
     })()}
     <div style="margin-top:20px;display:flex;gap:8px">
       <button class="btn btn-outline" style="flex:1;justify-content:center" onclick="closeDetail()">Fechar</button>
-      <button class="btn btn-dark" style="flex:1;justify-content:center" onclick="closeDetail();openModal(${r.id})">Editar</button>
+      ${userRole!=='gestor'?`<button class="btn btn-dark" style="flex:1;justify-content:center" onclick="closeDetail();openModal(${r.id})">Editar</button>`:''}
     </div>`;
   document.getElementById('detailPanel').classList.add('open');
 }
