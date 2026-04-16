@@ -1,6 +1,14 @@
 {% extends "base.html" %}
 {% block title %}Organograma{% endblock %}
 {% block content %}
+<style>
+  #orgEditSaveBtn{display:inline-flex;align-items:center;gap:8px;min-width:110px;justify-content:center}
+  #orgEditSaveBtn .org-save-spinner{display:none;width:14px;height:14px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:orgSpin .7s linear infinite}
+  #orgEditSaveBtn.is-loading{opacity:.8;cursor:wait}
+  #orgEditSaveBtn.is-loading .org-save-spinner{display:inline-block}
+  #orgEditSaveBtn[disabled]{pointer-events:none}
+  @keyframes orgSpin{to{transform:rotate(360deg)}}
+</style>
 <div class="view active" id="view-organograma">
   <div class="topbar">
     <div>
@@ -50,10 +58,14 @@
       <!-- Papéis da área -->
       <div style="padding:0 28px 12px">
         <div style="font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:1.5px;font-weight:700;margin-bottom:6px">Papéis da área</div>
+
         <label for="orgGerenteSelect" style="display:block;font-size:.8rem;font-weight:600;margin:8px 0 4px">Gerente</label>
+        <input type="text" id="orgGerenteSearch" placeholder="Buscar por nome, cargo ou setor..." autocomplete="off" oninput="_orgFilterSelect('orgGerenteSelect', this.value)" style="width:100%;padding:8px 10px;margin-bottom:4px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:inherit;font:inherit">
         <select id="orgGerenteSelect" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:inherit;font:inherit"></select>
+
         <label for="orgCoordSelect" style="display:block;font-size:.8rem;font-weight:600;margin:10px 0 4px">Coordenadores <span style="color:var(--muted);font-weight:400">(Ctrl/Cmd para múltiplos)</span></label>
-        <select id="orgCoordSelect" multiple size="5" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:inherit;font:inherit"></select>
+        <input type="text" id="orgCoordSearch" placeholder="Buscar por nome, cargo ou setor..." autocomplete="off" oninput="_orgFilterSelect('orgCoordSelect', this.value)" style="width:100%;padding:8px 10px;margin-bottom:4px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:inherit;font:inherit">
+        <select id="orgCoordSelect" multiple size="6" style="width:100%;padding:8px;border:1px solid var(--border);border-radius:8px;background:var(--surface);color:inherit;font:inherit"></select>
       </div>
 
       <!-- Árvore editável -->
@@ -65,8 +77,11 @@
           Resetar para automático
         </button>
         <div style="display:flex;gap:10px">
-          <button class="btn btn-outline" onclick="closeOrgEditModal()">Cancelar</button>
-          <button class="btn btn-primary" onclick="saveOrgTree()">Salvar</button>
+          <button class="btn btn-outline" id="orgEditCancelBtn" onclick="closeOrgEditModal()">Cancelar</button>
+          <button class="btn btn-primary" id="orgEditSaveBtn" onclick="saveOrgTree()">
+            <span class="org-save-spinner" aria-hidden="true"></span>
+            <span class="org-save-label">Salvar</span>
+          </button>
         </div>
       </div>
 

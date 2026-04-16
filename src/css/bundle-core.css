@@ -157,6 +157,10 @@ main{flex:1;overflow-y:auto;min-width:0;scrollbar-gutter:stable;}
 .btn-outline{background:var(--surface);color:var(--text);border:1px solid var(--border);}
 .btn-outline:hover{border-color:var(--tan);color:var(--brown);background:var(--surface2);transform:translateY(-1px);box-shadow:var(--shadow-md);}
 .btn-outline:active{transform:translateY(0);box-shadow:var(--shadow-sm);}
+.btn-primary{background:var(--brown);color:#fff;border:1px solid transparent;}
+.btn-primary:hover{background:#8a6a45;transform:translateY(-2px);box-shadow:var(--shadow-md);}
+.btn-primary:active{transform:translateY(0);box-shadow:var(--shadow-sm);}
+.btn-primary:disabled{background:var(--brown);opacity:.6;transform:none;cursor:wait;}
 .btn-sm{padding:6px 14px;font-size:11px;border-radius:6px;}
 
 

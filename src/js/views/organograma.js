@@ -214,9 +214,10 @@ function _orgPopulatePapeisSelects(sector) {
       var opts = group.members.map(function(m) {
         var label = m.nome + (m.cargo ? ' — ' + m.cargo : '');
         var sel = selectedCheck(m.email) ? ' selected' : '';
-        return '<option value="' + _esc(m.email) + '"' + sel + '>' + _esc(label) + '</option>';
+        var search = _esc(((m.nome || '') + ' ' + (m.cargo || '') + ' ' + (m.macro || '')).toLowerCase());
+        return '<option value="' + _esc(m.email) + '" data-search="' + search + '"' + sel + '>' + _esc(label) + '</option>';
       }).join('');
-      return '<optgroup label="' + _esc(group.label) + '">' + opts + '</optgroup>';
+      return '<optgroup label="' + _esc(group.label) + '" data-group-label="' + _esc(group.label.toLowerCase()) + '">' + opts + '</optgroup>';
     }).join('');
   }
 
@@ -229,6 +230,40 @@ function _orgPopulatePapeisSelects(sector) {
   var selC = document.getElementById('orgCoordSelect');
   if (selC) {
     selC.innerHTML = buildOptions(function(e) { return !!coords[e]; });
+  }
+
+  var inG = document.getElementById('orgGerenteSearch');
+  if (inG) inG.value = '';
+  var inC = document.getElementById('orgCoordSearch');
+  if (inC) inC.value = '';
+  _orgFilterSelect('orgGerenteSelect', '');
+  _orgFilterSelect('orgCoordSelect', '');
+}
+
+function _orgFilterSelect(selectId, query) {
+  var sel = document.getElementById(selectId);
+  if (!sel) return;
+  var q = (query || '').trim().toLowerCase();
+
+  for (var i = 0; i < sel.children.length; i++) {
+    var child = sel.children[i];
+    if (child.tagName === 'OPTION') {
+      child.hidden = false;
+      continue;
+    }
+    if (child.tagName !== 'OPTGROUP') continue;
+
+    var anyVisible = false;
+    var groupLabel = child.getAttribute('data-group-label') || '';
+    var groupMatches = q && groupLabel.indexOf(q) >= 0;
+    for (var j = 0; j < child.children.length; j++) {
+      var opt = child.children[j];
+      var text = opt.getAttribute('data-search') || '';
+      var match = !q || groupMatches || text.indexOf(q) >= 0;
+      opt.hidden = !match;
+      if (match) anyVisible = true;
+    }
+    child.hidden = !anyVisible;
   }
 }
 
@@ -408,6 +443,7 @@ function saveOrgTree() {
   });
 
   var papeis = _orgReadPapeis();
+  _orgSetSaving(true, 'Salvando...');
 
   fetch('/api/organograma/papeis', {
     method: 'POST',
@@ -435,12 +471,25 @@ function saveOrgTree() {
         renderOrganograma();
         if (typeof toast === 'function') toast('Alterações salvas.');
       } else {
-        if (typeof toast === 'function') toast('Erro: ' + (res.error || 'falha'));
+        throw new Error(res.error || 'falha');
       }
     })
     .catch(function(err) {
       if (typeof toast === 'function') toast('Erro ao salvar: ' + (err.message || 'falha'));
-    });
+    })
+    .then(function() { _orgSetSaving(false); });
+}
+
+function _orgSetSaving(isLoading, label) {
+  var btn = document.getElementById('orgEditSaveBtn');
+  if (!btn) return;
+  var lbl = btn.querySelector('.org-save-label');
+  btn.disabled = !!isLoading;
+  btn.classList.toggle('is-loading', !!isLoading);
+  if (lbl) lbl.textContent = isLoading ? (label || 'Salvando...') : 'Salvar';
+
+  var cancel = document.getElementById('orgEditCancelBtn');
+  if (cancel) cancel.disabled = !!isLoading;
 }
 
 function resetOrgTree() {
