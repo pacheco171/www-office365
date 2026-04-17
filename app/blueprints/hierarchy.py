@@ -10,6 +10,9 @@ bp = Blueprint("hierarchy", __name__)
 
 @bp.route("/api/hierarchy", methods=["GET"])
 def get_hierarchy():
+    check = require_role("admin", "tecnico", "gestor", "superadmin")
+    if check:
+        return check
     tid = getattr(request, "tenant_id", "live")
     with get_tenant_lock(tid, "hierarchy"):
         return jsonify(load_json_safe(tenant_path(tid, "hierarchy.json"), {"hierarchy": {}}))

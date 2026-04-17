@@ -33,7 +33,7 @@ def _write_tickets(tickets: list, tenant_id: str = "live"):
 
 @bp.route("/api/support/ticket", methods=["POST"])
 def create_ticket():
-    check = require_role("viewer", "admin", "superadmin")
+    check = require_role("tecnico", "admin", "superadmin")
     if check:
         return check
     body = request.get_json(silent=True) or {}
@@ -63,7 +63,7 @@ def create_ticket():
 
 @bp.route("/api/support/tickets", methods=["GET"])
 def list_tickets():
-    check = require_role("viewer", "admin", "superadmin")
+    check = require_role("tecnico", "admin", "superadmin")
     if check:
         return check
     tid = getattr(request, "tenant_id", "live")

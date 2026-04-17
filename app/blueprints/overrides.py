@@ -16,6 +16,9 @@ bp = Blueprint("overrides", __name__)
 
 @bp.route("/api/overrides", methods=["GET"])
 def get_overrides():
+    check = require_role("admin", "superadmin")
+    if check:
+        return check
     tid = getattr(request, "tenant_id", "live")
     with get_tenant_lock(tid, "overrides"):
         return jsonify(load_overrides(tid))

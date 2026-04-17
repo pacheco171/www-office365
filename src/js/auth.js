@@ -8,7 +8,7 @@
  * ══════════════════════════════════ */
 
 // ── Role do usuário logado (carregado de /api/me) ──
-var userRole = 'viewer'; // default até carregar
+var userRole = 'tecnico'; // default até carregar
 var globalAdmin = false;
 
 // ── Store de autenticação (apenas dados do usuário, SEM tokens) ───

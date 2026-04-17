@@ -175,7 +175,7 @@ function applyBoot(boot){
   if(boot.overrides)overrides=(boot.overrides.overrides)||{};
   if(boot.hierarchy){HIERARCHY=(boot.hierarchy.hierarchy)||{};if(typeof rebuildAreaMap==='function')rebuildAreaMap();}
   if(Array.isArray(boot.subscriptions))azureSubs=boot.subscriptions;
-  if(boot.me){userRole=boot.me.role||'viewer';globalAdmin=boot.me.global_admin||false;userSetor=boot.me.setor_acesso||'';if(typeof applyRoleRestrictions==='function')applyRoleRestrictions();if(userRole==='superadmin'&&typeof loadAnnotations==='function')loadAnnotations();}
+  if(boot.me){userRole=boot.me.role||'tecnico';globalAdmin=boot.me.global_admin||false;userSetor=boot.me.setor_acesso||'';try{localStorage.setItem('_ui_role',userRole);}catch(e){}if(userRole==='gestor'||userRole==='tecnico'){document.documentElement.setAttribute('data-role',userRole);}else{document.documentElement.removeAttribute('data-role');}if(typeof applyRoleRestrictions==='function')applyRoleRestrictions();if(userRole==='superadmin'&&typeof loadAnnotations==='function')loadAnnotations();}
   if(Array.isArray(boot.licenses)&&boot.licenses.length){LICENSES=boot.licenses;licById=Object.fromEntries(LICENSES.map(function(l){return[l.id,l];}));}
   if(boot.tenants&&typeof initTenantSwitcher==='function')initTenantSwitcher(boot.tenants);
   db.forEach(function(r){
@@ -231,17 +231,25 @@ function fetchBoot() {
       } catch(e) { /* cache corrompido, ignora */ }
     }
   }
-  return fetch('/api/boot', {cache:'no-store'})
+  return fetch('/api/boot?phase=core', {cache:'no-store'})
     .then(function(r){ return r.json(); })
     .then(function(boot){
-      var key = _bootCacheKey();
-      if(!boot.me || boot.me.role !== 'gestor'){
-        try { sessionStorage.setItem(key, JSON.stringify({ts: Date.now(), data: boot})); } catch(e){}
-      } else {
-        try { sessionStorage.removeItem(key); } catch(e){}
-      }
+      try { sessionStorage.setItem(_bootCacheKey(), JSON.stringify({ts: Date.now(), data: boot})); } catch(e){}
       return boot;
     });
+}
+
+function _loadBootHistory() {
+  fetch('/api/boot?phase=history', {cache:'no-store'})
+    .then(function(r){ return r.json(); })
+    .then(function(h){
+      applyBoot(h);
+      var page = getActivePage();
+      if(page==='historico') { _rendered['historico']=false; renderHistView(); }
+      if(page==='radar'&&typeof syncRadarAcoes==='function') syncRadarAcoes();
+      if(page==='contratos') { _rendered['contratos']=false; renderContracts(); }
+    })
+    .catch(function(){});
 }
 
 function invalidateBootCache(){
@@ -279,6 +287,8 @@ function invalidateBootCache(){
     applyBoot(boot);
     updateMetrics();renderCurrentPage();
     if(typeof uiProgress!=='undefined')uiProgress.done();
+    var _role = (boot.me||{}).role||'tecnico';
+    if(_role!=='gestor'&&_role!=='tecnico') _loadBootHistory();
   }).catch(function(e){
     _bootDone = true;
     clearInterval(_bootTimer);

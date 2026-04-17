@@ -104,6 +104,9 @@ def _compare_records(source_map: dict, source_label: str, db_map: dict) -> list:
 
 @bp.route("/api/graph/config", methods=["GET"])
 def get_graph_config():
+    check = require_role("admin", "superadmin")
+    if check:
+        return check
     tid = getattr(request, "tenant_id", "live")
     cfg = load_graph_config(tid)
 
@@ -140,6 +143,9 @@ def post_graph_config():
 
 @bp.route("/api/subscriptions", methods=["GET"])
 def get_subscriptions():
+    check = require_role("admin", "tecnico", "superadmin")
+    if check:
+        return check
     tid = getattr(request, "tenant_id", "live")
     data = load_data(tid)
     subs = data.get("subscriptions", [])
@@ -174,6 +180,9 @@ def trigger_sync():
 
 @bp.route("/api/graph/status", methods=["GET"])
 def get_sync_status():
+    check = require_role("admin", "superadmin", "tecnico")
+    if check:
+        return check
     tid = getattr(request, "tenant_id", "live")
     return jsonify(_sync_status.get(tid, {"running": False, "lastSync": None, "lastError": None, "lastResult": None}))
 
@@ -265,6 +274,9 @@ def remap_setores():
 
 @bp.route("/api/graph/audit", methods=["POST"])
 def graph_audit():
+    check = require_role("admin", "superadmin", "tecnico")
+    if check:
+        return check
     try:
         tid = getattr(request, "tenant_id", "live")
         cfg = load_graph_config(tid)

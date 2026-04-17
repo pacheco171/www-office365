@@ -6,7 +6,7 @@ import time
 
 from flask import Blueprint, request, jsonify
 
-from app.auth_service import is_global_admin, is_valid_tenant, load_tenants_config
+from app.auth_service import require_role, is_global_admin, is_valid_tenant, load_tenants_config
 from app.config import TENANTS_CONFIG_FILE
 from app.utils import (
     log, tenant_path, load_json_safe, save_json_atomic,
@@ -25,6 +25,9 @@ def _token_cache_size() -> int:
 
 @bp.route("/api/tenants", methods=["GET"])
 def list_tenants():
+    check = require_role("admin", "superadmin")
+    if check:
+        return check
     user = getattr(request, "auth_user", {})
     uname = user.get("username") or user.get("email") or user.get("name", "")
     tid = getattr(request, "tenant_id", "live")
