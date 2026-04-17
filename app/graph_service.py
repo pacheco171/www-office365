@@ -734,3 +734,34 @@ def ensure_sync_thread(tenant_id: str = "live"):
             target=_auto_sync_loop, args=(tenant_id,), daemon=True
         )
         _sync_threads[tenant_id].start()
+
+
+# ── Sync agendado pós-edição (debounce) ───────────────────────────────────────
+
+_pending_syncs: dict = {}
+_pending_lock = threading.Lock()
+
+
+def schedule_async_sync(tenant_id: str = "live", delay_seconds: float = 5.0, source: str = "auto") -> None:
+    with _pending_lock:
+        existing = _pending_syncs.get(tenant_id)
+        if existing:
+            existing.cancel()
+        timer = threading.Timer(delay_seconds, _fire_scheduled_sync, args=(tenant_id, source))
+        timer.daemon = True
+        _pending_syncs[tenant_id] = timer
+        timer.start()
+    log.info("[auto-sync] scheduled tenant=%s source=%s delay=%.1fs", tenant_id, source, delay_seconds)
+
+
+def _fire_scheduled_sync(tenant_id: str, source: str) -> None:
+    with _pending_lock:
+        _pending_syncs.pop(tenant_id, None)
+    status = _sync_status.get(tenant_id, {})
+    if status.get("running"):
+        log.info("[auto-sync] skip — sync já em execução tenant=%s source=%s", tenant_id, source)
+        return
+    threading.Thread(
+        target=do_graph_sync, args=(None, tenant_id),
+        daemon=True, name=f"auto-sync-{source}-{tenant_id}",
+    ).start()

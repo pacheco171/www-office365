@@ -18,6 +18,7 @@ from app.graph_service import (
     graph_get_simple, build_subscriptions, do_graph_sync, ensure_sync_thread,
     process_graph_user, _parse_ou_dn, _parse_dept, NAME_SUFFIX_RE, build_area_to_macro,
     resolve_hierarchy_server, assign_license_for_user, resolve_sku_ids_for_lic,
+    schedule_async_sync,
 )
 
 bp = Blueprint("graph", __name__)
@@ -404,6 +405,7 @@ def assign_license_route():
                 rec["addons"] = list(addons)
                 break
         save_data(data, tid)
+        schedule_async_sync(tid, delay_seconds=15, source="graph.license")
 
         return jsonify({"ok": True, **result})
     except RequestsHTTPError as e:

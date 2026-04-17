@@ -5,6 +5,7 @@ from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify
 
 from app.auth_service import require_role
+from app.graph_service import schedule_async_sync
 from app.utils import (
     get_tenant_lock, load_overrides, save_overrides,
     normalize_email, validate_email_format, validate_text_field,
@@ -63,6 +64,7 @@ def put_override(email):
             data["overrides"][email] = entry
         save_overrides(data, tid)
     _invalidate_data_cache(tid)
+    schedule_async_sync(tid, delay_seconds=5, source="overrides.put")
     return jsonify({"ok": True})
 
 
@@ -104,6 +106,7 @@ def bulk_override():
             saved += 1
         save_overrides(data, tid)
     _invalidate_data_cache(tid)
+    schedule_async_sync(tid, delay_seconds=5, source="overrides.bulk")
     return jsonify({"ok": True, "saved": saved})
 
 
@@ -119,4 +122,5 @@ def delete_override(email):
         data["overrides"].pop(email, None)
         save_overrides(data, tid)
     _invalidate_data_cache(tid)
+    schedule_async_sync(tid, delay_seconds=5, source="overrides.delete")
     return jsonify({"ok": True})

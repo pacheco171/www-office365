@@ -9,6 +9,7 @@ from flask import Blueprint, request, jsonify
 
 from app.auth_service import require_role
 from app.config import http_requests
+from app.graph_service import schedule_async_sync
 from app.utils import (
     get_tenant_lock, load_data, load_overrides, save_json_atomic,
     tenant_path, _invalidate_data_cache,
@@ -99,6 +100,8 @@ def ad_patch_user(email):
 
     result = _graph_patch_user(token, email, setor, cargo)
     status = 200 if result.get("ok") else 502
+    if result.get("ok"):
+        schedule_async_sync(tid, delay_seconds=15, source="ad-patch")
     return jsonify(result), status
 
 
@@ -232,6 +235,7 @@ def import_rh_csv():
     with get_tenant_lock(tid, "overrides"):
         save_json_atomic(tenant_path(tid, "overrides.json"), ov_data)
     _invalidate_data_cache(tid)
+    schedule_async_sync(tid, delay_seconds=15 if sync_ad else 5, source="import.rh-csv")
 
     return jsonify({
         "ok": True,

@@ -3,6 +3,7 @@
 from flask import Blueprint, request, jsonify
 
 from app.auth_service import require_role
+from app.graph_service import schedule_async_sync
 from app.utils import get_tenant_lock, load_json_safe, save_json_atomic, tenant_path, _invalidate_data_cache
 
 bp = Blueprint("hierarchy", __name__)
@@ -30,4 +31,5 @@ def post_hierarchy():
     with get_tenant_lock(tid, "hierarchy"):
         save_json_atomic(tenant_path(tid, "hierarchy.json"), payload)
     _invalidate_data_cache(tid)
+    schedule_async_sync(tid, delay_seconds=5, source="hierarchy.post")
     return jsonify({"ok": True})

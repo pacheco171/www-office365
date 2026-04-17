@@ -6,6 +6,7 @@ from flask import Blueprint, request, jsonify
 
 from app.auth_service import require_role
 from app.config import DEFAULT_ROLE
+from app.graph_service import schedule_async_sync
 from app.utils import (
     get_tenant_lock, load_json_safe, save_json_atomic, tenant_path,
     _invalidate_data_cache,
@@ -288,6 +289,7 @@ def set_responsavel():
         save_json_atomic(tenant_path(tid, "hierarchy.json"), hier_data)
 
     _invalidate_data_cache(tid)
+    schedule_async_sync(tid, delay_seconds=5, source="organograma.responsavel")
     return jsonify({"ok": True})
 
 
@@ -342,6 +344,7 @@ def set_papeis():
         save_json_atomic(tenant_path(tid, "hierarchy.json"), hier_data)
 
     _invalidate_data_cache(tid)
+    schedule_async_sync(tid, delay_seconds=5, source="organograma.papeis")
     return jsonify({"ok": True})
 
 
@@ -380,4 +383,5 @@ def set_tree():
         save_json_atomic(tenant_path(tid, "hierarchy.json"), hier_data)
 
     _invalidate_data_cache(tid)
+    schedule_async_sync(tid, delay_seconds=5, source="organograma.tree")
     return jsonify({"ok": True})
