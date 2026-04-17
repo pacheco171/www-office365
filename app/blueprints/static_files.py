@@ -4,7 +4,7 @@ import hashlib
 import os
 import time as _time
 
-from flask import Blueprint, render_template, abort, send_from_directory
+from flask import Blueprint, render_template, abort, send_from_directory, request
 
 from app.config import BASE_DIR, STATIC_ALLOWED_EXT
 
@@ -38,6 +38,37 @@ _PAGES = {
     'organograma': 'organograma.html',
 }
 
+_PAGE_ROLES = {
+    "colaboradores": ("admin", "tecnico", "gestor", "superadmin"),
+    "organograma":   ("admin", "tecnico", "superadmin"),
+    "licencas":      ("admin", "tecnico", "superadmin"),
+    "setores":       ("admin", "tecnico", "superadmin"),
+    "historico":     ("admin", "tecnico", "superadmin"),
+    "radar":         ("admin", "tecnico", "superadmin"),
+    "contratos":     ("admin", "tecnico", "superadmin"),
+    "relatorio":     ("admin", "tecnico", "superadmin"),
+    "auditoria":     ("admin", "tecnico", "superadmin"),
+    "sugestoes":     ("admin", "tecnico", "superadmin"),
+    "config":        ("admin", "superadmin"),
+    "exchange":      ("admin", "tecnico", "superadmin"),
+    "onedrive":      ("admin", "tecnico", "superadmin"),
+    "dominios":      ("admin", "tecnico", "superadmin"),
+    "grupos":        ("admin", "tecnico", "superadmin"),
+    "aplicativos":   ("admin", "tecnico", "superadmin"),
+    "privilegios":   ("admin", "tecnico", "superadmin"),
+    "politicas":     ("admin", "tecnico", "superadmin"),
+    "alertas":       ("admin", "tecnico", "superadmin"),
+    "assessment":    ("admin", "tecnico", "superadmin"),
+    "suporte":       ("admin", "tecnico", "superadmin"),
+}
+
+_ROLE_LABELS = {
+    "superadmin": "Super Admin",
+    "admin": "Admin",
+    "tecnico": "Técnico",
+    "gestor": "Gestor",
+}
+
 _BLOCKED_FILES = {
     "data.json", "overrides.json", "graph_config.json", "changelog.json",
     "hierarchy.json", "suggestions.json", "annotations.json", "roles.json",
@@ -53,6 +84,11 @@ def root():
 @bp.route("/<page>")
 def page_view(page):
     if page in _PAGES:
+        allowed = _PAGE_ROLES.get(page)
+        if allowed:
+            role = getattr(request, "auth_role", "tecnico")
+            if role not in allowed:
+                return render_template("403.html", sv=_SV, role=role, role_label=_ROLE_LABELS.get(role, role)), 403
         return render_template(_PAGES[page], active_page=page, sv=_SV)
     return _serve_static(page)
 

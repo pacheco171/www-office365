@@ -116,6 +116,9 @@ def _build_tree(members: list, tree_overrides: dict) -> list:
 
 @bp.route("/api/organograma", methods=["GET"])
 def get_organograma():
+    check = require_role("admin", "tecnico", "superadmin")
+    if check:
+        return check
     tid = getattr(request, "tenant_id", "live")
     rows = _get_processed_rows(tid)
 

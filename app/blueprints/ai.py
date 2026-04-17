@@ -136,6 +136,9 @@ def _build_ai_data_summary(tenant_id: str = "live") -> str:
 
 @bp.route("/api/ai/chat", methods=["POST"])
 def ai_chat():
+    check = require_role("admin", "superadmin")
+    if check:
+        return check
     if not http_requests:
         return jsonify({"error": "Módulo requests não instalado"}), 500
 

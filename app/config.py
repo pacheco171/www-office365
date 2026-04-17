@@ -45,17 +45,23 @@ REQUIRED_GROUP = "Acesso Licencas 365 SSO"
 TOKEN_CACHE_TTL = 300
 AUTH_DOMAIN = "live.local"
 
-# Roles
-DEFAULT_ROLE = "viewer"
+# Roles — roles válidas: superadmin, admin, tecnico, gestor
+DEFAULT_ROLE = "tecnico"
 _DEFAULT_ROLES = {
     "enzzo.pacheco": "superadmin",
     "alex.fagundes": "superadmin",
     "douglas.preto": "superadmin",
 }
 
+# Grupos de roles para uso em require_role()
+ROLES_ALL        = ("admin", "tecnico", "gestor", "superadmin")
+ROLES_NO_GESTOR  = ("admin", "tecnico", "superadmin")
+ROLES_ADMIN_UP   = ("admin", "superadmin")
+ROLES_ADMIN_TECH = ("admin", "superadmin", "tecnico")
+
 # Rotas públicas (não exigem autenticação)
 PUBLIC_PREFIXES = ("/login", "/src/", "/favicon", "/api/auth/")
-PUBLIC_EXACT = {"/", "/login.html"}
+PUBLIC_EXACT = {"/", "/login.html", "/health"}
 
 # Opções de cookie HTTP-only
 _COOKIE_OPTS = {

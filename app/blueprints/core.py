@@ -5,7 +5,7 @@ import time as _time
 
 from flask import Blueprint, request, jsonify, Response
 
-from app.config import DEFAULT_ROLE
+from app.config import DEFAULT_ROLE, ROLES_ALL, ROLES_NO_GESTOR
 from app.auth_service import require_role, is_global_admin, load_tenants_config
 from app.licenses import SKU_MAP, LIC_NAME_MAP, LIC_PRIORITY, LIC_PRICES, LIC_CATALOG, compute_cost
 from app.utils import (
@@ -85,6 +85,15 @@ def _get_processed_rows(tid: str) -> list:
     return rows
 
 
+_FINANCIAL_RECORD_KEYS = frozenset(("custo",))
+_FINANCIAL_ROOT_KEYS = ("fatura", "contracts", "acoes")
+
+
+def _strip_tecnico(record: dict) -> dict:
+    """Retorna cópia do record sem campos financeiros (para role tecnico)."""
+    return {k: v for k, v in record.items() if k not in _FINANCIAL_RECORD_KEYS}
+
+
 def _build_data_response_filtered(tid: str, setor: str) -> bytes:
     rows = _get_processed_rows(tid)
     data = load_data(tid)
@@ -94,6 +103,17 @@ def _build_data_response_filtered(tid: str, setor: str) -> bytes:
     result["fatura"] = []
     result["contracts"] = []
     result["acoes"] = []
+    return json.dumps(result, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
+
+
+def _build_data_response_tecnico(tid: str) -> bytes:
+    rows = _get_processed_rows(tid)
+    data = load_data(tid)
+    result = {k: v for k, v in data.items() if k not in ("db", "snapshots") + _FINANCIAL_ROOT_KEYS}
+    result["db"] = [_strip_tecnico(r) for r in rows]
+    result["snapshots"] = []
+    for key in _FINANCIAL_ROOT_KEYS:
+        result[key] = []
     return json.dumps(result, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
 
 
@@ -164,11 +184,16 @@ def get_me():
 
 @bp.route("/api/data", methods=["GET"])
 def get_data():
+    check = require_role(*ROLES_ALL)
+    if check:
+        return check
     tid = getattr(request, "tenant_id", "live")
     role = getattr(request, "auth_role", DEFAULT_ROLE)
     setor = getattr(request, "auth_setor", None)
     if role == "gestor":
         return Response(_build_data_response_filtered(tid, setor or ""), mimetype="application/json")
+    if role == "tecnico":
+        return Response(_build_data_response_tecnico(tid), mimetype="application/json")
     cached = _data_response_cache.get(tid)
     if cached:
         return Response(cached, mimetype="application/json")
@@ -192,6 +217,9 @@ def post_data():
 
 @bp.route("/api/boot", methods=["GET"])
 def api_boot():
+    check = require_role(*ROLES_ALL)
+    if check:
+        return check
     t0 = _time.time()
     tid = getattr(request, "tenant_id", "live")
     user = getattr(request, "auth_user", {})
@@ -209,21 +237,19 @@ def api_boot():
     }
 
     if phase == "core":
-        data = load_data(tid)
-        hier = boot_parts["hierarchy"].get("hierarchy", {})
-        area_to_macro, macro_set = build_area_to_macro(hier)
-        ov = boot_parts["overrides"].get("overrides", {})
-        db_rows = data.get("db", [])
-        _process_records(db_rows, ov, area_to_macro, macro_set)
+        db_rows = list(_get_processed_rows(tid))
         if role == "gestor":
             setor = getattr(request, "auth_setor", None) or ""
             db_rows = [r for r in db_rows if r.get("setor") == setor] if setor else []
+        elif role == "tecnico":
+            db_rows = [_strip_tecnico(r) for r in db_rows]
         result = {
             "data": {"db": db_rows}, "me": me_obj,
             "overrides": boot_parts["overrides"],
             "hierarchy": boot_parts["hierarchy"],
             "licenses": boot_parts["licenses"],
             "tenants": boot_parts["tenants"],
+            "subscriptions": boot_parts["subscriptions"],
         }
         from flask import current_app
         current_app.logger.info("boot phase=core tenant=%s %dms", tid, round((_time.time() - t0) * 1000))
@@ -236,16 +262,32 @@ def api_boot():
         ov = boot_parts["overrides"].get("overrides", {})
         for snap in data.get("snapshots", []):
             _process_records(snap.get("data", []), ov, area_to_macro, macro_set)
-        result = {
-            "data": {
-                "snapshots": data.get("snapshots", []),
-                "contracts": data.get("contracts", []),
-                "acoes": data.get("acoes", []),
-                "usage": data.get("usage", {}),
-                "fatura": data.get("fatura", []),
-            },
-            "subscriptions": boot_parts["subscriptions"],
-        }
+        if role == "tecnico":
+            snaps = [
+                {**{k: v for k, v in s.items() if k != "data"}, "data": [_strip_tecnico(r) for r in s.get("data", [])]}
+                for s in data.get("snapshots", [])
+            ]
+            result = {
+                "data": {
+                    "snapshots": snaps,
+                    "contracts": [],
+                    "acoes": [],
+                    "usage": data.get("usage", {}),
+                    "fatura": [],
+                },
+                "subscriptions": boot_parts["subscriptions"],
+            }
+        else:
+            result = {
+                "data": {
+                    "snapshots": data.get("snapshots", []),
+                    "contracts": data.get("contracts", []),
+                    "acoes": data.get("acoes", []),
+                    "usage": data.get("usage", {}),
+                    "fatura": data.get("fatura", []),
+                },
+                "subscriptions": boot_parts["subscriptions"],
+            }
         from flask import current_app
         current_app.logger.info("boot phase=history tenant=%s %dms", tid, round((_time.time() - t0) * 1000))
         return jsonify(result)
@@ -253,6 +295,8 @@ def api_boot():
     if role == "gestor":
         setor = getattr(request, "auth_setor", None) or ""
         cached_data = _build_data_response_filtered(tid, setor)
+    elif role == "tecnico":
+        cached_data = _build_data_response_tecnico(tid)
     else:
         cached_data = _data_response_cache.get(tid)
         if not cached_data:
@@ -276,6 +320,9 @@ def api_boot():
 
 @bp.route("/api/colaboradores", methods=["GET"])
 def get_colaboradores():
+    check = require_role(*ROLES_ALL)
+    if check:
+        return check
     import unicodedata as _ud
 
     page = max(1, request.args.get("page", 1, type=int))
@@ -295,6 +342,8 @@ def get_colaboradores():
     if role == "gestor":
         setor_acesso = getattr(request, "auth_setor", None) or ""
         rows = [r for r in rows if r.get("setor") == setor_acesso] if setor_acesso else []
+    elif role == "tecnico":
+        rows = [_strip_tecnico(r) for r in rows]
 
     all_setores = sorted(set(r.get("setor", "") for r in rows if r.get("setor")))
     all_lics = sorted(set(r.get("licId", "") for r in rows if r.get("licId")))
@@ -359,6 +408,9 @@ def get_colaboradores():
 
 @bp.route("/api/licenses", methods=["GET"])
 def get_licenses():
+    check = require_role(*ROLES_NO_GESTOR)
+    if check:
+        return check
     return jsonify(LIC_CATALOG)
 
 

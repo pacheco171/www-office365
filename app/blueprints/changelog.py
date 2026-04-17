@@ -13,6 +13,9 @@ bp = Blueprint("changelog", __name__)
 
 @bp.route("/api/changelog", methods=["GET"])
 def get_changelog():
+    check = require_role("admin", "superadmin")
+    if check:
+        return check
     tid = getattr(request, "tenant_id", "live")
     clog_path = tenant_path(tid, "changelog.json")
     with get_tenant_lock(tid, "changelog"):

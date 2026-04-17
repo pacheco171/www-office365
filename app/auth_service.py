@@ -183,7 +183,7 @@ def resolve_tenant_id() -> str:
 # ── Roles ─────────────────────────────────────────────────────────────────────
 
 def get_user_role(username: str, tenant_id: str = "live") -> str:
-    """Retorna a role do usuário (superadmin, admin, viewer) para o tenant."""
+    """Retorna a role do usuário (superadmin, admin, tecnico, gestor) para o tenant."""
     if not username:
         return DEFAULT_ROLE
     if is_global_admin(username):

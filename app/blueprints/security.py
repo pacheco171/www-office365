@@ -13,7 +13,7 @@ bp = Blueprint("security", __name__)
 
 @bp.route("/api/security/alerts", methods=["GET"])
 def security_alerts():
-    check = require_role("viewer", "admin", "superadmin", "tecnico")
+    check = require_role("admin", "superadmin", "tecnico")
     if check:
         return check
     tid = getattr(request, "tenant_id", "live")
@@ -50,7 +50,7 @@ def security_alerts():
 
 @bp.route("/api/security/analysis", methods=["GET"])
 def security_analysis():
-    check = require_role("viewer", "admin", "superadmin", "tecnico")
+    check = require_role("admin", "superadmin", "tecnico")
     if check:
         return check
 
@@ -147,7 +147,7 @@ def security_analysis():
 
 @bp.route("/api/security/secure-score", methods=["GET"])
 def secure_score():
-    check = require_role("viewer", "admin", "superadmin", "tecnico")
+    check = require_role("admin", "superadmin", "tecnico")
     if check:
         return check
     tid = getattr(request, "tenant_id", "live")
@@ -172,7 +172,7 @@ def secure_score():
 
 @bp.route("/api/security/score-profiles", methods=["GET"])
 def secure_score_profiles():
-    check = require_role("viewer", "admin", "superadmin", "tecnico")
+    check = require_role("admin", "superadmin", "tecnico")
     if check:
         return check
     tid = getattr(request, "tenant_id", "live")
