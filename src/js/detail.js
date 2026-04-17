@@ -39,12 +39,12 @@ function openDetail(id){
         </div>
         ${r.licRaw&&r.licRaw.includes('+')?`<div style="margin-top:8px;font-size:11px;opacity:.55;line-height:1.7">${r.licRaw.split('+').map(p=>`<div>· ${p.trim()}</div>`).join('')}</div>`:''}
         <div class="ldc-features">${l.features.map(f=>`<div class="ldc-feat"><span class="ldc-feat-dot" style="color:${l.color}">●</span><span>${f}</span></div>`).join('')}</div>
-        <div class="ldc-cost">
+        ${userRole!=='tecnico'?`<div class="ldc-cost" data-financial="true">
           <div><div class="ldc-cost-label">Por mês</div><div class="ldc-cost-val" style="color:${l.color}">${c>0?fmtBRL(c):'Gratuito'}</div></div>
           <div style="text-align:right"><div class="ldc-cost-label">Por ano</div><div class="ldc-cost-val">${c>0?fmtBRL(c*12):'—'}</div></div>
-        </div>
+        </div>`:''}
       </div>
-      ${addonList.filter(a=>a.price>0).length?`<div style="margin-top:8px;font-size:11px;color:var(--muted)">
+      ${userRole!=='tecnico'&&addonList.filter(a=>a.price>0).length?`<div data-financial="true" style="margin-top:8px;font-size:11px;color:var(--muted)">
         Inclui add-ons: ${addonList.map(a=>`${a.short} ${a.price>0?'('+fmtBRL(a.price)+'/mês)':'(grátis)'}`).join(' · ')}
       </div>`:''}
     </div>

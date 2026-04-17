@@ -56,8 +56,41 @@ function applyRoleRestrictions(){
 
   // Restrições do técnico — sem visibilidade de valores financeiros
   if(userRole==='tecnico'){
-    // Classe no body — permite seletores CSS de alta especificidade
     document.body.classList.add('role-tecnico');
+    if(!document.getElementById('_technicoCss')){
+      var s=document.createElement('style');
+      s.id='_technicoCss';
+      s.textContent=[
+        'body.role-tecnico .td-custo{display:none!important}',
+        'body.role-tecnico #thCusto{display:none!important}',
+        'body.role-tecnico #sbTotal,body.role-tecnico .sb-total,body.role-tecnico .sb-total-val{display:none!important}',
+        'body.role-tecnico #view-colaboradores thead th:nth-child(7),body.role-tecnico .date-cell{display:none!important}',
+        'body.role-tecnico .filter-with-help{display:none!important}',
+        'body.role-tecnico #fltPeriodo{display:none!important}',
+        'body.role-tecnico [data-financial]{display:none!important}',
+        'body.role-tecnico #compareToggleBtn,body.role-tecnico #forecastToggleBtn{display:none!important}',
+        'body.role-tecnico #comparePanel,body.role-tecnico #forecastPanel{display:none!important}',
+        'body.role-tecnico #custoMedioAllPanel,body.role-tecnico #setorAllPanel{display:none!important}',
+        'body.role-tecnico #custoAnual,body.role-tecnico .chart-custo-anual,body.role-tecnico .chart-custo-sub{display:none!important}',
+        'body.role-tecnico #mCusto,body.role-tecnico #mCustoMedio{display:none!important}',
+        'body.role-tecnico .mc:has(#mCusto),body.role-tecnico .mc:has(#mCustoMedio){display:none!important}',
+        'body.role-tecnico .metrics{grid-template-columns:repeat(2,1fr)!important}',
+        'body.role-tecnico .charts-row{grid-template-columns:repeat(2,1fr)!important}',
+        'body.role-tecnico .contract-kpis{grid-template-columns:repeat(4,1fr)!important}',
+        'body.role-tecnico #view-contratos thead th:nth-child(6),body.role-tecnico #view-contratos thead th:nth-child(7){display:none!important}',
+        'body.role-tecnico #view-contratos .contracts-main-col .contracts-table-wrap:last-child{display:none!important}',
+        'body.role-tecnico #faturaTotal,body.role-tecnico #faturaTotalFooter,body.role-tecnico .fatura-total-label,body.role-tecnico .fatura-val-total,body.role-tecnico .fatura-total-row,body.role-tecnico .fatura-table thead{display:none!important}',
+        'body.role-tecnico #view-contratos .contracts-table-wrap:not([data-financial]) table{table-layout:fixed;width:100%}',
+        'body.role-tecnico #view-contratos .contracts-table-wrap:not([data-financial]) thead th:nth-child(1){width:35%}',
+        'body.role-tecnico #view-contratos .contracts-table-wrap:not([data-financial]) thead th:nth-child(2),body.role-tecnico #view-contratos .contracts-table-wrap:not([data-financial]) thead th:nth-child(3),body.role-tecnico #view-contratos .contracts-table-wrap:not([data-financial]) thead th:nth-child(4){width:14%}',
+        'body.role-tecnico #view-contratos .contracts-table-wrap:not([data-financial]) thead th:nth-child(5){width:23%}',
+        'body.role-tecnico #view-contratos .contracts-table-wrap:not([data-financial]) td{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}',
+        'body.role-tecnico #radarTabAcoes,body.role-tecnico #radarTabSimulador{display:none!important}',
+        'body.role-tecnico #costPreviewSection{display:none!important}',
+        'body.role-tecnico #cpMes,body.role-tecnico #cpAno,body.role-tecnico #cpContrato,body.role-tecnico #cpContratoAno{display:none!important}'
+      ].join('');
+      document.head.appendChild(s);
+    }
     // Tabs do radar — técnico só vê Alertas
     ['radarTabAcoes','radarTabSimulador'].forEach(function(id){
       var el=document.getElementById(id);
