@@ -110,7 +110,8 @@ function _renderTableLocal(){
     if(q&&txt.indexOf(q)<0)return false;
     if(fs&&r.setor!==fs)return false;
     if(!fs&&_activeMacroFilter&&resolveHierarchy(r).macro!==_activeMacroFilter)return false;
-    if(fl&&r.licId!==fl)return false;
+    if(fl==='__sem_lic__'){if(r.licId!=='none'&&r.licId!=='other')return false;}
+    else if(fl&&r.licId!==fl&&!(r.addons||[]).includes(fl))return false;
     if(!fl&&r.licId==='other')return false;
     if(fst&&r.status!==fst)return false;
     if(fc){var orig=r.cargoFixo?'override':(r.cargoOrigem||'ad');if(orig!==fc)return false;}

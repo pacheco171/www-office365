@@ -2,7 +2,7 @@
 // Preços por usuário/mês conforme fatura enviada
 // Apps for Business: R$51,54/mês conforme fatura
 let LICENSES=[
-  {id:'none',    name:'Outros',                 short:'Outros',      price:0,    addon:false, tier:'—',         cls:'lic-none',    ico:'○', color:'#8a8070',
+  {id:'none',    name:'Sem Licença 365',         short:'Sem Lic.',    price:0,    addon:false, tier:'—',         cls:'lic-none',    ico:'○', color:'#8a8070',
    csvNames:['unlicensed'], features:['Sem acesso ao Microsoft 365']},
   {id:'bstd',    name:'M365 Business Standard', short:'Business Standard', price:78.15,addon:false, tier:'Business',  cls:'lic-bstd',    ico:'◉', color:'#7a5c30',
    csvNames:['microsoft 365 business standard'], features:['Apps desktop completos','Teams + Webinars','Exchange 50 GB','OneDrive 1 TB','SharePoint']},
@@ -20,7 +20,7 @@ let LICENSES=[
    csvNames:['planner plan 1'], features:['Planner Premium','Gestão de tarefas avançada','Visualizações de cronograma']},
   {id:'planner3',name:'Planner and Project Plan 3',short:'Planner+Project 3',price:187.55,addon:true,tier:'Add-on',  cls:'lic-planner3',ico:'▩', color:'#1a5c30',
    csvNames:['planner and project plan 3','project professional'], features:['Planner Premium','Project Online','Gestão de projetos completa','Relatórios de portfólio']},
-  {id:'other',   name:'Outra Licença',          short:'Outro',       price:0,    addon:false, tier:'Outro',     cls:'lic-none',    ico:'○', color:'#8a8070',
+  {id:'other',   name:'Sem Licença 365',         short:'Sem Lic.',    price:0,    addon:false, tier:'—',         cls:'lic-none',    ico:'○', color:'#8a8070',
    csvNames:[], features:['Licença não mapeada']},
 ];
 

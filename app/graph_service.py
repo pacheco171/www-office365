@@ -503,8 +503,6 @@ def do_graph_sync(cfg=None, tenant_id: str = "live") -> dict:
         for rec in records:
             rec["custo"] = compute_cost(rec["licId"], rec["addons"])
 
-        usage = _fetch_usage_reports(token, now_iso)
-
         data = load_data(tenant_id)
         _preserve_demissao_dates(records, data)
 
@@ -523,23 +521,27 @@ def do_graph_sync(cfg=None, tenant_id: str = "live") -> dict:
 
         data["db"] = records
         _update_snapshot(data, records, now_iso)
-        data["usage"] = usage
         data["subscriptions"] = subscriptions
+        # data["usage"] mantém o valor anterior até o background thread atualizar
         save_data(data, tenant_id)
 
         elapsed = round(time.time() - start, 1)
         result = {
             "users": len(records),
-            "mailbox_usage": len([u for u in usage.values() if "mailboxMB" in u]),
-            "onedrive_usage": len([u for u in usage.values() if "onedriveMB" in u]),
             "ad_setores": len(discovered_hierarchy),
             "ad_areas": sum(len(a) for a in discovered_hierarchy.values()),
             "snapshot": datetime.now(timezone.utc).isoformat()[:7],
             "elapsed_seconds": elapsed,
+            "usage_updating": True,
         }
         status["lastSync"] = now_iso
         status["lastResult"] = result
         log.info("Sync concluído em %.1fs: %s", elapsed, result)
+
+        threading.Thread(
+            target=_fetch_usage_bg, args=(token, now_iso, tenant_id), daemon=True
+        ).start()
+
         return result
 
     except Exception as e:
@@ -700,6 +702,18 @@ def _fetch_usage_reports(token: str, now_iso: str) -> dict:
         log.warning("Falha ao obter M365 Apps usage: %s", e)
 
     return usage
+
+
+def _fetch_usage_bg(token: str, now_iso: str, tenant_id: str):
+    try:
+        usage = _fetch_usage_reports(token, now_iso)
+        if usage:
+            data = load_data(tenant_id)
+            data["usage"] = usage
+            save_data(data, tenant_id)
+            log.info("Usage reports atualizados em background: %d registros", len(usage))
+    except Exception:
+        log.exception("Erro ao buscar usage reports em background")
 
 
 # ── Auto sync loop ────────────────────────────────────────────────────────────

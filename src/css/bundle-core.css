@@ -157,10 +157,6 @@ main{flex:1;overflow-y:auto;min-width:0;scrollbar-gutter:stable;}
 .btn-outline{background:var(--surface);color:var(--text);border:1px solid var(--border);}
 .btn-outline:hover{border-color:var(--tan);color:var(--brown);background:var(--surface2);transform:translateY(-1px);box-shadow:var(--shadow-md);}
 .btn-outline:active{transform:translateY(0);box-shadow:var(--shadow-sm);}
-.btn-primary{background:var(--brown);color:#fff;border:1px solid transparent;}
-.btn-primary:hover{background:#8a6a45;transform:translateY(-2px);box-shadow:var(--shadow-md);}
-.btn-primary:active{transform:translateY(0);box-shadow:var(--shadow-sm);}
-.btn-primary:disabled{background:var(--brown);opacity:.6;transform:none;cursor:wait;}
 .btn-sm{padding:6px 14px;font-size:11px;border-radius:6px;}
 
 
@@ -739,3 +735,65 @@ label{font-size:9.5px;color:var(--muted);letter-spacing:2px;text-transform:upper
   .ai-msg{font-size:14px;}
   .ai-input{font-size:14px;}
 }
+
+/* ── Role restrictions (aplicadas antes do boot via body.role-* no inline script) ── */
+
+/* GESTOR: só vê dashboard e colaboradores */
+body.role-gestor a.nav-item{display:none!important}
+body.role-gestor a.nav-item[href="/"],
+body.role-gestor a.nav-item[href="/colaboradores"]{display:flex!important}
+body.role-gestor .nav-label{display:none!important}
+body.role-gestor .filter-with-help{display:none!important}
+body.role-gestor #navSugestoes{display:none!important}
+body.role-gestor [data-perm="edit"]{display:none!important}
+body.role-gestor #btnImportarRH{display:none!important}
+
+/* TÉCNICO: sem dados financeiros, sem algumas abas de nav */
+body.role-tecnico a.nav-item[href="/licencas"],
+body.role-tecnico a.nav-item[href="/setores"],
+body.role-tecnico a.nav-item[href="/historico"],
+body.role-tecnico a.nav-item[href="/dominios"],
+body.role-tecnico a.nav-item[href="/aplicativos"],
+body.role-tecnico a.nav-item[href="/privilegios"],
+body.role-tecnico a.nav-item[href="/relatorio"],
+body.role-tecnico a.nav-item[href="/auditoria"],
+body.role-tecnico a.nav-item[href="/suporte"],
+body.role-tecnico a.nav-item[href="/config"]{display:none!important}
+body.role-tecnico .nav-label[data-i18n="nav.licencas_m365"]{display:none!important}
+body.role-tecnico #navSugestoes{display:none!important}
+body.role-tecnico [data-perm="edit"]{display:none!important}
+body.role-tecnico #btnImportarRH{display:none!important}
+/* colunas e headers financeiros */
+body.role-tecnico .td-custo{display:none!important}
+body.role-tecnico #thCusto{display:none!important}
+body.role-tecnico #view-colaboradores thead th:nth-child(7),
+body.role-tecnico .date-cell{display:none!important}
+body.role-tecnico .filter-with-help{display:none!important}
+body.role-tecnico #fltPeriodo{display:none!important}
+body.role-tecnico [data-financial]{display:none!important}
+/* botões e painéis de análise financeira */
+body.role-tecnico #compareToggleBtn,
+body.role-tecnico #forecastToggleBtn{display:none!important}
+body.role-tecnico #comparePanel,
+body.role-tecnico #forecastPanel{display:none!important}
+body.role-tecnico #custoMedioAllPanel,
+body.role-tecnico #setorAllPanel{display:none!important}
+body.role-tecnico .chart-custo-anual{display:none!important}
+body.role-tecnico .chart-custo-sub{display:none!important}
+/* layout ajustado sem cards de custo */
+body.role-tecnico .metrics{grid-template-columns:repeat(2,1fr)!important}
+body.role-tecnico .charts-row{grid-template-columns:repeat(2,1fr)!important}
+/* contratos: sem colunas de custo */
+body.role-tecnico .contract-kpis{grid-template-columns:repeat(4,1fr)!important}
+body.role-tecnico #view-contratos thead th:nth-child(6),
+body.role-tecnico #view-contratos thead th:nth-child(7){display:none!important}
+body.role-tecnico #view-contratos .contracts-main-col .contracts-table-wrap:last-child{display:none!important}
+body.role-tecnico #faturaTotal,
+body.role-tecnico #faturaTotalFooter,
+body.role-tecnico .fatura-total-label,
+body.role-tecnico .fatura-val-total,
+body.role-tecnico .fatura-total-row,
+body.role-tecnico .fatura-table thead{display:none!important}
+/* radar: sem tabs de ações e simulador */
+body.role-tecnico #radarTabAcoes,
+body.role-tecnico #radarTabSimulador{display:none!important}

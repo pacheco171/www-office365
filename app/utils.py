@@ -57,12 +57,22 @@ def load_json_safe(path, default):
 
 
 def save_json_atomic(path, data):
-    """Grava JSON de forma atômica (escreve em temp e renomeia)."""
+    """Grava JSON de forma atômica (escreve em temp e renomeia).
+
+    Mantém um .bak do arquivo anterior para recuperação em caso de corrupção.
+    """
     dir_name = os.path.dirname(path)
     fd, tmp_path = tempfile.mkstemp(dir=dir_name, suffix=".tmp")
     try:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             json.dump(data, f, ensure_ascii=False)
+        bak_path = path + ".bak"
+        if os.path.exists(path):
+            try:
+                import shutil
+                shutil.copy2(path, bak_path)
+            except Exception:
+                pass
         os.replace(tmp_path, path)
     except Exception:
         if os.path.exists(tmp_path):
@@ -90,13 +100,28 @@ def _invalidate_boot_cache(tenant_id: str = "live"):
 # ── Dados (data.json) ─────────────────────────────────────────────────────────
 
 def load_data(tenant_id: str = "live") -> dict:
-    return load_json_safe(
-        tenant_path(tenant_id, "data.json"),
-        lambda: {
-            k: list(v) if isinstance(v, list) else dict(v) if isinstance(v, dict) else v
-            for k, v in DEFAULT_DATA.items()
-        },
-    )
+    path = tenant_path(tenant_id, "data.json")
+    default_fn = lambda: {
+        k: list(v) if isinstance(v, list) else dict(v) if isinstance(v, dict) else v
+        for k, v in DEFAULT_DATA.items()
+    }
+    if os.path.exists(path):
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            bak_path = path + ".bak"
+            if os.path.exists(bak_path):
+                try:
+                    with open(bak_path, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                    log.error("data.json corrompido — recuperado do backup .bak (%s snapshots preservados)",
+                              len(data.get("snapshots", [])))
+                    return data
+                except Exception:
+                    pass
+            log.error("data.json corrompido e sem backup válido — iniciando com dados vazios")
+    return default_fn()
 
 
 def save_data(data: dict, tenant_id: str = "live"):
