@@ -191,10 +191,31 @@ def resolve_sku_ids_for_lic(lic_id: str, addons: list, subscriptions: list) -> s
     return wanted
 
 
+DEFAULT_USAGE_LOCATION = "BR"
+
+
+def _ensure_usage_location(token: str, user_url: str, user_email: str) -> None:
+    patch_resp = http_requests.patch(
+        user_url,
+        headers={
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json",
+            **_GRAPH_LANG_HEADERS,
+        },
+        json={"usageLocation": DEFAULT_USAGE_LOCATION},
+        timeout=30,
+    )
+    if not patch_resp.ok:
+        log.error("Graph PATCH usageLocation %s falhou %s: %s",
+                  user_email, patch_resp.status_code, patch_resp.text[:500])
+    patch_resp.raise_for_status()
+    log.info("Graph usageLocation=%s aplicado em %s", DEFAULT_USAGE_LOCATION, user_email)
+
+
 def assign_license_for_user(token: str, user_email: str, target_sku_ids: set, managed_sku_ids: set) -> dict:
     user_url = f"https://graph.microsoft.com/v1.0/users/{user_email}"
     headers = {"Authorization": f"Bearer {token}", **_GRAPH_LANG_HEADERS}
-    resp = http_requests.get(user_url + "?$select=id,assignedLicenses", headers=headers, timeout=30)
+    resp = http_requests.get(user_url + "?$select=id,usageLocation,assignedLicenses", headers=headers, timeout=30)
     if not resp.ok:
         log.error("Graph GET user %s falhou %s: %s", user_email, resp.status_code, resp.text[:500])
     resp.raise_for_status()
@@ -205,6 +226,8 @@ def assign_license_for_user(token: str, user_email: str, target_sku_ids: set, ma
     remove = sorted(current_managed - target_sku_ids)
     if not add and not remove:
         return {"added": [], "removed": [], "noop": True}
+    if add and not user.get("usageLocation"):
+        _ensure_usage_location(token, user_url, user_email)
     payload = {
         "addLicenses": [{"skuId": sid, "disabledPlans": []} for sid in add],
         "removeLicenses": remove,
@@ -424,10 +447,17 @@ def resolve_hierarchy_server(setor, area, area_to_macro: dict, macro_set: set) -
 def do_graph_sync(cfg=None, tenant_id: str = "live") -> dict:
     global _sync_status
     status = _sync_status.setdefault(tenant_id, {"running": False, "lastSync": None, "lastError": None, "lastResult": None})
+    now_ts = time.time()
     if status["running"]:
-        return {"error": "Sync já em execução"}
+        started = status.get("startedAt")
+        if started and (now_ts - started) > 300:
+            log.warning("[sync] running=True há %.0fs — assumindo travado, resetando", now_ts - started)
+            status["running"] = False
+        else:
+            return {"error": "Sync já em execução"}
 
     status["running"] = True
+    status["startedAt"] = now_ts
     status["lastError"] = None
     start = time.time()
 
@@ -496,19 +526,26 @@ def do_graph_sync(cfg=None, tenant_id: str = "live") -> dict:
             })
 
         log.info("Montados %d registros de usuários", len(records))
+        t_step = time.time()
 
         if discovered_hierarchy:
             _update_hierarchy_from_discovery(tenant_id, discovered_hierarchy)
+        log.info("[sync] hierarchy_discovery em %.2fs", time.time() - t_step); t_step = time.time()
 
         for rec in records:
             rec["custo"] = compute_cost(rec["licId"], rec["addons"])
+        log.info("[sync] compute_cost em %.2fs", time.time() - t_step); t_step = time.time()
 
         data = load_data(tenant_id)
+        log.info("[sync] load_data em %.2fs", time.time() - t_step); t_step = time.time()
+
         _preserve_demissao_dates(records, data)
+        log.info("[sync] preserve_demissao em %.2fs", time.time() - t_step); t_step = time.time()
 
         with get_tenant_lock(tenant_id, "overrides"):
             ov = load_overrides(tenant_id).get("overrides", {})
         apply_overrides(records, ov)
+        log.info("[sync] overrides em %.2fs", time.time() - t_step); t_step = time.time()
 
         with get_tenant_lock(tenant_id, "hierarchy"):
             hier_data = load_json_safe(tenant_path(tenant_id, "hierarchy.json"), {"hierarchy": {}})
@@ -518,12 +555,15 @@ def do_graph_sync(cfg=None, tenant_id: str = "live") -> dict:
             macro, hier_area = resolve_hierarchy_server(rec["setor"], rec.get("area"), area_to_macro, macro_set)
             rec["macro"] = macro
             rec["hierArea"] = hier_area
+        log.info("[sync] resolve_hierarchy em %.2fs", time.time() - t_step); t_step = time.time()
 
         data["db"] = records
         _update_snapshot(data, records, now_iso)
         data["subscriptions"] = subscriptions
-        # data["usage"] mantém o valor anterior até o background thread atualizar
+        data["lastSync"] = now_iso
+        log.info("[sync] pre_save (aguardando data lock)"); t_step = time.time()
         save_data(data, tenant_id)
+        log.info("[sync] save_data em %.2fs", time.time() - t_step)
 
         elapsed = round(time.time() - start, 1)
         result = {
@@ -744,6 +784,17 @@ def _auto_sync_loop(tenant_id: str = "live"):
 def ensure_sync_thread(tenant_id: str = "live"):
     t = _sync_threads.get(tenant_id)
     if t is None or not t.is_alive():
+        try:
+            persisted_last = load_data(tenant_id).get("lastSync")
+        except Exception:
+            persisted_last = None
+        if persisted_last:
+            status = _sync_status.setdefault(
+                tenant_id,
+                {"running": False, "lastSync": None, "lastError": None, "lastResult": None},
+            )
+            if not status.get("lastSync"):
+                status["lastSync"] = persisted_last
         _sync_threads[tenant_id] = threading.Thread(
             target=_auto_sync_loop, args=(tenant_id,), daemon=True
         )

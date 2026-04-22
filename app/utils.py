@@ -25,7 +25,7 @@ def get_tenant_lock(tenant_id: str, name: str) -> threading.Lock:
     with _tenant_locks_meta:
         if tenant_id not in _tenant_locks:
             _tenant_locks[tenant_id] = {
-                k: threading.Lock()
+                k: threading.RLock()
                 for k in ("data", "changelog", "overrides", "hierarchy", "graph")
             }
         return _tenant_locks[tenant_id][name]
